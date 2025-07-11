@@ -19,6 +19,7 @@ These four options will show the info.
 When running a container, ruri needs to mount some directories on it.         
 And after running the container, you can use `-U` option to umount a container.          
 This option needs to be run with root(sudo).      
+Behavior note: This option will also kill all processes in the container.      
 WARNING: Always do `sudo ruri -U /path/to/container` before you removing the container.      
 ***********************************
 ```
@@ -60,7 +61,8 @@ or:
 ```
 ruri -c test.conf -k cap_sys_admin /bin/su root -
 ```      
-This will run container using test.conf.
+This will run container using test.conf.      
+Behavior note: The config file has a hard size limit of 64K, this behavior can only be changed by modifying the source code.      
 ***********************************************
 ```      
 -a, --arch [arch] ...........................: Simulate architecture via binfmt_misc/QEMU
@@ -127,7 +129,15 @@ For example, `-k cap_chown` have the same effect with `-k 0`.
 ```
 -e, --env [env] [value] .....................: Set environment variables to its value
 ```
-A very useless function, I hope it works.      
+Behavior note: ruri clears all environment variables before launching the container for security and consistency. Therefore, LD_PRELOAD and other environment-based injection methods will not work. Also, they will not work for ruri itself.      
+These environment variables will always be preset in the container, you can only use `-e` option to overwrite them:      
+```
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+TMPDIR=/tmp
+SHELL=sh
+container=ruri
+```
+
 *********************************************
 ```
 -m, --mount [dir/dev/img/file] [target] .....: Mount dir/block-device/image/file to target
