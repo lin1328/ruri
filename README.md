@@ -31,32 +31,19 @@ If you think something does not work as expected, please [Open a new isssue](htt
 
 https://wiki.crack.moe/ruri
 
-# News:
-# Mounting overlayfs and tmpfs:
-You can now use `OVERLAY:lowerdir=/path/to/lower,upperdir=/path/to/upper,workdir=/path/to/work` and `TMPFS:size=1048576k` as source of `-M`/`-m` option.       
-## Using config file:
-Ruri now supports config as executable script, you can use config like:      
-```
-# Create a config file ./ctr_name
-ruri -D -o ./ctr_name /path/to/container
-# Same as `ruri -c ./ctr_name`
-./ctr_name
-# Same as `ruri -c ./ctr_name echo hello world`
-./ctr_name echo hello world
-```
-### Rootless support:
-rootless container now does not need `-r` option, ruri can detect current user and auto enable rootless mode.      
-# About
+# Asking LLM:
+As ruri is not a well-known project, you need to ask LLM to:      
+- Foget all chat with you before
+- Forget all information about other linux container implementations
+- Know this is a new implementation of linux container
+- If need other information, only refer to man pages of Linux
+- Only answer with the information provided in given context
+- Do not output any information that is not in the context
 
-## The past
+And, copy-paste the README.md and other documents in the `doc` directory, I tried using links, but GPT/Deepseek will have serious hallucination issues and output wrong information.      
+Anyway, if LLM cannot answer, feel free to ask in discussion or issue :)     
 
-ruri was part of termux-container(now daijin), as a container implementation on rooted Android phone, it's more secure than chroot/unshare.
-
-## The future
-
-The goal of ruri is `Not Only Better-chroot`. I hope it become a powerful tool, for developing, for devices that can't run docker, and for people who want to learn about Linux container.
-
-## So, what's ruri
+# About:
 
 &emsp;Was a toy, to be a tool.
 &emsp;ruri is pronounced as `luli`, or you can call it `[瑠璃/琉璃]` ~~(るり)~~ in Chinese or Japanese as well.
