@@ -1,3 +1,5 @@
+# Note:
+BSD style usage is partially supported now, for example, you can use `-pW /root`, but `-W/root` is not allowed.    
 # Usage:
 ```
 ruri [OPTIONS]...
