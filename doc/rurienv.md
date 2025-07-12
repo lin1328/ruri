@@ -1,3 +1,4 @@
+>WARNING: This doc may be outdated.
 # About rurienv:
 .rurienv is a config file in container, to make it safe, it's immutable by default, and as container do not have cap_linux_immutable by default, you are not able to edit or remove it in container unless you use `-k cap_linux_immutable -k cap_sys_admin` or `-p` to run container, umount it and unset immutable bit for it.      
 It will record the following config:      

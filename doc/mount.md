@@ -38,7 +38,9 @@ Depending on the type of source, different mount strategies are applied:
       ```
       TMPFS:size=[size]
       ```
-      Mounts a tmpfs at the target with the given size (e.g., `TMPFS:size=100M`).
+      Mounts a tmpfs at the target with the given size (e.g., `TMPFS:size=100M`).  
+      Note: The size can be specified in bytes, kilobytes (K), megabytes (M), or gigabytes (G).  
+      `TMPFS:` without size defaults to kernel behavior.  
 
     - **overlayfs**  
       Specify with format:  
