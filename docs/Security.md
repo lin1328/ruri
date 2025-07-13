@@ -6,11 +6,11 @@ Here are several ways to enhance the security of ruri container, kindly read thi
 
 ### Run rootless container
 
-If your device supports user ns, you can install uidmap and use `-r` option with common user, so that you can avoid using root privileges to run the container.
+If your device supports user ns, you can install uidmap and use `-r` option with non-privileged user, so that you can avoid using root privileges to run the container.
 
-### Run command in container with common user
+### Run command in container with non-privileged user
 
-If you can not run rootless container, there's another choice, add a common user in your container and use `-E username` to run command as common user instead root.
+If you can not run rootless container, there's another choice, add a non-privileged user in your container and use `-E username` to run command as non-privileged user instead root.
 If you don't need any privileges, it's better to enable no_new_privs at the same time.
 
 ### Hidepid
@@ -55,7 +55,7 @@ For example: `-X unshare -X chroot`.
 
 ### No new privs
 
-Ruri supports enable no_new_privs bit by `-n` option, after enabling this, command like `sudo` will be unavailable for common user.
+Ruri supports enable no_new_privs bit by `-n` option, after enabling this, command like `sudo` will be unavailable for non-privileged user.
 
 ### Mount / as read-only
 

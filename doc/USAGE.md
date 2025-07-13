@@ -47,8 +47,8 @@ Try to correct an incomplete config file.
 ## Arguments
 
 By default, ruri containers should be run with `sudo` for root privileges.  
-However, in recent versions, you can also run ruri as a common user—there's no need to use the `-r` (rootless) option anymore.  
-ruri will automatically detect whether it is running as root or as a common user.
+However, in recent versions, you can also run ruri as a non-privileged user—there's no need to use the `-r` (rootless) option anymore.  
+ruri will automatically detect whether it is running as root or as a non-privileged user.
 
 ---
 
@@ -160,7 +160,7 @@ For more details, see the man pages: `unshare(1)`, `unshare(2)`, and `namespaces
 |--------|-------------|
 | `-n`, `--no-new-privs` | Set NO_NEW_PRIVS flag |
 
-This argument will set NO_NEW_PRIVS; commands like `sudo` will be unavailable for common users.  
+This argument will set NO_NEW_PRIVS; commands like `sudo` will be unavailable for non-privileged users.  
 For more info, refer to the man page of `prctl(2)` and `PR_SET_NO_NEW_PRIVS`.
 
 ---
@@ -208,11 +208,11 @@ For more info, refer to the man page of `capabilities(7)`.
 |--------|-------------|
 | `-r`, `--rootless` | Run rootless container |
 
-This option should be run as a common user, so you can run a rootless container with user namespaces.  
+This option should be run as a non-privileged user, so you can run a rootless container with user namespaces.  
 This option requires the `uidmap` package and user namespace support.  
 Remember to set up `/etc/subuid` and `/etc/subgid` before running a rootless container.  
-Note: This option needs user namespace support, and the kernel must allow creating user namespaces with common users.  
-**NOTE:** This option is already deprecated; you can just run ruri as a common user now, and it will automatically detect if it's rootless or not.  
+Note: This option needs user namespace support, and the kernel must allow creating user namespaces with non-privileged users.  
+**NOTE:** This option is already deprecated; you can just run ruri as a non-privileged user now, and it will automatically detect if it's rootless or not.  
 For more info, refer to the man page of `user_namespaces(7)` and `unshare(2)`.
 
 ---
@@ -350,7 +350,7 @@ Note: This option will downgrade the security of the container, so use it with c
 |--------|-------------|
 | `-E`, `--user [user/uid]` | Set the user to run the command in the container. |
 
-You can use this option to switch to a common user before `exec(3)`.  
+You can use this option to switch to a non-privileged user before `exec(3)`.  
 **Behavior note:** This option will parse user info from `/etc/passwd` in the container, so you need to make sure the user exists in the container. Also, make sure that your container is secure so the user cannot modify the `/etc/passwd` file.
 
 ---

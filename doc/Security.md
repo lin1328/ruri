@@ -2,9 +2,9 @@
 Here are several ways to enhance the security of ruri container, kindly read this document before using ruri.      
 ## Regular:
 ### Run rootless container:
-If your device supports user ns, you can install uidmap and use `-r` option with common user, so that you can avoid using root privileges to run the container.      
-### Run command in container with common user:
-If you can not run rootless container, there's another choice, add a common user in your container and use `-E username` to run command as common user instead root.      
+If your device supports user ns, you can install uidmap and use `-r` option with non-privileged user, so that you can avoid using root privileges to run the container.      
+### Run command in container with non-privileged user:
+If you can not run rootless container, there's another choice, add a non-privileged user in your container and use `-E username` to run command as non-privileged user instead root.      
 If you don't need any privileges, it's better to enable no_new_privs at the same time.      
 ### Hidepid:
 ruri supports hidepid options for /proc, use `-i 1/2` to enable it.      
@@ -29,7 +29,7 @@ If you just want to deny a syscall, you can use `-X` option, this will just set 
 For example: `-X unshare -X chroot`.       
 ## Radical:
 ### No new privs:
-Ruri supports enable no_new_privs bit by `-n` option, after enabling this, command like `sudo` will be unavailable for common user.      
+Ruri supports enable no_new_privs bit by `-n` option, after enabling this, command like `sudo` will be unavailable for non-privileged user.      
 ### Mount / as read-only:
 Ruri supports mounting the rootfs of container as read-only by using `-R` option, this will make all the container read-only.      
 ### Do not create runtime dirs:

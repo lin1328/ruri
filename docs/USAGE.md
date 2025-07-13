@@ -126,7 +126,7 @@ Note: This option need kernel support for namespaces, it will try to enable supp
 -n, --no-new-privs ..........................: Set NO_NEW_PRIVS flag
 ```
 
-This argument will set NO_NEW_PRIVS, commands like `sudo` will be unavailable for common user.
+This argument will set NO_NEW_PRIVS, commands like `sudo` will be unavailable for non-privileged user.
 
 ---
 
@@ -168,9 +168,9 @@ This argument will give all capabilities to container, but you can also use `-d`
 -r, --rootless ..............................: Run rootless container
 ```
 
-This option should be run with common user, so you can run rootless container with user ns.
+This option should be run with non-privileged user, so you can run rootless container with user ns.
 This option require `uidmap` package and user namespace support.
-Note: This option need user ns support, and need kernel to allow create user ns with common user.
+Note: This option need user ns support, and need kernel to allow create user ns with non-privileged user.
 
 ---
 
@@ -297,7 +297,7 @@ ruri will protect some files/dirs in /proc and /sys by default, use -A to disabl
 -E, --user ...................................: Set the user to run command in the container.
 ```
 
-You can use this option to switch to a common user before exec(3).
+You can use this option to switch to a non-privileged user before exec(3).
 
 ---
 
