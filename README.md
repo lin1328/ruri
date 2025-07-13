@@ -26,17 +26,7 @@ If you think something does not work as expected, please [open a new isssue](htt
 https://wiki.crack.moe/ruri
 
 # Asking LLM:
-It's recommended to use LLM that can access the full source code, I tried Deepwiki, it works well, though with some minor mistakes.      
-As ruri is not a well-known project, you need to ask LLM to:      
-- Forget all chat with you before
-- Forget all information about other linux container implementations
-- Know this is a new implementation of linux container
-- If need other information, only refer to man pages of Linux
-- Only answer with the information provided in given context
-- Do not output any information that is not in the context
-
-And, copy-paste or upload the README.md and other documents in the `doc` director to LLM, I tried using links, but GPT/Deepseek all will have serious hallucination issues and output wrong information.      
-Anyway, if LLM cannot answer, feel free to ask the developer in discussion or issue :)     
+See [Asking LLM](doc/askllm.md) for how to ask LLM about ruri.
 
 # About:
 
