@@ -122,8 +122,13 @@ If you want to change the container config, just use -U to umount it and re-run 
 ```
 sudo ruri /tmp/alpine
 ```
-
-For unshare container
+## Setup dns:
+In container:    
+```shell
+rm test/etc/resolv.conf
+echo nameserver 1.1.1.1|tee test/etc/resolv.conf
+```
+## For unshare container
 
 ```
 sudo ruri -u /tmp/alpine
