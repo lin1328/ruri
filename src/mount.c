@@ -219,12 +219,64 @@ static int touch_mountpoint_file(const char *_Nonnull target)
 	}
 	return 0;
 }
+static int mount_as_filesystem(const char *_Nonnull source, const char *_Nonnull target, const char *_Nonnull fstype, unsigned int mountflags)
+{
+	/*
+	 * Mounts a filesystem at target with the given source and fstype.
+	 * This function is used to mount filesystems like ext4, vfat, ntfs, etc.
+	 *
+	 * Parameters:
+	 *   - source:     The source string (e.g., "/dev/sda1").
+	 *   - target:     The target directory where the filesystem will be mounted.
+	 *   - fstype:     The type of filesystem (e.g., "ext4", "vfat", "ntfs").
+	 *   - mountflags: Mount flags to be used in the mount operation.
+	 *
+	 * Returns:
+	 *   - 0 on success.
+	 *   - -1 on failure.
+	 */
+	struct stat dev_stat;
+	// Check if source exists.
+	if (lstat(source, &dev_stat) != 0) {
+		ruri_warning("{red}Error: {base}Source {cyan}%s{base} does not exist.\n", source);
+		return -1;
+	}
+	ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with fstype {cyan}%s{base} and flags {cyan}%d{base}\n", source, target, fstype, mountflags);
+	// If source is not a block device, losetup it.
+	if (!S_ISBLK(dev_stat.st_mode)) {
+		char *loopfile = losetup(source);
+		if (loopfile == NULL) {
+			return -1;
+		}
+		source = loopfile;
+	}
+	return mount(source, target, fstype, mountflags, NULL);
+}
 static int mount_other_type(const char *_Nonnull source, const char *_Nonnull target, unsigned int mountflags)
 {
 	/*
+	 * Mounts various types of filesystems based on the prefix of the source string.
 	 *
-	 * This function is used to mount other type of mountpoints.
+	 * Supported source prefixes and their corresponding filesystems:
+	 *   - "OVERLAY:" : Mounts an OverlayFS at the target using the provided options.
+	 *   - "TMPFS:"   : Mounts a tmpfs at the target using the provided options.
+	 *   - "EXT4:"    : Mounts an ext4 filesystem at the target.
+	 *   - "FAT32:"   : Mounts a FAT32 (vfat) filesystem at the target.
+	 *   - "NTFS:"    : Mounts an NTFS filesystem at the target.
+	 *   - "XFS:"     : Mounts an XFS filesystem at the target.
+	 *   - "BTRFS:"   : Mounts a Btrfs filesystem at the target.
+	 *   - "EXFAT:"   : Mounts an exFAT filesystem at the target.
+	 *   - "F2FS:"    : Mounts an F2FS filesystem at the target.
+	 *   - "EROFS:"   : Mounts an EROFS filesystem at the target.
 	 *
+	 * Parameters:
+	 *   - source:     The source string with a filesystem type prefix (e.g., "EXT4:/dev/sda1").
+	 *   - target:     The target directory where the filesystem will be mounted.
+	 *   - mountflags: Mount flags to be used in the mount operation.
+	 *
+	 * Returns:
+	 *   - 0 on success.
+	 *   - -1 on failure or if the source type is unsupported.
 	 */
 	if (strncmp(source, "OVERLAY:", strlen("OVERLAY:")) == 0) {
 		// OverlayFS mount.
@@ -246,6 +298,94 @@ static int mount_other_type(const char *_Nonnull source, const char *_Nonnull ta
 		char *tmpfs_flag = strdup(source + strlen("TMPFS:"));
 		int ret = mount("tmpfs", target, "tmpfs", mountflags, tmpfs_flag);
 		free(tmpfs_flag);
+		return ret;
+	}
+	if (strncmp(source, "EXT4:", strlen("EXT4:")) == 0) {
+		// Ext4 mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *ext4_source = strdup(source + strlen("EXT4:"));
+		int ret = mount_as_filesystem(ext4_source, target, "ext4", mountflags);
+		free(ext4_source);
+		return ret;
+	}
+	if (strncmp(source, "FAT32:", strlen("FAT32:")) == 0) {
+		// FAT32 mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *fat32_source = strdup(source + strlen("FAT32:"));
+		int ret = mount_as_filesystem(fat32_source, target, "vfat", mountflags);
+		free(fat32_source);
+		return ret;
+	}
+	if (strncmp(source, "NTFS:", strlen("NTFS:")) == 0) {
+		// NTFS mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *ntfs_source = strdup(source + strlen("NTFS:"));
+		int ret = mount_as_filesystem(ntfs_source, target, "ntfs", mountflags);
+		free(ntfs_source);
+		return ret;
+	}
+	if (strncmp(source, "XFS:", strlen("XFS:")) == 0) {
+		// XFS mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *xfs_source = strdup(source + strlen("XFS:"));
+		int ret = mount_as_filesystem(xfs_source, target, "xfs", mountflags);
+		free(xfs_source);
+		return ret;
+	}
+	if (strncmp(source, "BTRFS:", strlen("BTRFS:")) == 0) {
+		// BTRFS mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *btrfs_source = strdup(source + strlen("BTRFS:"));
+		int ret = mount_as_filesystem(btrfs_source, target, "btrfs", mountflags);
+		free(btrfs_source);
+		return ret;
+	}
+	if (strncmp(source, "EXFAT:", strlen("EXFAT:")) == 0) {
+		// ExFAT mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *exfat_source = strdup(source + strlen("EXFAT:"));
+		int ret = mount_as_filesystem(exfat_source, target, "exfat", mountflags);
+		free(exfat_source);
+		return ret;
+	}
+	if (strncmp(source, "F2FS:", strlen("F2FS:")) == 0) {
+		// F2FS mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *f2fs_source = strdup(source + strlen("F2FS:"));
+		int ret = mount_as_filesystem(f2fs_source, target, "f2fs", mountflags);
+		free(f2fs_source);
+		return ret;
+	}
+	if (strncmp(source, "EROFS:", strlen("EROFS:")) == 0) {
+		// EROFS mount.
+		ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with flags {cyan}%d{base}\n", source, target, mountflags);
+		if (mk_mountpoint_dir(target) != 0) {
+			return -1;
+		}
+		char *erofs_source = strdup(source + strlen("EROFS:"));
+		int ret = mount_as_filesystem(erofs_source, target, "erofs", mountflags);
+		free(erofs_source);
 		return ret;
 	}
 	// For source that cannot be mounted.

@@ -48,7 +48,23 @@ Depending on the type of source, different mount strategies are applied:
       OVERLAY:lowerdir=/path/to/lower,upperdir=/path/to/upper,workdir=/path/to/work
       ```
       Mounts an overlay filesystem at the target using the specified options.
+    - **filesystem**  
+      - **EXT4:** Mounts an ext4 filesystem at the target.
+      - **FAT32:** Mounts a FAT32 (vfat) filesystem at the target.
+      - **NTFS:** Mounts an NTFS filesystem at the target.
+      - **XFS:** Mounts an XFS filesystem at the target.
+      - **BTRFS:** Mounts a Btrfs filesystem at the target.
+      - **EXFAT:** Mounts an exFAT filesystem at the target.
+      - **F2FS:** Mounts an F2FS filesystem at the target.
+      - **EROFS:** Mounts an EROFS filesystem at the target.
 
+      **Example:**
+        ```
+        -m EXT4:/dev/sdb1 /mnt/data
+        ```
+        This mounts `/dev/sdb1` as an ext4 filesystem at `/mnt/data`.
+## Behavior:
+For image files and block devices, if the filesystem type is not specified in prefix, ruri will attempt to auto-detect the filesystem type by trying all `nodev` filesystems in your `/proc/filesystems`.  
 ## Mount Flags
 
 Mount flags can be set using prefixes in the source string. Prefixes are colon-separated.
