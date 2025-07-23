@@ -81,32 +81,32 @@ This will automatically download ruri binary to `./ruri`.
 
 # Usage
 
-See [USAGE](docs/USAGE.md) to explore all features of ruri.
+See [USAGE](doc/USAGE.md) to explore all features of ruri.
 
 # Container Security
 
-See [Enhance Container Security](docs/Security.md).
+See [Enhance Container Security](doc/Security.md).
 
 # Build Manually
 
-Ruri provides statically linked binary, but if you want to build it yourself, see [Build](docs/Build.md).
+Ruri provides statically linked binary, but if you want to build it yourself, see [Build](doc/Build.md).
 
 # Integration
 
 ruri is ready to integrate into other projects, with the MIT License, it is compatiblte to be redistribute with almost all license, or commercial/closed source.
 An example is ruri's own build action , it runs containers for 9 different architectures to build itself, that shows its broad application prospects.
 Another example is [rurima](https://github.com/Moe-hacker/rurima), I made ruri built-in for it, so it can be run as a subcommand.
-See [Integration](docs/Integration.md) for a guide to integrate ruri into your projects.
+See [Integration](doc/Integration.md) for a guide to integrate ruri into your projects.
 
 # Behavior of rurienv
 
-After initing the container, ruri will create a file /.rurienv by default, this config can unify container config, but it will also cover some of the command-line args, you can use `--no-rurienv` to disable it, or see [rurienv.md](docs/rurienv.md) to see its behavior.
+After initing the container, ruri will create a file /.rurienv by default, this config can unify container config, but it will also cover some of the command-line args, you can use `--no-rurienv` to disable it, or see [rurienv.md](doc/rurienv.md) to see its behavior.
 You might cannot remove this file unless you run `chattr -i .rurienv`, but don't worry, after umounting conainer by `ruri -U`, this config file will be removed automatically.
 If you want to change the container config, just use -U to umount it and re-run the container.
 
 # FAQ
 
-[FAQ](docs/FAQ.md)
+[FAQ](doc/FAQ.md)
 
 # Quick start(with rurima)
 
