@@ -714,9 +714,11 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	// Hide pid.
 	hidepid(container->hidepid);
 	// Fix /etc/mtab.
-	remove("/etc/mtab");
-	unlink("/etc/mtab");
-	symlink("/proc/mounts", "/etc/mtab");
+	if (!container->just_chroot) {
+		remove("/etc/mtab");
+		unlink("/etc/mtab");
+		symlink("/proc/mounts", "/etc/mtab");
+	}
 	// Setup binfmt_misc.
 	if (container->cross_arch != NULL) {
 		setup_binfmt_misc(container);
@@ -826,9 +828,11 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 		}
 	}
 	// Fix /etc/mtab.
-	remove("/etc/mtab");
-	unlink("/etc/mtab");
-	symlink("/proc/mounts", "/etc/mtab");
+	if (!container->just_chroot) {
+		remove("/etc/mtab");
+		unlink("/etc/mtab");
+		symlink("/proc/mounts", "/etc/mtab");
+	}
 	// Hide pid.
 	hidepid(container->hidepid);
 	// Setup binfmt_misc.
