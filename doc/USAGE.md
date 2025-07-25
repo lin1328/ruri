@@ -130,7 +130,7 @@ But remember not to use this feature to simulate the host architecture.
 
 > **Note:** This option requires kernel support for `binfmt_misc`. The QEMU binary must be statically linked or include all required dependencies within the container.
 >
-> **Behavior:** If the specified QEMU binary is outside the container, ruri will automatically copy it to `/qemu-ruri` inside the container.
+> **Behavior:** If the specified QEMU binary is outside the container, ruri will automatically copy it to `/qemu-ruri` inside the container. And, ruri will always copy the QEMU binary to the container, even if it already exists.
 >
 > **Experimental:** This feature is experimental and may not work as expected. Please report any issues you encounter.
 >
