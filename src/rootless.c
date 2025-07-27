@@ -139,6 +139,22 @@ static void init_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	symlink("/dev/null", "./dev/tty0");
 	mkdir("./dev/pts", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("devpts", "./dev/pts", "devpts", MS_NODEV | MS_NOSUID | MS_NOEXEC, "mode=620,ptmxmode=666");
+	// Mount other char devices.
+	if (container->char_devs[0] != NULL) {
+		for (int i = 0; true; i += 3) {
+			if (container->char_devs[i] == NULL) {
+				break;
+			}
+			ruri_mkdirs(container->char_devs[i], 0666);
+			rmdir(container->char_devs[i]);
+			char host_dev[PATH_MAX] = { '\0' };
+			sprintf(host_dev, "/dev/%s", container->char_devs[i]);
+			char container_dev[PATH_MAX] = { '\0' };
+			sprintf(container_dev, "./dev/%s", container->char_devs[i]);
+			close(open(container_dev, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP));
+			mount(host_dev, container_dev, NULL, MS_BIND, NULL);
+		}
+	}
 	char *devshm_options = NULL;
 	if (container->memory == NULL) {
 		devshm_options = strdup("mode=1777");

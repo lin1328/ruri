@@ -391,6 +391,8 @@ Add a character device to the container, for example `-I kvm 10 232` or `-I dri/
 Note: For security reasons, creating block devices is not supported. You can use the `-m` option to mount a block device into the container instead.  
 **Behavior note:** This option will create a character device in the `/dev/` directory of the container; no need to add the `/dev/` prefix.
 
+**Behavior note:** For rootless containers, this option will bind-mount the character device from the host to the container. And it will not do mknod(2) in the container because it is not allowed for non-privileged users.
+
 ---
 
 | Option | Description |
