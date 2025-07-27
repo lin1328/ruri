@@ -176,6 +176,12 @@ char *k2v_open_file(const char *_Nonnull path, size_t bufsize)
 		return NULL;
 	}
 	ssize_t len = read(fd, ret, bufsize);
+	if (len < 0) {
+		free(ret);
+		close(fd);
+		warning("\033[31mRead file %s failed\n\033[0m", path);
+		return NULL;
+	}
 	ret[len] = '\0';
 	if (len != strlen(ret)) {
 		warning("\033[31m \\0 is not the end of file\n");

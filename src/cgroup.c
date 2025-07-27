@@ -123,6 +123,13 @@ static bool is_cgroupv2_support(const char *_Nonnull type)
 	char buf[256] = { '\0' };
 	ssize_t len = read(fd, buf, 255);
 	if (len <= 0) {
+		close(fd);
+		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
+		ruri_log("{base}Cgroup v2 does not support %s\n", type);
+		ruri_log("{base}cgroup.controllers read failed\n");
+		return false;
+	}
+	if (len <= 0) {
 		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
 		ruri_log("{base}Cgroup v2 does not support %s\n", type);
 		ruri_log("{base}cgroup.controllers read failed\n");
