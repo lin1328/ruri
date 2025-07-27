@@ -106,6 +106,7 @@ static void init_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	 * as we don't have the permission to mount sysfs and mknod(2),
 	 * we need to bind-mount some dirs/files from host.
 	 */
+	mount(container->container_dir, container->container_dir, NULL, MS_BIND | MS_REC, NULL);
 	chdir(container->container_dir);
 	mkdir("./sys", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("/sys", "./sys", NULL, MS_BIND | MS_REC, NULL);

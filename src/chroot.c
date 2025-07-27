@@ -399,7 +399,7 @@ static void mount_mountpoints(const struct RURI_CONTAINER *_Nonnull container)
 	 */
 	if (!container->rootless && (container->rootfs_source == NULL)) {
 		// '/' should be a mountpoint in container.
-		mount(container->container_dir, container->container_dir, NULL, MS_BIND, NULL);
+		mount(container->container_dir, container->container_dir, NULL, MS_BIND | MS_REC, NULL);
 	}
 	char *mountpoint_dir = NULL;
 	// Mount extra_mountpoint.
@@ -425,6 +425,10 @@ static void mount_mountpoints(const struct RURI_CONTAINER *_Nonnull container)
 		strcat(mountpoint_dir, container->extra_ro_mountpoint[i + 1]);
 		ruri_trymount(container->extra_ro_mountpoint[i], mountpoint_dir, MS_RDONLY);
 		free(mountpoint_dir);
+	}
+	// If rootfs_source is not empty, we bind mount it now.
+	if (container->rootfs_source != NULL) {
+		mount(container->container_dir, container->container_dir, NULL, MS_BIND | MS_REC, NULL);
 	}
 }
 // Copy qemu static binary.
