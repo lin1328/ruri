@@ -6,6 +6,10 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14021121.svg)](https://doi.org/10.5281/zenodo.14021121)
 
+# Important Notice:
+It's fully recommended to drop CAP_SYS_CHROOT or enable unshare, chroot container without these options is not secure at all!
+
+
 # The upcoming v3.9:
 The feature is stable now, but we are still working on the documentation and code stabilization.
 
