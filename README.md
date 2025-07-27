@@ -9,6 +9,8 @@
 # Important Notice:
 It's fully recommended to drop CAP_SYS_CHROOT or enable unshare, chroot container without these options is not secure at all!
 
+*Update: Considering the security issues of chroot, ruri will drop CAP_SYS_CHROOT by default now  
+If you got any issues with this, please report.
 
 # The upcoming v3.9:
 The feature is stable now, but we are still working on the documentation and code stabilization.
