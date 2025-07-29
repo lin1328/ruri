@@ -51,7 +51,7 @@ void ruri_show_version_info(void)
 	cprintf("{base}            Licensed under the MIT License\n");
 	cprintf("{base}              <https://mit-license.org>\n");
 	cprintf("{base}         Copyright (C) 2022-2024 Moe-hacker\n\n");
-	cprintf("{base}%s%s%s", "ruri version .....:  ", RURI_VERSION, "\n");
+	cprintf("{base}%s%d.%d.%d%s", "ruri version .....:  ", RURI_VERSION_MAJOR, RURI_VERSION_MINOR, RURI_VERSION_PATCH, "\n");
 #if defined(RURI_COMMIT_ID)
 	cprintf("{base}%s%s%s", "ruri commit id ...:  ", RURI_COMMIT_ID, "\n");
 #endif
@@ -81,7 +81,7 @@ void ruri_show_version_code(void)
 	 * so in fact it's very useless.
 	 * Maybe it can be useful one day...
 	 */
-	cprintf("%s\n", RURI_VERSION);
+	printf("%d.%d.%d\n", RURI_VERSION_MAJOR, RURI_VERSION_MINOR, RURI_VERSION_PATCH);
 }
 // For `ruri -h`.
 void ruri_show_helps(void)

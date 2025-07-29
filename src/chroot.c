@@ -641,6 +641,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	// Ignore SIGTTIN, if we are running in the background, SIGTTIN may kill this process.
 	// This code is wrote when ruri had a daemon process,
 	// now even the daemon mode is removed, I still keep this code here.
+	// TODO: Add a way to disable this behavior.
 	sigset_t sigs;
 	sigemptyset(&sigs);
 	sigaddset(&sigs, SIGTTIN);
@@ -786,6 +787,7 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	 * This function is modified from ruri_run_chroot_container().
 	 */
 	// Ignore SIGTTIN, if we are running in the background, SIGTTIN may kill this process.
+	// TODO: Add a way to disable this behavior.
 	sigset_t sigs;
 	sigemptyset(&sigs);
 	sigaddset(&sigs, SIGTTIN);

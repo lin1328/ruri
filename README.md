@@ -12,17 +12,6 @@ It's fully recommended to drop CAP_SYS_CHROOT or enable unshare, chroot containe
 *Update: Considering the security issues of chroot, ruri will drop CAP_SYS_CHROOT by default now  
 If you got any issues with this, please report.
 
-# The upcoming v3.9:
-The feature is stable now, but we are still working on the documentation and code stabilization.
-
-This version will be released with a complete behavior specification, all future versions will not introduce any breaking changes, the backward compatibility will be guaranteed.
-
-v3.9 will be the last development version of ruri, we are planning to fully freeze the features in v4.x, so there will not be any new features after v4.x, but only bug fixes and security updates.
-
-Although ruri is not a fully tested and trusted tool, we will try to make it as stable as possible, we will always revamp, until reach ideal.
-
-If you have any feature requests, please open an issue, we will consider adding it after v3.9 is released.
-
 # WARNING
 
 For production, I fully recommand you to use tools like [crun](https://github.com/containers/crun), [youki](https://github.com/youki-dev/youki), [containerd](https://containerd.io/), [docker](https://www.docker.com/), [podman](https://podman.io/), [LXC](https://linuxcontainers.org/), [bubblewrap](https://github.com/containers/bubblewrap), they are more secure and stable. This is a non-OCI tool and, you take your own risk using it when you really need. The whole project is experimental!
