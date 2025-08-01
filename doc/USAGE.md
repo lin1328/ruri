@@ -425,6 +425,9 @@ This option is isolated from the built-in seccomp profile, so using this option 
 Note: This option is experimental and may not work as expected. Report issues if you find any bugs.  
 For more info, refer to the man page of `seccomp(2)`, `prctl(2)`, and `seccomp(3)`.
 
+**Note:** For the newest version, you can use ERRNO:syscall to set the action for the syscall.
+For example, if you want to set `SCMP_ACT_ERRNO(EPERM)` for the `open` syscall, you can use `EPERM:open` as the argument. And, `ERRNO:` is a special prefix means `SCMP_ACT_ERRNO(0)`. For ERRNO, refer to the `errno(3)` man page.
+
 ---
 
 | Option | Description |
