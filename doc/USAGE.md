@@ -436,3 +436,9 @@ For example, if you want to set `SCMP_ACT_ERRNO(EPERM)` for the `open` syscall, 
 
 Set `oom_score_adj`. Note that using a negative value is dangerous. For negative values, it will not work with rootless containers.  
 For more info, refer to the man page of `proc_pid_oom_score_adj(5)`.
+
+---
+| Option | Description |
+|--------|-------------|
+| `-Q`, `--mask-path [path]` | Mask a path in the container |
+This option allows you to mask a path in the container with a read-only tmpfs or `/dev/null`.
