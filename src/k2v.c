@@ -857,6 +857,31 @@ static char *k2v_auto_tidy(const char *_Nonnull buf)
 	free(tmp);
 	return ret;
 }
+char* k2v__append_and_free(char* old_buf, char* new_part)
+{
+    if (!new_part) {
+        free(old_buf);
+        return NULL;
+    }
+
+    size_t old_len = old_buf ? strlen(old_buf) : 0;
+    size_t new_len = strlen(new_part);
+    char* result = malloc(old_len + new_len + 1);
+    if (!result) {
+        free(old_buf);
+        free(new_part);
+        return NULL;
+    }
+
+    if (old_buf) {
+        memcpy(result, old_buf, old_len);
+    }
+    memcpy(result + old_len, new_part, new_len + 1);
+
+    free(old_buf);
+    free(new_part);
+    return result;
+}
 static void __k2v_check_singularity(const char *_Nonnull buf)
 {
 	char **keys = NULL;
