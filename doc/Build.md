@@ -11,11 +11,10 @@ for help, see `./a.out -h`.
 ```
 git clone https://github.com/Moe-hacker/ruri
 cd ruri
-aclocal
-autoconf
+autoreconf -fi
 ./configure --enable-static
 make
-sudo cp ruri /usr/bin/ruri
+make install
 ```
 ## NOTE:
 The test script has a part that must be run with `sudo`, `DO NOT` run `make test` on your devices!!!!      
@@ -26,6 +25,7 @@ The test script has a part that must be run with `sudo`, `DO NOT` run `make test
   --disable-libseccomp    Disable libseccomp support
   --disable-rurienv       Disable .rurienv support
   --enable-static         Enable static build
+  --enable-static-pie     Enable static-pie build
   --enable-debug          Enable debug log
   --enable-dev            Enable dev build
 ```
@@ -41,15 +41,15 @@ make install
 ```
 ## Build options in CMake:
 ```
-  -DBUILD_LIB=on             Compile to shared library
-  -DDISABLE_LIBCAP=on        Disable libcap support
-  -DDISABLE_LIBSECCOMP=on    Disable libseccomp support
-  -DDISABLE_RURIENV=on       Disable .rurienv support
-  -DENABLE_STATIC=on         Enable static build
-  -DENABLE_DEBUG=on          Enable debug log
+  -DSTRIP_DEBUGINFO=ON       Debug symbols are stripped by default
+  -DDISABLE_LIBCAP=ON        Disable libcap support
+  -DDISABLE_LIBSECCOMP=ON    Disable libseccomp support
+  -DDISABLE_RURIENV=ON       Disable .rurienv support
+  -DENABLE_STATIC=ON         Enable static build
+  -DCMAKE_BUILD_TYPE=Debug   Enable debug log
 ```
 Note:
--  -DENABLE_DEBUG=on is equivalent to the traditional build options --enable-dev plus --enable-debug
+-  -DENABLE_DEBUG=ON is equivalent to the traditional build options --enable-dev plus --enable-debug
 - When DISABLE_RURIENV and DISABLE_LIBSECCOMP and DISABLE_LIBCAP are enabled at the same time, it is equivalent to --enable-coreonly in the traditional build process
 
 ## Other target in CMake while configuration complete:

@@ -18,7 +18,7 @@ done
 
 mkdir output output2 output3
 
-git clone --depth 1 https://github.com/moe-hacker/ruri.git
+git clone --depth 1 https://github.com/RuriOSS/ruri.git
 cd ruri
 cc build.c -o build-ruri
 ./build-ruri -s -f
