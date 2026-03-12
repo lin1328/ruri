@@ -616,6 +616,10 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 	int ngroups = getgroups(0, NULL);
 	if (ngroups > 0) {
 		gid_t *groups = malloc((size_t)ngroups * sizeof(gid_t));
+		if (groups == NULL) {
+			ruri_warning("{yellow}Warning: malloc failed when allocating supplementary groups\n");
+		return;
+		}
 		getgroups(ngroups, groups);
 		for (int i = 0; i < ngroups; i++) {
 			ruri_log("{base}%d \n", groups[i]);
