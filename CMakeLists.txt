@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18...3.31 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18)
 
 # Must be set before project() so CMake picks up the launcher during compiler init
 find_program(CCACHE_PROGRAM ccache)
