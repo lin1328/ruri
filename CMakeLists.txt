@@ -280,7 +280,7 @@ add_custom_target(
 
 add_custom_target(
     format
-    COMMAND clang-format -i ${SOURCES} ${CMAKE_SOURCE_DIR}/include/*.h
+    COMMAND clang-format -i ${SOURCES} ${CMAKE_SOURCE_DIR}/src/include/*.h
     COMMENT "Formatting source code with clang-format"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
