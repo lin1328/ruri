@@ -9,7 +9,6 @@ on:
       - 'build/**'
       - 'test/**'
       - 'configure.ac'
-      - 'Makefile'
   pull_request:
 
 jobs:
@@ -24,10 +23,9 @@ jobs:
         run: |
           sudo apt update && sudo apt install -y git wget
           sudo apt install --no-install-recommends -y curl xz-utils \
-          make \
-          clang \
-          libseccomp-dev \
-          libcap-dev \
-          libc6-dev \
-          binutils qemu-user-static uidmap
-          make -C test
+            autoconf automake libtool make gcc \
+            libseccomp-dev libcap-dev libc6-dev \
+            binutils qemu-user-static uidmap
+
+          autoreconf -fi && ./configure
+          make test

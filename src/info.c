@@ -50,15 +50,15 @@ void ruri_show_version_info(void)
 	cprintf("{base}             Revamp, Until Reach the Ideal\n");
 	cprintf("{base}            Licensed under the MIT License\n");
 	cprintf("{base}              <https://mit-license.org>\n");
-	cprintf("{base}         Copyright (C) 2022-2024 Moe-hacker\n\n");
-	cprintf("{base}%s%d.%d.%d%s", "ruri version .....:  ", RURI_VERSION_MAJOR, RURI_VERSION_MINOR, RURI_VERSION_PATCH, "\n");
+	cprintf("{base}         Copyright (C) 2022-2026 Moe-hacker\n\n");
+	cprintf("{base}%s%d.%d.%d%s", "Version ..........:  ", RURI_VERSION_MAJOR, RURI_VERSION_MINOR, RURI_VERSION_PATCH, "\n");
 #if defined(RURI_COMMIT_ID)
-	cprintf("{base}%s%s%s", "ruri commit id ...:  ", RURI_COMMIT_ID, "\n");
+	cprintf("{base}%s%s%s", "Commit hash ......:  ", RURI_COMMIT_ID, "\n");
 #endif
 	cprintf("{base}%s%s%s", "Architecture .....:  ", RURI_HOST_ARCH, "\n");
 	struct stat st;
 	if (stat("/proc/self/exe", &st) == 0) {
-		cprintf(_Generic((off_t)0, long: "{base}Binary size ......:  %ldK\n", long long: "{base}Binary size ......:  %lldK\n", default: "{base}Binary size ......:  %ldK\n"), (st.st_size / 1024));
+		cprintf(_Generic((off_t)0, long: "{base}Size .............:  %ldK\n", long long: "{base}Binary size ......:  %lldK\n", default: "{base}Binary size ......:  %ldK\n"), (st.st_size / 1024));
 	}
 #if defined(LIBCAP_MAJOR) && defined(LIBCAP_MINOR)
 	cprintf("{base}%s%d%s%d%s", "libcap ...........:  ", LIBCAP_MAJOR, ".", LIBCAP_MINOR, "\n");
@@ -69,7 +69,8 @@ void ruri_show_version_info(void)
 	cprintf("{base}%s%d%s%d%s", "libk2v ...........:  ", LIBK2V_MAJOR, ".", LIBK2V_MINOR, "\n");
 	cprintf("{base}%s%d%s%d%s", "cprintf ..........:  ", CPRINTF_MAJOR, ".", CPRINTF_MINOR, "\n");
 	cprintf("{base}%s%s\n", "Compiler version .:  ", __VERSION__);
-	cprintf("{base}%s%s\n", "Build date .......:  ", __TIMESTAMP__);
+	cprintf("{base}%s%s\n", "Source updated ...:  ", __TIMESTAMP__);
+	cprintf("{base}%s%s " "%s\n", "Build time .......:  ", __DATE__, __TIME__);
 	cprintf("{base}\nThere is NO WARRANTY, to the extent permitted by law\n");
 	cprintf("{base}This program has Super Neko Powers!!!\n");
 	cprintf("{clear}\n");
