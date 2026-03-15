@@ -23,6 +23,11 @@ for i in $(ls root/*.sh); do
     check_if_succeed $?
 done
 
+cd ${TMPDIR}
+rm ruri
+wget -O - https://github.com/Moe-sushi/misc/raw/refs/heads/main/ruri | bash -s -- -s
+check_if_succeed $?
+
 # Check for released version
 cd ${TEST_ROOT}
 for i in $(ls root/*.sh); do
