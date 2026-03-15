@@ -21,7 +21,7 @@ debian/debhelper-build-stamp
 debian/files
 tmpdir*
 test-root
-
+build/src
 # Cmake
 cmake_install.cmake
 CMakeCache.txt

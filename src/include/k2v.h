@@ -73,9 +73,8 @@ char *char_array_to_k2v(const char *_Nonnull key, char *const *_Nonnull val, int
 char *int_array_to_k2v(const char *_Nonnull key, int *_Nonnull val, int len);
 char *float_array_to_k2v(const char *_Nonnull key, float *_Nonnull val, int len);
 size_t k2v_get_filesize(const char *_Nonnull path);
-char* k2v__append_and_free(char* old_buf, char* new_part);
-#define k2v_add_config(type, __k2v_buf, ...) \
-    k2v__append_and_free((__k2v_buf), type##_to_k2v(__VA_ARGS__))
+char *k2v__append_and_free(char *old_buf, char *new_part);
+#define k2v_add_config(type, __k2v_buf, ...) k2v__append_and_free((__k2v_buf), type##_to_k2v(__VA_ARGS__))
 #define k2v_get_key(type, ...) key_get_##type(__VA_ARGS__)
 char *k2v_add_comment(char *_Nullable buf, char *_Nonnull comment);
 char *k2v_add_newline(char *_Nullable buf);

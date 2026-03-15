@@ -158,36 +158,36 @@ size_t k2v_get_filesize(const char *_Nonnull path)
 }
 char *k2v_open_file(const char *_Nonnull path, size_t bufsize)
 {
-        if (path == NULL) {
-                return NULL;
-        }
+	if (path == NULL) {
+		return NULL;
+	}
 
-        char *ret = malloc(bufsize + 1);  // +1 is enough for trailing '\0'
-        if (ret == NULL) {
-                return NULL;
-        }
+	char *ret = malloc(bufsize + 1); // +1 is enough for trailing '\0'
+	if (ret == NULL) {
+		return NULL;
+	}
 
-        int fd = open(path, O_RDONLY | O_CLOEXEC);
-        if (fd < 0) {
-                free(ret);
-                return NULL;
-        }
+	int fd = open(path, O_RDONLY | O_CLOEXEC);
+	if (fd < 0) {
+		free(ret);
+		return NULL;
+	}
 
-        ssize_t len = read(fd, ret, bufsize);
-        close(fd);
+	ssize_t len = read(fd, ret, bufsize);
+	close(fd);
 
-        if (len < 0) {
-                free(ret);
-                return NULL;
-        }
+	if (len < 0) {
+		free(ret);
+		return NULL;
+	}
 
-        // Ensure null-termination
-        ret[len] = '\0';
+	// Ensure null-termination
+	ret[len] = '\0';
 
-        // Optional: lint the content (e.g., check for embedded nulls if needed)
-        __k2v_lint(ret);
+	// Optional: lint the content (e.g., check for embedded nulls if needed)
+	__k2v_lint(ret);
 
-        return ret;
+	return ret;
 }
 char *char_to_k2v(const char *_Nonnull key, const char *_Nonnull val)
 {
@@ -856,30 +856,30 @@ static char *k2v_auto_tidy(const char *_Nonnull buf)
 	free(tmp);
 	return ret;
 }
-char* k2v__append_and_free(char* old_buf, char* new_part)
+char *k2v__append_and_free(char *old_buf, char *new_part)
 {
-    if (!new_part) {
-        free(old_buf);
-        return NULL;
-    }
+	if (!new_part) {
+		free(old_buf);
+		return NULL;
+	}
 
-    size_t old_len = old_buf ? strlen(old_buf) : 0;
-    size_t new_len = strlen(new_part);
-    char* result = malloc(old_len + new_len + 1);
-    if (!result) {
-        free(old_buf);
-        free(new_part);
-        return NULL;
-    }
+	size_t old_len = old_buf ? strlen(old_buf) : 0;
+	size_t new_len = strlen(new_part);
+	char *result = malloc(old_len + new_len + 1);
+	if (!result) {
+		free(old_buf);
+		free(new_part);
+		return NULL;
+	}
 
-    if (old_buf) {
-        memcpy(result, old_buf, old_len);
-    }
-    memcpy(result + old_len, new_part, new_len + 1);
+	if (old_buf) {
+		memcpy(result, old_buf, old_len);
+	}
+	memcpy(result + old_len, new_part, new_len + 1);
 
-    free(old_buf);
-    free(new_part);
-    return result;
+	free(old_buf);
+	free(new_part);
+	return result;
 }
 static void __k2v_check_singularity(const char *_Nonnull buf)
 {
