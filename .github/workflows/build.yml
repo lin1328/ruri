@@ -89,7 +89,7 @@ jobs:
         shell: bash
         run: |
           cd build
-          cp ruri/build/build.sh "$ARCHITECTURE/build.sh"
+          cp ruri/.github/build.sh "$ARCHITECTURE/build.sh"
           sudo chmod +x ../ruri
           sudo chmod +x "$ARCHITECTURE/build.sh"
 
