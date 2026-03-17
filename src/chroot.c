@@ -354,6 +354,14 @@ static void set_envs(const struct RURI_CONTAINER *_Nonnull container)
 		}
 		setenv(container->env[i], container->env[i + 1], 1);
 	}
+	// Check if /run/systemd exists, and set write `ruri` to container.
+	if (access("/run/systemd", F_OK) == 0) {
+		FILE *systemd_container_config = fopen("/run/systemd/container", "w");
+		if (systemd_container_config != NULL) {
+			fprintf(systemd_container_config, "ruri");
+			fclose(systemd_container_config);
+		}
+	}
 }
 // Run after init_container().
 static void setup_binfmt_misc(const struct RURI_CONTAINER *_Nonnull container)
