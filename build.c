@@ -649,8 +649,11 @@ void build()
 	for (int i = 0; LIBS && LIBS[i] != NULL; i++) {
 		add_args(&args, LIBS[i]);
 	}
-	if (fork_exec(args) != 0) {
-		error("Error: failed to link object files\n");
+	struct cth_result *exec_result = cth_exec(args, NULL, true, true);
+	if (!exec_result) {
+		error("Error: failed to execute linker\n");
+	} else if (!exec_result->exited || exec_result->exit_code != 0) {
+		error("Error: failed to link object files\nLinker output:\nstderr:\n%s\nstdout:\n%s\n", exec_result->stderr_ret ? exec_result->stderr_ret : "No output", exec_result->stdout_ret ? exec_result->stdout_ret : "No output");
 	}
 	printf("Link %s :success\n", OUTPUT);
 	free_args(args);
