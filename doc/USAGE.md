@@ -223,7 +223,8 @@ For more info, refer to the man page of `user_namespaces(7)` and `unshare(2)`.
 | `-d`, `--cap-drop [cap]` | Drop the specified capability |
 
 These two options can control the capabilities in the container. Cap can be either a value or a name.  
-For example, `-k cap_chown` has the same effect as `-k 0`.  
+For example, `-k cap_chown` has the same effect as `-k 0`.        
+Capabilities can both be lowercase or uppercase, and the `cap_` prefix is optional. For example, `-k chown` also works.                  
 **Behavior note:** ruri will automatically drop some capabilities like `CAP_SYS_ADMIN`, `CAP_SYS_CHROOT`, etc. If you want to keep them, you can use the `-k` option.  
 For more info, refer to the man page of `capabilities(7)`.
 
