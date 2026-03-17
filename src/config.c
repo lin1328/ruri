@@ -88,6 +88,7 @@ void ruri_init_config(struct RURI_CONTAINER *_Nonnull container)
 	container->masked_path[0] = NULL;
 	container->enable_tty_signals = false;
 	container->skip_setgroups = false;
+	container->first_init = true;
 }
 static int pmcrts(const char *s1, const char *s2)
 {

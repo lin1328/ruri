@@ -154,7 +154,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		// Create system runtime files in /dev and then fix permissions.
 		mknod("/dev/null", S_IFCHR, makedev(1, 3));
 		chmod("/dev/null", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		mknod("/dev/console", S_IFCHR, makedev(5, 1));
+		mknod("/dev/console", S_IFCHR, makedev(5, 0));
 		chown("/dev/console", 0, 5);
 		chmod("/dev/console", S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH);
 		mknod("/dev/zero", S_IFCHR, makedev(1, 5));
@@ -180,7 +180,21 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		symlink("/proc/self/fd/0", "/dev/stdin");
 		symlink("/proc/self/fd/1", "/dev/stdout");
 		symlink("/proc/self/fd/2", "/dev/stderr");
-		symlink("/dev/null", "/dev/tty0");
+		mknod("/dev/tty0", S_IFCHR, makedev(5, 0));
+		chown("/dev/tty0", 0, 5);
+		chmod("/dev/tty0", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		if (false) {
+			mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
+			mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
+			mount("tmpfs", "/run/lock", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
+			mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
+			mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
+			int systemd_container_config_fd = open("/run/systemd/container", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+			if (systemd_container_config_fd >= 0) {
+				write(systemd_container_config_fd, "ruri", strlen("ruri"));
+				close(systemd_container_config_fd);
+			}
+		}
 		if (!container->unmask_dirs) {
 			// Mask some directories/files that we don't want the container modify it.
 			mount("tmpfs", "/proc/asound", "tmpfs", MS_RDONLY, NULL);
@@ -353,14 +367,6 @@ static void set_envs(const struct RURI_CONTAINER *_Nonnull container)
 			break;
 		}
 		setenv(container->env[i], container->env[i + 1], 1);
-	}
-	// Check if /run/systemd exists, and set write `ruri` to container.
-	if (access("/run/systemd", F_OK) == 0) {
-		FILE *systemd_container_config = fopen("/run/systemd/container", "w");
-		if (systemd_container_config != NULL) {
-			fprintf(systemd_container_config, "ruri");
-			fclose(systemd_container_config);
-		}
 	}
 }
 // Run after init_container().
@@ -798,6 +804,12 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	// Set up cgroup limit.
 	if (!container->just_chroot) {
 		ruri_set_limit(container);
+	}
+	if (container->enable_unshare && container->first_init && false) {
+		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
+		umount2("/sys/fs/", MNT_DETACH | MNT_FORCE);
+		mkdir("/sys/fs/cgroup", 0555);
+		mount("cgroup2", "/sys/fs/cgroup", "cgroup2", 0, NULL);
 	}
 	// Create character devices.
 	if (container->char_devs[0] != NULL) {

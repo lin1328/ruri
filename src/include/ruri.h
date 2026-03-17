@@ -210,6 +210,8 @@ struct RURI_CONTAINER {
 	bool enable_tty_signals;
 	// Skip setting groups for user
 	bool skip_setgroups;
+	// First init.
+	bool first_init;
 };
 // For ruri_get_magic().
 #define ruri_magicof(x) (x##_magic)
