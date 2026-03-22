@@ -181,9 +181,6 @@ AS_IF([test "x${enable_debug}" = "xno"], [
     ])
     # RURI_CHECK_CFLAG([-Wno-unused-command-line-argument])
 ])
-AS_IF([test "x${enable_dynamic}" = "xyes"], [
-    RURI_CHECK_LDFLAG([-Wl,--disable-new-dtags])
-])
 AS_CASE([${host_cpu}],
     [x86_64 | i[[3-6]]86 | amd64], [
         RURI_CHECK_CFLAG([-mshstk])
