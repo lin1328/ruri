@@ -315,7 +315,6 @@ if(NOT ENABLE_STATIC)
     list(APPEND CANDIDATE_LDFLAGS
         "-Wl,-z,relro"
         "-Wl,-z,now"
-        "-Wl,--disable-new-dtags"
     )
 endif()
 
