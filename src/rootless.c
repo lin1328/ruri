@@ -213,7 +213,11 @@ static void set_id_map(uid_t uid, gid_t gid)
 		ruri_warning("{red}Failed to open /proc/self/uid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
 		ruri_error("{red}Failed to open /proc/self/uid_map\n");
 	}
-	write(uidmap_fd, uid_map, strlen(uid_map));
+	if (write(uidmap_fd, uid_map, strlen(uid_map)) < 0) {
+		close(uidmap_fd);
+		ruri_warning("{red}Failed to write to /proc/self/uid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
+		ruri_error("{red}Failed to write to /proc/self/uid_map\n");
+	}
 	close(uidmap_fd);
 	// Set gid map.
 	int setgroups_fd = open("/proc/self/setgroups", O_RDWR | O_CLOEXEC);
@@ -230,12 +234,20 @@ static void set_id_map(uid_t uid, gid_t gid)
 		ruri_warning("{red}Failed to open /proc/self/gid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
 		ruri_error("{red}Failed to open /proc/self/gid_map\n");
 	}
-	write(gidmap_fd, gid_map, strlen(gid_map));
+	if (write(gidmap_fd, gid_map, strlen(gid_map)) < 0) {
+		close(gidmap_fd);
+		ruri_warning("{red}Failed to write to /proc/self/gid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
+		ruri_error("{red}Failed to write to /proc/self/gid_map\n");
+	}
 	close(gidmap_fd);
 	// Maybe needless.
 	setuid(0);
 	setgid(0);
 	setgroups_fd = open("/proc/self/setgroups", O_RDWR | O_CLOEXEC);
+	if (setgroups_fd < 0) {
+		// It's fine.
+		return;
+	}
 	write(setgroups_fd, "allow", 5);
 	close(setgroups_fd);
 }

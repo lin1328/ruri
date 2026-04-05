@@ -47,6 +47,9 @@ static char *getpid_name(pid_t pid)
 	char buf[8192];
 	char name_buf[PATH_MAX];
 	int fd = open(path, O_RDONLY | O_CLOEXEC);
+	if (fd < 0) {
+		return strdup(" ");
+	}
 	read(fd, buf, sizeof(buf));
 	if (fd < 0) {
 		return strdup(" ");

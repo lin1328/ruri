@@ -93,6 +93,9 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	if (container->timens_monotonic_offset != 0) {
 		usleep(1000);
 		int fd = open("/proc/self/timens_offsets", O_WRONLY | O_CLOEXEC);
+		if (fd < 0) {
+			ruri_error("{red}Error: failed to open /proc/self/timens_offsets QwQ\n");
+		}
 		char buf[1024] = { '\0' };
 		sprintf(buf, _Generic((time_t)0, long: "monotonic %ld 0", long long: "monotonic %lld 0", default: "monotonic %ld 0"), container->timens_monotonic_offset);
 		write(fd, buf, strlen(buf));
@@ -100,6 +103,9 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	if (container->timens_realtime_offset != 0) {
 		int fd = open("/proc/self/timens_offsets", O_WRONLY | O_CLOEXEC);
+		if (fd < 0) {
+			ruri_error("{red}Error: failed to open /proc/self/timens_offsets QwQ\n");
+		}
 		char buf[1024] = { '\0' };
 		sprintf(buf, _Generic((time_t)0, long: "boottime %ld 0", long long: "boottime %lld 0", default: "boottime %ld 0"), container->timens_realtime_offset);
 		write(fd, buf, strlen(buf));

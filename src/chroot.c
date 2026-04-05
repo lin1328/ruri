@@ -243,7 +243,13 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 }
 static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
 {
-	chdir("/dev");
+	if (chdir("/dev") == -1) {
+		if (container->char_devs[0] == NULL || container->no_warnings) {
+			return;
+		}
+		ruri_warning("{yellow}Warning: Failed to chdir(2) to /dev, will not create char devices.\n");
+		return;
+	}
 	for (int i = 0; true; i += 3) {
 		if (container->char_devs[i] == NULL) {
 			break;
@@ -767,13 +773,21 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	check_binary(container);
 	// chroot(2) into container, or use pivot_root(2) if `-u` is set.
 	if (!container->enable_unshare) {
-		chdir(container->container_dir);
-		chroot(".");
+		if (chdir(container->container_dir) != 0) {
+			ruri_error("{red}Error: failed to change directory to container dir QwQ\n");
+		}
+		if (chroot(".") == -1) {
+			ruri_error("{red}Error: chroot(2) failed QwQ\n");
+		}
 		chdir("/");
 	} else {
 		if (try_pivot_root(container) == -1) {
-			chdir(container->container_dir);
-			chroot(".");
+			if (chdir(container->container_dir) != 0) {
+				ruri_error("{red}Error: failed to change directory to container dir QwQ\n");
+			}
+			if (chroot(".") == -1) {
+				ruri_error("{red}Error: chroot(2) failed QwQ\n");
+			}
 			chdir("/");
 		}
 	}
