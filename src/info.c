@@ -163,7 +163,7 @@ void ruri_show_helps(void)
 	cprintf("{base}(*8)  : If you use a username, please make sure it's in /etc/passwd in the container\n");
 	cprintf("{base}(*9)  : This option is only for unshare containers\n");
 	cprintf("{base}(*10) : This option needs net ns, and will enable unshare feature by default\n");
-	cprintf("{base}(*11) : For example, `-I kvm 10 232` or `-I dri/card0 226 0`\n");
+	cprintf("{base}(*11) : For example, `-I kvm 10 232` or `-I dri/card0 226 0`. If major is set to 0, ruri will auto-detect the major and minor number from the host\n");
 	cprintf("{base}(*12) : This feature might not work. The value is in seconds. This feature will auto-enable unshare\n");
 	cprintf("{base}(*13) : This can only be used when the `-N` option is enabled\n");
 	cprintf("{base}(*14) : The value is in the range of -1000 to 1000, but setting a negative value might cause security issues\n");
