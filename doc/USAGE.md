@@ -389,7 +389,7 @@ Note: This option needs kernel and host support for KVM.
 |--------|-------------|
 | `-I`, `--char-dev [device] [major] [minor]` | Add a character device to the container |
 
-Add a character device to the container, for example `-I kvm 10 232` or `-I dri/card0 226 0`.  
+Add a character device to the container, for example `-I kvm 10 232` or `-I dri/card0 226 0`. If major is set to 0, ruri will try to auto-detect the major and minor number of the device from the host.    
 Note: For security reasons, creating block devices is not supported. You can use the `-m` option to mount a block device into the container instead.  
 **Behavior note:** This option will create a character device in the `/dev/` directory of the container; no need to add the `/dev/` prefix.
 

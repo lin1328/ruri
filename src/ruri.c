@@ -578,7 +578,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 					if (container->char_devs[i] == NULL) {
 						container->char_devs[i] = strdup(argv[index]);
 						index++;
-						if (atoi(argv[index]) <= 0) {
+						if (atoi(argv[index]) < 0) {
 							ruri_error("{red}Error: invalid major number QwQ\n");
 						}
 						container->char_devs[i + 1] = strdup(argv[index]);
@@ -588,6 +588,25 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 						}
 						container->char_devs[i + 2] = strdup(argv[index]);
 						container->char_devs[i + 3] = NULL;
+						// If major is 0, we will auto-detect the major and minor number from the host device.
+						if (atoi(container->char_devs[i + 1]) == 0) {
+							free(container->char_devs[i + 1]);
+							free(container->char_devs[i + 2]);
+							char dev_path[PATH_MAX];
+							sprintf(dev_path, "/dev/%s", container->char_devs[i]);
+							struct stat st;
+							if (stat(dev_path, &st) != 0) {
+								ruri_error("{red}Error: device %s does not exist on host QwQ\n", dev_path);
+							}
+							if (!S_ISCHR(st.st_mode)) {
+								ruri_error("{red}Error: device %s is not a char device on host QwQ\n", dev_path);
+							}
+							container->char_devs[i + 1] = malloc(16);
+							container->char_devs[i + 2] = malloc(16);
+							sprintf(container->char_devs[i + 1], "%d", major(st.st_rdev));
+							sprintf(container->char_devs[i + 2], "%d", minor(st.st_rdev));
+							ruri_log("{base}Auto-detected char device: %s (major: %s, minor: %s)\n", container->char_devs[i], container->char_devs[i + 1], container->char_devs[i + 2]);
+						}
 						break;
 					}
 					if (i == (RURI_MAX_CHAR_DEVS - 1)) {
