@@ -411,7 +411,7 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
 	close(fd);
-	char *buf = k2v_open_file(path, (size_t)size);
+	char *buf = k2v_open_file(path, (size_t)size + 4);
 	// Check if config is valid.
 	char *key_list[] = { "timens_realtime_offset", "timens_monotonic_offset", "hidepid", "char_devs", "use_kvm", "no_network", "container_dir", "user", "drop_caplist", "no_new_privs", "enable_seccomp", "rootless", "no_warnings", "cross_arch", "qemu_path", "use_rurienv", "cpuset", "memory", "cpupercent", "just_chroot", "unmask_dirs", "mount_host_runtime", "work_dir", "rootfs_source", "ro_root", "extra_mountpoint", "extra_ro_mountpoint", "env", "command", "hostname", NULL };
 	for (int i = 0; key_list[i] != NULL; i++) {
@@ -558,7 +558,7 @@ void ruri_correct_config(const char *_Nonnull path)
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
 	close(fd);
-	char *buf = k2v_open_file(path, (size_t)size);
+	char *buf = k2v_open_file(path, (size_t)size + 4);
 	if (!have_key("container_dir", buf)) {
 		ruri_error("{red}Invalid config file, there is no key:container_dir\n{clear}");
 	}

@@ -96,7 +96,7 @@ pid_t ruri_get_ns_pid(const char *_Nonnull container_dir)
 	}
 	close(fd);
 	// Read .rurienv file.
-	char *buf = k2v_open_file(file, (size_t)size);
+	char *buf = k2v_open_file(file, (size_t)size + 4);
 	pid_t ret = k2v_get_key(int, "ns_pid", buf);
 	free(buf);
 	if (ret <= 0) {
@@ -308,7 +308,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	}
 	close(fd);
 	// Read .rurienv file.
-	char *buf = k2v_open_file(file, (size_t)size);
+	char *buf = k2v_open_file(file, (size_t)size + 4);
 	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", buf);
 	// We only need to get part of container info when container is NULL.
 	if (container == NULL) {
