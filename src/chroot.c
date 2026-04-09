@@ -437,7 +437,6 @@ static void setup_binfmt_misc(const struct RURI_CONTAINER *_Nonnull container)
 	char buf[1024] = { '\0' };
 	// Format: ":name:type:offset:magic:mask:interpreter:flags".
 	if (snprintf(buf, sizeof(buf), ":%s%d:M:0:%s:%s:%s:PCF", "ruri-", container->container_id, magic->magic, magic->mask, container->qemu_path) >= (int)sizeof(buf)) {
-		free(magic);
 		ruri_umount_container(container->container_dir);
 		ruri_error("{red}Error: binfmt_misc registration string is too long QwQ\n");
 	}

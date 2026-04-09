@@ -198,8 +198,8 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 		for (int i = 1; true; i += 2) {
 			if (container->extra_ro_mountpoint[i] != NULL) {
 				if (snprintf(to_umountpoint, sizeof(to_umountpoint), "%s%s", container_dir, container->extra_ro_mountpoint[i]) >= (int)sizeof(to_umountpoint)) {
-					free(container->extra_mountpoint[i]);
-					free(container->extra_mountpoint[i - 1]);
+					free(container->extra_ro_mountpoint[i]);
+					free(container->extra_ro_mountpoint[i - 1]);
 					continue;
 				}
 				for (int j = 0; j < 10; j++) {
@@ -212,8 +212,8 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 				// Not rmdir(), so directory will not be removed.
 				remove(to_umountpoint);
 				// Make ASAN happy.
-				free(container->extra_mountpoint[i]);
-				free(container->extra_mountpoint[i - 1]);
+				free(container->extra_ro_mountpoint[i]);
+				free(container->extra_ro_mountpoint[i - 1]);
 			} else {
 				break;
 			}
