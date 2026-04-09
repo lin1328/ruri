@@ -16,7 +16,8 @@ export TMPDIR=$(realpath ${TMPDIR})
 autoreconf -fi
 ./configure --enable-debug --enable-dev
 check_if_succeed $?
-make
+cc build.c
+./a.out -d -f
 check_if_succeed $?
 mv ruri ${TMPDIR}
 check_if_succeed $?
