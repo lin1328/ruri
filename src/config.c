@@ -400,18 +400,14 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	 * Read k2v format config file,
 	 * and set container config.
 	 */
-	int fd = open(path, O_RDONLY | O_CLOEXEC);
-	if (fd < 0) {
-		ruri_error("{red}No such file or directory:%s\n{clear}", path);
-	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	size_t size = k2v_get_filesize(path);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
 	char *buf = k2v_open_file(path, (size_t)size + 4);
+	if (buf == NULL) {
+		ruri_error("{red}Failed to read config file:%s\n{clear}", path);
+	}
 	// Check if config is valid.
 	char *key_list[] = { "timens_realtime_offset", "timens_monotonic_offset", "hidepid", "char_devs", "use_kvm", "no_network", "container_dir", "user", "drop_caplist", "no_new_privs", "enable_seccomp", "rootless", "no_warnings", "cross_arch", "qemu_path", "use_rurienv", "cpuset", "memory", "cpupercent", "just_chroot", "unmask_dirs", "mount_host_runtime", "work_dir", "rootfs_source", "ro_root", "extra_mountpoint", "extra_ro_mountpoint", "env", "command", "hostname", NULL };
 	for (int i = 0; key_list[i] != NULL; i++) {
@@ -547,18 +543,14 @@ void ruri_correct_config(const char *_Nonnull path)
 	// Disable strict mode for libk2v.
 	k2v_show_warning = false;
 	k2v_stop_at_warning = false;
-	int fd = open(path, O_RDONLY | O_CLOEXEC);
-	if (fd < 0) {
-		ruri_error("{red}No such file or directory:%s\n{clear}", path);
-	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	size_t size = k2v_get_filesize(path);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
 	char *buf = k2v_open_file(path, (size_t)size + 4);
+	if (buf == NULL) {
+		ruri_error("{red}Failed to read config file:%s\n{clear}", path);
+	}
 	if (!have_key("container_dir", buf)) {
 		ruri_error("{red}Invalid config file, there is no key:container_dir\n{clear}");
 	}
@@ -800,7 +792,7 @@ void ruri_correct_config(const char *_Nonnull path)
 	free(buf);
 	unlink(path);
 	remove(path);
-	fd = open(path, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IRGRP | S_IROTH | S_IWGRP | S_IWUSR | S_IWOTH);
+	int fd = open(path, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IRGRP | S_IROTH | S_IWGRP | S_IWUSR | S_IWOTH);
 	if (fd < 0) {
 		ruri_error("{red}Error: failed to open output file QwQ\n");
 	}

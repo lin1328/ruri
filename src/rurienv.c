@@ -83,18 +83,14 @@ pid_t ruri_get_ns_pid(const char *_Nonnull container_dir)
 	 */
 	char file[PATH_MAX] = { '\0' };
 	sprintf(file, "%s/.rurienv", container_dir);
-	int fd = open(file, O_RDONLY | O_CLOEXEC);
 	// If .rurienv file does not exist.
-	if (fd < 0) {
+	if (access(file, F_OK) != 0) {
 		return RURI_INIT_VALUE;
 	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	size_t size = k2v_get_filesize(file);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
 	// Read .rurienv file.
 	char *buf = k2v_open_file(file, (size_t)size + 4);
 	pid_t ret = k2v_get_key(int, "ns_pid", buf);
@@ -286,9 +282,8 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	 */
 	char file[PATH_MAX] = { '\0' };
 	sprintf(file, "%s/.rurienv", container_dir);
-	int fd = open(file, O_RDONLY | O_CLOEXEC);
 	// If .rurienv file does not exist.
-	if (fd < 0) {
+	if (access(file, F_OK) != 0) {
 		// Return a malloced struct for ruri_umount_container() and ruri_container_ps().
 		if (container == NULL) {
 			container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
@@ -300,13 +295,10 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 		return container;
 	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	size_t size = k2v_get_filesize(file);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
 	// Read .rurienv file.
 	char *buf = k2v_open_file(file, (size_t)size + 4);
 	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", buf);
@@ -329,7 +321,6 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 		// Get rootless.
 		container->rootless = k2v_get_key(bool, "rootless", buf);
-		close(fd);
 		free(buf);
 		return container;
 	}
@@ -340,7 +331,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		free(buf);
 		// Unset immutable flag of .rurienv.
 		umount2(file, MNT_DETACH | MNT_FORCE);
-		fd = open(file, O_RDONLY | O_CLOEXEC);
+		int fd = open(file, O_RDONLY | O_CLOEXEC);
 		if (fd < 0 && !container->no_warnings) {
 			ruri_warning("{yellow}Open .rurienv failed{clear}\n");
 		}
