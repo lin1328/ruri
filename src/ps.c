@@ -53,10 +53,11 @@ static char *getpid_name(pid_t pid)
 		return strdup(" ");
 	}
 	ssize_t bytes_read = read(fd, buf, sizeof(buf) - 1);
-	close(fd);
 	if (bytes_read <= 0) {
+		close(fd);
 		return strdup(" ");
 	}
+	close(fd);
 	buf[bytes_read] = '\0';
 	int j = 0;
 	for (unsigned long i = 0; i < (unsigned long)bytes_read; i++) {
@@ -95,10 +96,11 @@ static char *getpid_stat(pid_t pid)
 		return strdup(" ");
 	}
 	ssize_t bytes_read = read(fd, buf, sizeof(buf) - 1);
-	close(fd);
 	if (bytes_read <= 0) {
+		close(fd);
 		return strdup(" ");
 	}
+	close(fd);
 	buf[bytes_read] = '\0';
 	int j = 0;
 	for (unsigned long i = 0; i < (unsigned long)bytes_read; i++) {
