@@ -123,21 +123,29 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 	// But /proc/1 is exist in all Linux systems, because it's the init process.
 	char *test = realpath("/proc/1", NULL);
 	if (test == NULL) {
+		int res = 0;
 		// Mount proc,sys and dev.
 		mkdir("/sys", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		mkdir("/proc", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		mkdir("/dev", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		if (container->ro_root) {
-			mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
-			mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
+			res = mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
+			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs as read-only, will continue.\n");
+			res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
+			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs as read-only, will continue.\n");
 		} else {
-			mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
-			mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
+			res = mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
+			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs, will continue.\n");
+			res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
+			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs, will continue.\n");
 		}
-		mount("tmpfs", "/dev", "tmpfs", MS_NOSUID, "size=65536k,mode=755");
+		res = mount("tmpfs", "/dev", "tmpfs", MS_NOSUID, "size=65536k,mode=755");
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devtmpfs, will continue.\n");
 		// Continue mounting some other directories in /dev.
-		mkdir("/dev/pts", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-		mount("devpts", "/dev/pts", "devpts", MS_NOSUID | MS_NOEXEC, "gid=5,mode=620,ptmxmode=666,max=1024");
+		res = mkdir("/dev/pts", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/pts, will continue.\n");
+		res = mount("devpts", "/dev/pts", "devpts", MS_NOSUID | MS_NOEXEC, "gid=5,mode=620,ptmxmode=666,max=1024");
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devpts, will continue.\n");
 		char *devshm_options = NULL;
 		if (container->memory == NULL) {
 			devshm_options = strdup("mode=1777");
@@ -145,34 +153,47 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			devshm_options = malloc(strlen(container->memory) + strlen("mode=1777") + 114);
 			sprintf(devshm_options, "size=65536k,mode=1777");
 		}
-		mkdir("/dev/shm", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-		mount("tmpfs", "/dev/shm", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);
+		res = mkdir("/dev/shm", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/shm, will continue.\n");
+		res = mount("tmpfs", "/dev/shm", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount /dev/shm, will continue.\n");
 		usleep(1000);
 		free(devshm_options);
 		// Mount binfmt_misc.
-		mount("binfmt_misc", "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, NULL);
+		res = mount("binfmt_misc", "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, NULL);
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount binfmt_misc, will continue.\n");
 		// Create system runtime files in /dev and then fix permissions.
-		mknod("/dev/null", S_IFCHR, makedev(1, 3));
+		res = mknod("/dev/null", S_IFCHR, makedev(1, 3));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/null, will continue.\n");
 		chmod("/dev/null", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		mknod("/dev/console", S_IFCHR, makedev(5, 0));
+		res = mknod("/dev/console", S_IFCHR, makedev(5, 0));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/console, will continue.\n");
 		chown("/dev/console", 0, 5);
 		chmod("/dev/console", S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH);
-		mknod("/dev/zero", S_IFCHR, makedev(1, 5));
+		res = mknod("/dev/zero", S_IFCHR, makedev(1, 5));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/zero, will continue.\n");
 		chmod("/dev/zero", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		mknod("/dev/ptmx", S_IFCHR, makedev(5, 2));
+		res = mknod("/dev/ptmx", S_IFCHR, makedev(5, 2));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/ptmx, will continue.\n");
 		chown("/dev/ptmx", 0, 5);
 		chmod("/dev/ptmx", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		mknod("/dev/tty", S_IFCHR, makedev(5, 0));
+		res = mknod("/dev/tty", S_IFCHR, makedev(5, 0));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/tty, will continue.\n");
 		chown("/dev/tty", 0, 5);
 		chmod("/dev/tty", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		mknod("/dev/random", S_IFCHR, makedev(1, 8));
+		res = mknod("/dev/random", S_IFCHR, makedev(1, 8));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/random, will continue.\n");
 		chmod("/dev/random", S_IRUSR | S_IRGRP | S_IROTH);
-		mknod("/dev/urandom", S_IFCHR, makedev(1, 9));
+		res = mknod("/dev/urandom", S_IFCHR, makedev(1, 9));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/urandom, will continue.\n");
 		chmod("/dev/urandom", S_IRUSR | S_IRGRP | S_IROTH);
-		mkdir("/dev/net", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-		mknod("/dev/net/tun", S_IFCHR, makedev(10, 200));
+		res = mkdir("/dev/net", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/net, will continue.\n");
+		res = mknod("/dev/net/tun", S_IFCHR, makedev(10, 200));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/net/tun, will continue.\n");
 		if (container->use_kvm) {
-			mknod("/dev/kvm", S_IFCHR, makedev(10, 232));
+			res = mknod("/dev/kvm", S_IFCHR, makedev(10, 232));
+			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/kvm, will continue.\n");
 			chmod("/dev/kvm", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		}
 		// Create some system runtime link files in /dev.
@@ -180,7 +201,8 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		symlink("/proc/self/fd/0", "/dev/stdin");
 		symlink("/proc/self/fd/1", "/dev/stdout");
 		symlink("/proc/self/fd/2", "/dev/stderr");
-		mknod("/dev/tty0", S_IFCHR, makedev(5, 0));
+		res = mknod("/dev/tty0", S_IFCHR, makedev(5, 0));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/tty0, will continue.\n");
 		chown("/dev/tty0", 0, 5);
 		chmod("/dev/tty0", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		if (false) {
@@ -231,11 +253,13 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			if (container->masked_path[i] == NULL) {
 				break;
 			}
+			int res1, res2;
 			// try to mask with ro tmpfs.
-			mount("tmpfs", container->masked_path[i], "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
+			res1 = mount("tmpfs", container->masked_path[i], "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
 			// Try to mask with /dev/null.
 			mount("/dev/null", container->masked_path[i], NULL, MS_BIND, NULL);
-			mount("/dev/null", container->masked_path[i], NULL, MS_BIND | MS_REMOUNT | MS_RDONLY, NULL);
+			res2 = mount("/dev/null", container->masked_path[i], NULL, MS_BIND | MS_REMOUNT | MS_RDONLY, NULL);
+			warn_on_error((res1 == 0 || res2 == 0), true, !container->no_warnings, "{yellow}Warning: Failed to mask %s as read-only.\n", container->masked_path[i]);
 		}
 	} else {
 		free(test);
@@ -256,7 +280,8 @@ static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
 		}
 		ruri_mkdirs(container->char_devs[i], 0666);
 		rmdir(container->char_devs[i]);
-		mknod(container->char_devs[i], S_IFCHR, makedev((unsigned int)atoi(container->char_devs[i + 1]), (unsigned int)atoi(container->char_devs[i + 2])));
+		int res = mknod(container->char_devs[i], S_IFCHR, makedev((unsigned int)atoi(container->char_devs[i + 1]), (unsigned int)atoi(container->char_devs[i + 2])));
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create char device %s, will continue.\n", container->char_devs[i]);
 		chmod(container->char_devs[i], S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	}
 	chdir("/");
@@ -564,15 +589,19 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 	 * Change uid and gid.
 	 * It will be called before exec(3).
 	 */
+	int res = 0;
 	setgroups(0, NULL);
 	if (container->skip_setgroups) {
 		if (container->user != NULL) {
 			if (atoi(container->user) > 0) {
-				setgid((gid_t)atoi(container->user));
-				setuid((uid_t)atoi(container->user));
+				res = setgid((gid_t)atoi(container->user));
+				panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
+				res = setuid((uid_t)atoi(container->user));
+				panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
 				gid_t groups[1];
 				groups[0] = (gid_t)atoi(container->user);
-				setgroups(1, groups);
+				res = setgroups(1, groups);
+				panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 			} else {
 				ruri_error("{red}Skip-setgroups is set, but user is not a uid number QwQ{clear}\n");
 			}
@@ -590,15 +619,20 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 		gid_t *groups = malloc(NGROUPS_MAX * sizeof(gid_t));
 		groups_count = ruri_get_groups((uid_t)atoi(user), groups);
 		if (groups_count > 0) {
-			setgroups((size_t)groups_count, groups);
+			res = setgroups((size_t)groups_count, groups);
+			panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+
 		} else {
 			groups[0] = (gid_t)atoi(user);
-			setgroups(1, groups);
+			res = setgroups(1, groups);
+			panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 		}
 		usleep(1000);
 		free(groups);
-		setgid((gid_t)atoi(user));
-		setuid((uid_t)atoi(user));
+		res = setgid((gid_t)atoi(user));
+		panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
+		res = setuid((uid_t)atoi(user));
+		panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
 	} else {
 		if (!ruri_user_exist(user)) {
 			if (strcmp(user, "root") == 0) {
@@ -615,10 +649,12 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			}
 			groups_count = ruri_get_groups(user_uid, groups);
 			if (groups_count > 0) {
-				setgroups((size_t)groups_count, groups);
+				res = setgroups((size_t)groups_count, groups);
+				panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 			} else {
 				groups[0] = user_uid;
-				setgroups(1, groups);
+				res = setgroups(1, groups);
+				panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 			}
 			usleep(1000);
 			free(groups);
@@ -627,8 +663,10 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 				ruri_warning("{yellow}Warning: failed to get user info for `%s`: %s{clear}\n", user, strerror(RURI_PWD_ERRNO));
 				return;
 			}
-			setgid(user_gid);
-			setuid(user_uid);
+			res = setgid(user_gid);
+			panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
+			res = setuid(user_uid);
+			panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
 		}
 	}
 	ruri_log("{base}Changed to user: %s (uid: %d, gid: %d)\n", user, getuid(), getgid());

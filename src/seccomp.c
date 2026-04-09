@@ -74,8 +74,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			if (ruri_resolve_seccomp_errno(container->seccomp_denied_syscall[i], &ctx) != 0) {
 				ruri_error("Failed to resolve syscall: %s\n", container->seccomp_denied_syscall[i]);
 			}
+		} else {
+			seccomp_rule_add(ctx, SCMP_ACT_KILL, syscall_nr, 0);
 		}
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, syscall_nr, 0);
 	}
 	// Default rules.
 	if (container->enable_default_seccomp) {
@@ -223,7 +224,11 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 	// Disable no_new_privs bit by default.
 	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
 	// Load seccomp rules.
-	seccomp_load(ctx);
+	if (seccomp_load(ctx) != 0) {
+		if (!container->no_warnings) {
+			ruri_warning("{yellow}Warning: Failed to load seccomp filter, maybe your kernel does not support it QwQ{clear}\n");
+		}
+	}
 	ruri_log("{base}Seccomp filter loaded\n");
 #endif
 }

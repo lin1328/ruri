@@ -369,11 +369,13 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 		close(time_ns_fd);
 		// Join net ns.
-		// This action will be forced, and will not error.
+		// This action will be forced.
 		char net_ns_file[PATH_MAX] = { '\0' };
 		sprintf(net_ns_file, "%s%d%s", "/proc/", container->ns_pid, "/ns/net");
 		int net_ns_fd = open(net_ns_file, O_RDONLY | O_CLOEXEC);
-		setns(net_ns_fd, CLONE_NEWNET);
+		if (setns(net_ns_fd, CLONE_NEWNET) == -1 && !container->no_warnings) {
+			ruri_warning("{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+		}
 	} else {
 		// We need to own mount namespace.
 		try_unshare(CLONE_NEWNS);
