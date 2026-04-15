@@ -46,6 +46,15 @@ Depending on the type of source, different mount strategies are applied:
       OVERLAY:lowerdir=/path/to/lower,upperdir=/path/to/upper,workdir=/path/to/work
       ```
       Mounts an overlay filesystem at the target using the specified options.
+      - **Volatile rootfs**
+        You can create a tmpfs overlay for rootfs, and all changes will be lost after the container stops.
+        ```
+        root@studio:/home/moehacker/ruri# mkdir /tmp/ruri
+        root@studio:/home/moehacker/ruri# mount -t tmpfs tmpfs /tmp/ruri
+        root@studio:/home/moehacker/ruri# mkdir /tmp/ruri/upper
+        root@studio:/home/moehacker/ruri# mkdir /tmp/ruri/work
+        root@studio:/home/moehacker/ruri# ./ruri -m OVERLAY:lowerdir=/home/moehacker/alpine,upperdir=/tmp/ruri/upper,workdir=/tmp/ruri/work / /tmp/ruri/work
+        ```
     - **filesystem**  
       - **EXT4:** Mounts an ext4 filesystem at the target.
       - **FAT32:** Mounts a FAT32 (vfat) filesystem at the target.
