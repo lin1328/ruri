@@ -147,12 +147,13 @@ void ruri_show_helps(void)
 	cprintf("{base}  -X, --deny-syscall [syscall] ................: Deny syscall, use seccomp\n");
 	cprintf("{base}  -J, --join-ns [NS_PID] ......................: Join namespace using ns_pid (*13)\n");
 	cprintf("{base}  -O, --oom-score-adj [score] .................: Set oom_score_adj for container (*14)\n");
-	cprintf("{base} -Q, --mask-path [path] ......................: Mask a path in the container\n");
+	cprintf("{base}  -Q, --mask-path [path] ......................: Mask a path in the container\n");
 #ifndef DISABLE_SYSTEMD
-	cprintf("{base} -Z, --systemd .............................: Run container with systemd support (includes dbus) (*15)\n");
+	cprintf("{base}  -Z, --systemd ...............................: Run container with systemd support(*15)\n");
+	cprintf("{base}      --even-unstable .........................: You need this to enable systemd support.\n");
 #endif
-	cprintf("{base} -z, --enable-tty-signals ....................: Enable TTY signals in the container (*16)\n");
-	cprintf("{base}  -g, --skip-setgroups ........................: Skip setgroups() call\n");
+	cprintf("{base}   -z, --enable-tty-signals ...................: Enable TTY signals in the container (*16)\n");
+	cprintf("{base}   -g, --skip-setgroups .......................: Skip setgroups() call\n");
 	cprintf("\n");
 	cprintf("{base}Note:\n");
 	cprintf("{base}(*1)  : Will not work for unshare containers without PID ns support\n");
@@ -170,7 +171,7 @@ void ruri_show_helps(void)
 	cprintf("{base}(*12) : This feature might not work. The value is in seconds. This feature will auto-enable unshare\n");
 	cprintf("{base}(*13) : This can only be used when the `-N` option is enabled\n");
 	cprintf("{base}(*14) : The value is in the range of -1000 to 1000, but setting a negative value might cause security issues\n");
-	cprintf("{base}(*15) : This enables systemd support, mounting /run and /tmp as tmpfs, and setting up cgroup v2. Requires -u option\n");
+	cprintf("{base}(*15) : This enables systemd support, mounting /run and /tmp as tmpfs, and setting up cgroup v2.\n");
 	cprintf("{base}(*16) : ruri will ignore SIGTTIN and SIGTTOU by default, enable this option to allow TTY signals in the container\n");
 	cprintf("\n{base}Note:\n");
 	cprintf("{base}BSD style usage is partially supported now. For example, you can use `-pW /root`, but `-W/root` is not allowed.\n");

@@ -1009,7 +1009,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		set_oom_score(container->oom_score_adj);
 	}
 	// Set up Seccomp BPF.
-	if (container->enable_default_seccomp || container->seccomp_denied_syscall[0] != NULL) {
+	if (container->enable_default_seccomp || container->seccomp_denied_syscall[0] != NULL || container->systemd_mode) {
 		ruri_setup_seccomp(container);
 	}
 	// Let systemd retain its capabilities and manage them itself as PID 1.
@@ -1026,7 +1026,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	if (container->no_new_privs) {
 		prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 	}
-	if(!container->systemd_mode) {
+	if (!container->systemd_mode) {
 		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
 		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
 	}
@@ -1050,7 +1050,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 // Execute command in container.
 // Use exec(3) function because system(3) may be unavailable now.
 #ifndef DISABLE_SYSTEMD
-	if (container->systemd_mode) {
+	if (container->systemd_mode && container->first_init) {
 		// In systemd mode, ruri acts as init process
 		ruri_run_systemd_init(container->command);
 		// ruri_run_systemd_init never returns
@@ -1153,7 +1153,7 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	if (container->no_new_privs) {
 		prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 	}
-	if(!container->systemd_mode) {
+	if (!container->systemd_mode) {
 		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
 		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
 	}

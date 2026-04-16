@@ -185,6 +185,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		exit(114);
 	}
 	// Init configs.
+	bool even_unstable = false;
 	bool fork_exec = false;
 	bool dump_config = false;
 	char *output_path = NULL;
@@ -709,6 +710,11 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 #ifndef DISABLE_SYSTEMD
 		else if (strcmp(argv[index], "-Z") == 0 || strcmp(argv[index], "--systemd") == 0) {
 			container->systemd_mode = true;
+			container->enable_unshare = true;
+		}
+		// Force enable systemd, as it is very unstable and even might panic host.
+		else if (strcmp(argv[index], "--even-unstable") == 0) {
+			even_unstable = true;
 		}
 #endif
 		// If use_config_file is true.
@@ -1125,6 +1131,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 #ifndef DISABLE_SYSTEMD
 				case 'Z':
 					container->systemd_mode = true;
+					container->enable_unshare = true;
 					break;
 #endif
 				case 'O':
@@ -1215,6 +1222,12 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 			ruri_error("{red}Error: unknown option `%s`\nNote that only existing directory can be detected as CONTAINER_DIR\n", argv[index]);
 		}
 	}
+	// Error If systemd mode is enabled but even_unstable is not enabled, for safety.
+#ifndef DISABLE_SYSTEMD
+	if (container->systemd_mode && !even_unstable) {
+		ruri_error("{red}Error: systemd mode is very unstable, you must enable --even-unstable to use it, if you know what you are doing\n");
+	}
+#endif
 	// Fork to background if -b is set.
 	if (background) {
 		// One more fork().

@@ -221,6 +221,14 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(chroot), 0);
 	}
 #endif
+	if (container->systemd_mode) {
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(kexec_load), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(open_by_handle_at), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(init_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(delete_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(finit_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(umount2), 1, SCMP_CMP(5, SCMP_CMP_MASKED_EQ, MNT_FORCE, MNT_FORCE));
+	}
 	// Disable no_new_privs bit by default.
 	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
 	// Load seccomp rules.

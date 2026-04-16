@@ -542,7 +542,7 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	// Get command.
 	int comlen = k2v_get_key(char_array, "command", buf, container->command, RURI_MAX_COMMANDS);
 	container->command[comlen] = NULL;
-	// Get systemd_mode (implies dbus support).
+	// Get systemd_mode.
 	container->systemd_mode = k2v_get_key(bool, "systemd_mode", buf);
 	// Get first_init.
 	container->first_init = k2v_get_key(bool, "first_init", buf);
