@@ -1030,8 +1030,10 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	if (container->no_new_privs) {
 		prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 	}
-	// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
-	prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	if(!container->systemd_mode) {
+		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
+		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	}
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	// NOTE: this might cause unknown issues.
@@ -1155,8 +1157,10 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	if (container->no_new_privs) {
 		prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 	}
-	// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
-	prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	if(!container->systemd_mode) {
+		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
+		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	}
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	for (int i = 3; i <= 10; i++) {
