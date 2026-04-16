@@ -45,15 +45,17 @@ static bool is_ruri_pid(pid_t pid)
 	 * If not, we think the pid is a ruri process.
 	 */
 	char pid_ns_mnt[PATH_MAX] = { '\0' };
-	sprintf(pid_ns_mnt, "/proc/%d/ns/mnt", pid);
-	char *pid_ns_mnt_realpath = malloc(PATH_MAX);
+	snprintf(pid_ns_mnt, sizeof(pid_ns_mnt), "/proc/%d/ns/mnt", pid);
+	// Allocate PATH_MAX + 1 to guarantee room for the null terminator
+	// even when readlink fills the entire buffer.
+	char *pid_ns_mnt_realpath = malloc(PATH_MAX + 1);
 	ssize_t len = readlink(pid_ns_mnt, pid_ns_mnt_realpath, PATH_MAX);
 	if (len <= 0) {
 		free(pid_ns_mnt_realpath);
 		return false;
 	}
 	pid_ns_mnt_realpath[len] = '\0';
-	char *self_ns_mnt_realpath = malloc(PATH_MAX);
+	char *self_ns_mnt_realpath = malloc(PATH_MAX + 1);
 	len = readlink("/proc/self/ns/mnt", self_ns_mnt_realpath, PATH_MAX);
 	if (len <= 0) {
 		free(self_ns_mnt_realpath);
@@ -82,7 +84,9 @@ pid_t ruri_get_ns_pid(const char *_Nonnull container_dir)
 	 * If .rurienv does not exist, return RURI_INIT_VALUE.
 	 */
 	char file[PATH_MAX] = { '\0' };
-	sprintf(file, "%s/.rurienv", container_dir);
+	if (snprintf(file, sizeof(file), "%s/.rurienv", container_dir) >= (int)sizeof(file)) {
+		return RURI_INIT_VALUE;
+	}
 	// If .rurienv file does not exist.
 	if (access(file, F_OK) != 0) {
 		return RURI_INIT_VALUE;
@@ -233,7 +237,10 @@ void ruri_store_info(const struct RURI_CONTAINER *_Nonnull container)
 	// Format container info.
 	char *info = build_container_info(container);
 	char file[PATH_MAX] = { '\0' };
-	sprintf(file, "%s/.rurienv", container->container_dir);
+	if (snprintf(file, sizeof(file), "%s/.rurienv", container->container_dir) >= (int)sizeof(file)) {
+		free(info);
+		ruri_error("{red}Error: container directory path is too long QwQ\n");
+	}
 	// Umount the .rurienv file.
 	umount2(file, MNT_DETACH | MNT_FORCE);
 	int fd = open(file, O_RDONLY | O_CLOEXEC);
@@ -284,7 +291,13 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	 * and return a struct with malloced memory.
 	 */
 	char file[PATH_MAX] = { '\0' };
-	sprintf(file, "%s/.rurienv", container_dir);
+	if (snprintf(file, sizeof(file), "%s/.rurienv", container_dir) >= (int)sizeof(file)) {
+		if (container == NULL) {
+			container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
+			ruri_init_config(container);
+		}
+		return container;
+	}
 	// If .rurienv file does not exist.
 	if (access(file, F_OK) != 0) {
 		// Return a malloced struct for ruri_umount_container() and ruri_container_ps().

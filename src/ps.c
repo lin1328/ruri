@@ -43,21 +43,30 @@ static char *getpid_name(pid_t pid)
 	 * Warning: free() the return value after using it.
 	 */
 	char path[PATH_MAX];
-	sprintf(path, "%s%d%s", "/proc/", pid, "/stat");
+	snprintf(path, sizeof(path), "%s%d%s", "/proc/", pid, "/stat");
 	char buf[8192];
-	char name_buf[PATH_MAX];
+	// Initialize to empty string to avoid returning an uninitialized value
+	// if the expected format is not found in the file.
+	char name_buf[PATH_MAX] = { '\0' };
 	int fd = open(path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		return strdup(" ");
 	}
-	read(fd, buf, sizeof(buf));
-	if (fd < 0) {
+	ssize_t bytes_read = read(fd, buf, sizeof(buf) - 1);
+	if (bytes_read <= 0) {
+		close(fd);
 		return strdup(" ");
 	}
+	close(fd);
+	buf[bytes_read] = '\0';
 	int j = 0;
-	for (unsigned long i = 0; i < sizeof(buf); i++) {
+	for (unsigned long i = 0; i < (unsigned long)bytes_read; i++) {
 		if (j == 1) {
-			for (unsigned long k = 0; buf[k + i + 1] != ')'; k++) {
+			for (unsigned long k = 0; (k + i + 1 < (unsigned long)bytes_read) && buf[k + i + 1] != ')'; k++) {
+				// Prevent writing past the end of name_buf.
+				if (k >= sizeof(name_buf) - 1) {
+					break;
+				}
 				name_buf[k] = buf[k + i + 1];
 				name_buf[k + 1] = '\0';
 			}
@@ -77,18 +86,30 @@ static char *getpid_stat(pid_t pid)
 	 * Warning: free() the return value after using it.
 	 */
 	char path[PATH_MAX];
-	sprintf(path, "%s%d%s", "/proc/", pid, "/stat");
+	snprintf(path, sizeof(path), "%s%d%s", "/proc/", pid, "/stat");
 	char buf[8192];
-	char stat_buf[PATH_MAX];
+	// Initialize to empty string to avoid returning an uninitialized value
+	// if the expected format is not found in the file.
+	char stat_buf[PATH_MAX] = { '\0' };
 	int fd = open(path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		return strdup(" ");
 	}
-	read(fd, buf, sizeof(buf));
+	ssize_t bytes_read = read(fd, buf, sizeof(buf) - 1);
+	if (bytes_read <= 0) {
+		close(fd);
+		return strdup(" ");
+	}
+	close(fd);
+	buf[bytes_read] = '\0';
 	int j = 0;
-	for (unsigned long i = 0; i < sizeof(buf); i++) {
+	for (unsigned long i = 0; i < (unsigned long)bytes_read; i++) {
 		if (j == 2) {
-			for (unsigned long k = 0; buf[k + i] != ' '; k++) {
+			for (unsigned long k = 0; (k + i < (unsigned long)bytes_read) && buf[k + i] != ' '; k++) {
+				// Prevent writing past the end of stat_buf.
+				if (k >= sizeof(stat_buf) - 1) {
+					break;
+				}
 				stat_buf[k] = buf[k + i];
 				stat_buf[k + 1] = '\0';
 			}
@@ -107,7 +128,7 @@ static void test_and_print_pid(pid_t pid, char *_Nonnull container_dir, bool in_
 	 * If /proc/pid/root is container_dir, print the pid.
 	 */
 	char path[PATH_MAX];
-	sprintf(path, "%s%d%s", "/proc/", pid, "/root");
+	snprintf(path, sizeof(path), "%s%d%s", "/proc/", pid, "/root");
 	char buf[PATH_MAX];
 	realpath(path, buf);
 	ruri_log("{base}Pid: {cyan}%d\n", pid);
@@ -174,7 +195,7 @@ static int join_ns(pid_t ns_pid)
 		ruri_error("{red}Error: Please run `ruri -P` with sudo.\n");
 	}
 	char path[PATH_MAX];
-	sprintf(path, "%s%d%s", "/proc/", ns_pid, "/ns/pid");
+	snprintf(path, sizeof(path), "%s%d%s", "/proc/", ns_pid, "/ns/pid");
 	int fd = open(path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		return -1;
@@ -182,7 +203,7 @@ static int join_ns(pid_t ns_pid)
 	setns(fd, 0);
 	close(fd);
 	ruri_log("{base}Joined pid namespace\n");
-	sprintf(path, "%s%d%s", "/proc/", ns_pid, "/ns/mnt");
+	snprintf(path, sizeof(path), "%s%d%s", "/proc/", ns_pid, "/ns/mnt");
 	fd = open(path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		return -1;
@@ -231,7 +252,7 @@ static bool is_container_process(pid_t pid, const char *_Nonnull container_dir)
 	 * Check if the process is in the container.
 	 */
 	char path[PATH_MAX];
-	sprintf(path, "%s%d%s", "/proc/", pid, "/root");
+	snprintf(path, sizeof(path), "%s%d%s", "/proc/", pid, "/root");
 	char buf[PATH_MAX];
 	buf[0] = '\0';
 	realpath(path, buf);

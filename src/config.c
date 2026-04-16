@@ -115,15 +115,18 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 	 */
 	// Add the shebang.
 	char ruri_bin_path[PATH_MAX] = { '\0' };
-	if (readlink("/proc/self/exe", ruri_bin_path, PATH_MAX) <= 0) {
-		sprintf(ruri_bin_path, "%s", "/usr/bin/ruri");
+	ssize_t ruri_bin_path_len = readlink("/proc/self/exe", ruri_bin_path, PATH_MAX - 1);
+	if (ruri_bin_path_len <= 0) {
+		snprintf(ruri_bin_path, sizeof(ruri_bin_path), "%s", "/usr/bin/ruri");
+	} else {
+		ruri_bin_path[ruri_bin_path_len] = '\0';
 	}
 	char shebang[PATH_MAX + 16] = { '\0' };
 	// Detect rurima.
 	if (pmcrts(ruri_bin_path, "rurima") == 0) {
-		sprintf(shebang, "#!%s ruri -c\n\n", ruri_bin_path);
+		snprintf(shebang, sizeof(shebang), "#!%s ruri -c\n\n", ruri_bin_path);
 	} else {
-		sprintf(shebang, "#!%s -c\n\n", ruri_bin_path);
+		snprintf(shebang, sizeof(shebang), "#!%s -c\n\n", ruri_bin_path);
 	}
 	char *ret = strdup(shebang);
 	// container_dir.
