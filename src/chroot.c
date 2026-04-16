@@ -227,11 +227,7 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 
 	/* Ensure /dev/console exists for systemd */
 	if (access("/dev/console", F_OK) != 0) {
-		res = mknod("/dev/console", S_IFCHR | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP, makedev(5, 1));
-		if (res == 0) {
-			chown("/dev/console", 0, 5);
-			chmod("/dev/console", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-		}
+		symlink("/proc/self/fd/1", "/dev/console");
 	}
 
 	/* Setup /etc/machine-id */
