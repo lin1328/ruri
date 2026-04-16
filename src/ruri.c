@@ -708,7 +708,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 			container->enable_tty_signals = true;
 		}
 #ifndef DISABLE_SYSTEMD
-		else if (strcmp(argv[index], "-Z") == 0 || strcmp(argv[index], "--systemd") == 0) {
+		else if (strcmp(argv[index], "-y") == 0 || strcmp(argv[index], "--systemd") == 0) {
 			container->systemd_mode = true;
 			container->enable_unshare = true;
 		}
@@ -1129,7 +1129,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 					container->enable_tty_signals = true;
 					break;
 #ifndef DISABLE_SYSTEMD
-				case 'Z':
+				case 'y':
 					container->systemd_mode = true;
 					container->enable_unshare = true;
 					break;
