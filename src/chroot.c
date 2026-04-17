@@ -231,11 +231,6 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 	/* Create dbus runtime directory */
 	mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 
-	/* Ensure /dev/console exists for systemd */
-	if (access("/dev/console", F_OK) != 0) {
-		symlink("/proc/self/fd/1", "/dev/console");
-	}
-
 	/* Setup /etc/machine-id */
 	setup_machine_id(container->container_id);
 }
@@ -297,10 +292,6 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		res = mknod("/dev/null", S_IFCHR, makedev(1, 3));
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/null, will continue.\n");
 		chmod("/dev/null", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		res = mknod("/dev/console", S_IFCHR, makedev(5, 1));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/console, will continue.\n");
-		chown("/dev/console", 0, 5);
-		chmod("/dev/console", S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH);
 		res = mknod("/dev/zero", S_IFCHR, makedev(1, 5));
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/zero, will continue.\n");
 		chmod("/dev/zero", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -308,10 +299,6 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/ptmx, will continue.\n");
 		chown("/dev/ptmx", 0, 5);
 		chmod("/dev/ptmx", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		res = mknod("/dev/tty", S_IFCHR, makedev(5, 0));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/tty, will continue.\n");
-		chown("/dev/tty", 0, 5);
-		chmod("/dev/tty", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		res = mknod("/dev/random", S_IFCHR, makedev(1, 8));
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/random, will continue.\n");
 		chmod("/dev/random", S_IRUSR | S_IRGRP | S_IROTH);
@@ -332,13 +319,18 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		symlink("/proc/self/fd/0", "/dev/stdin");
 		symlink("/proc/self/fd/1", "/dev/stdout");
 		symlink("/proc/self/fd/2", "/dev/stderr");
-		res = mknod("/dev/tty0", S_IFCHR, makedev(4, 0));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/tty0, will continue.\n");
-		chown("/dev/tty0", 0, 5);
-		chmod("/dev/tty0", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		remove("/dev/console");
+		unlink("/dev/console");
+		symlink("/dev/null", "/dev/console");
+		remove("/dev/tty0");
+		unlink("/dev/tty0");
+		symlink("/dev/null", "/dev/tty0");
+		remove("/dev/tty");
+		unlink("/dev/tty");
+		symlink("/dev/null", "/dev/tty");
 #ifndef DISABLE_SYSTEMD
 		if (container->systemd_mode) {
-			/* Setup systemd runtime environment (includes dbus support) */
+			/* Setup systemd runtime environment */
 			setup_systemd_runtime(container);
 		}
 #endif
@@ -372,6 +364,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			mount("/proc/sys", "/proc/sys", NULL, MS_BIND | MS_RDONLY | MS_REMOUNT, NULL);
 			mount("/proc/sys-trigger", "/proc/sys-trigger", NULL, MS_BIND | MS_REC, NULL);
 			mount("/proc/sys-trigger", "/proc/sys-trigger", NULL, MS_BIND | MS_RDONLY | MS_REMOUNT, NULL);
+			mount("/dev/null", "/sys/class/tty/console/active", NULL, MS_BIND, NULL);
 		}
 		// Mask other user-specified path.
 		for (int i = 0; i < RURI_MAX_MOUNTPOINTS; i++) {

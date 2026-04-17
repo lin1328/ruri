@@ -399,8 +399,7 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 	ret = k2v_add_newline(ret);
 	// systemd_mode.
 	ret = k2v_add_comment(ret, "Enable systemd mode.");
-	ret = k2v_add_comment(ret, "Requires unshare feature enabled.");
-	ret = k2v_add_comment(ret, "Also enables dbus support automatically.");
+	ret = k2v_add_comment(ret, "Also enables unshare.");
 	ret = k2v_add_comment(ret, "Default is false.");
 	ret = k2v_add_config(bool, ret, "systemd_mode", container->systemd_mode);
 	ret = k2v_add_newline(ret);
