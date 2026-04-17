@@ -118,9 +118,7 @@ static void check_binary(const struct RURI_CONTAINER *_Nonnull container)
 }
 /*
  * Generate a unique machine-id for systemd.
- * Based on container_id and current time.
  */
-#ifndef DISABLE_SYSTEMD
 static void generate_machine_id()
 {
 	ruri_log("{blue}Generating unique machine-id for systemd.\n");
@@ -180,13 +178,13 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 {
 	/* Mount tmpfs for runtime directories */
 	mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
-	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
+	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	mount("tmpfs", "/run/lock", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 	mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 
 	/* Create systemd runtime directories */
-	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	remove("/run/systemd/container");
 	unlink("/run/systemd/container");
 	int systemd_container_config_fd = open("/run/systemd/container", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
@@ -199,16 +197,15 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 		ruri_warning("{yellow}Failed to setup /run/systemd/container\n");
 	}
 	/* Create journal runtime directory */
-	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
 	/* Create dbus runtime directory */
-	mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+	mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
 	/* Setup /etc/machine-id */
 	generate_machine_id();
 }
-#endif
 
 // Run after chroot(2), called by ruri_run_chroot_container().
 static void init_container(struct RURI_CONTAINER *_Nonnull container)
@@ -308,13 +305,11 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		remove("/dev/tty");
 		unlink("/dev/tty");
 		symlink("/dev/null", "/dev/tty");
-#ifndef DISABLE_SYSTEMD
 		if (container->systemd_mode) {
 			ruri_log("{blue}systemd mode!\n")
 				/* Setup systemd runtime environment */
 				setup_systemd_runtime(container);
 		}
-#endif
 		if (!container->unmask_dirs) {
 			// Mask some directories/files that we don't want the container modify it.
 			mount("tmpfs", "/proc/asound", "tmpfs", MS_RDONLY, NULL);
@@ -977,7 +972,6 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	if (!container->just_chroot && !container->systemd_mode) {
 		ruri_set_limit(container);
 	}
-#ifndef DISABLE_SYSTEMD
 	if (container->enable_unshare && container->first_init && container->systemd_mode) {
 		/*
 		 * Setup a clean cgroup v2 mount for systemd.
@@ -1003,7 +997,6 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 			prepare_systemd_cgroup_scope(container);
 		}
 	}
-#endif
 	// Create character devices.
 	if (container->char_devs[0] != NULL) {
 		mk_char_devs(container);
@@ -1040,33 +1033,17 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	for (int i = 3; i <= 10; i++) {
 		close(i);
 	}
-	// Fix console color.
-	cprintf("{clear}");
-#ifndef DISABLE_SYSTEMD
-	// In systemd mode, ruri stays as root to manage systemd as PID 1
-	if (!container->systemd_mode) {
-#endif
-		// Change uid and gid.
-		change_user(container);
-#ifndef DISABLE_SYSTEMD
-	}
-#endif
-// Execute command in container.
-// Use exec(3) function because system(3) may be unavailable now.
-#ifndef DISABLE_SYSTEMD
+	// Execute command in container.
+	// Use exec(3) function because system(3) may be unavailable now.
 	if (container->systemd_mode && container->first_init) {
-		// In systemd mode, ruri acts as init process
-		ruri_run_systemd_init(container->command);
-		// ruri_run_systemd_init never returns
-	} else {
-#endif
-		if (execvp(container->command[0], container->command) == -1) {
-			// Catch exceptions.
-			ruri_error("{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
+		if (getpid() != 1) {
+			ruri_error("{red}Error: systemd mode requires the container to be init process (PID 1) QwQ\n");
 		}
-#ifndef DISABLE_SYSTEMD
 	}
-#endif
+	if (execvp(container->command[0], container->command) == -1) {
+		// Catch exceptions.
+		ruri_error("{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
+	}
 }
 // Run chroot container.
 void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull container)

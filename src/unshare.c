@@ -44,8 +44,8 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	 *
 	 * NOTE: Network namespace is not supported.
 	 */
-	// Check for cgroup v2 on host.
-	if (false && (access("/sys/fs/cgroup/cgroup.type", F_OK) == 0)) {
+	// Move self to a new cgroup.
+	if (access("/sys/fs/cgroup/cgroup.type", F_OK) == 0) {
 		char cgroup_path[PATH_MAX] = { '\0' };
 		sprintf(cgroup_path, "/sys/fs/cgroup/ruri_%d", container->container_id);
 		mkdir(cgroup_path, S_IRUSR | S_IWUSR);

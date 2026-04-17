@@ -148,10 +148,8 @@ void ruri_show_helps(void)
 	cprintf("{base}  -J, --join-ns [NS_PID] ......................: Join namespace using ns_pid (*13)\n");
 	cprintf("{base}  -O, --oom-score-adj [score] .................: Set oom_score_adj for container (*14)\n");
 	cprintf("{base}  -Q, --mask-path [path] ......................: Mask a path in the container\n");
-#ifndef DISABLE_SYSTEMD
 	cprintf("{base}  -y, --systemd ...............................: Run container with systemd support(*15)\n");
 	cprintf("{base}      --even-unstable .........................: You need this to enable systemd support.\n");
-#endif
 	cprintf("{base}   -z, --enable-tty-signals ...................: Enable TTY signals in the container (*16)\n");
 	cprintf("{base}   -g, --skip-setgroups .......................: Skip setgroups() call\n");
 	cprintf("\n");

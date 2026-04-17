@@ -706,9 +706,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 			}
 		} else if (strcmp(argv[index], "-z") == 0 || strcmp(argv[index], "--enable-tty-signals") == 0) {
 			container->enable_tty_signals = true;
-		}
-#ifndef DISABLE_SYSTEMD
-		else if (strcmp(argv[index], "-y") == 0 || strcmp(argv[index], "--systemd") == 0) {
+		} else if (strcmp(argv[index], "-y") == 0 || strcmp(argv[index], "--systemd") == 0) {
 			container->systemd_mode = true;
 			container->enable_unshare = true;
 		}
@@ -716,7 +714,6 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		else if (strcmp(argv[index], "--even-unstable") == 0) {
 			even_unstable = true;
 		}
-#endif
 		// If use_config_file is true.
 		// The first unrecognized argument will be treated as command to exec in container.
 		else if (use_config_file) {
@@ -1128,12 +1125,10 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 				case 'z':
 					container->enable_tty_signals = true;
 					break;
-#ifndef DISABLE_SYSTEMD
 				case 'y':
 					container->systemd_mode = true;
 					container->enable_unshare = true;
 					break;
-#endif
 				case 'O':
 					if (i == (strlen(argv[index]) - 1)) {
 						index++;
@@ -1223,11 +1218,9 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		}
 	}
 	// Error If systemd mode is enabled but even_unstable is not enabled, for safety.
-#ifndef DISABLE_SYSTEMD
 	if (container->systemd_mode && !even_unstable) {
 		ruri_error("{red}Error: systemd mode is very unstable, you must enable --even-unstable to use it, if you know what you are doing\n");
 	}
-#endif
 	// Fork to background if -b is set.
 	if (background) {
 		// One more fork().

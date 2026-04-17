@@ -10,7 +10,6 @@ ruri_SOURCES = \
 	src/cprintf.c \
 	src/elf-magic.c \
 	src/info.c \
-	src/init.c \
 	src/k2v.c \
 	src/main.c \
 	src/mount.c \
@@ -54,9 +53,6 @@ AM_CPPFLAGS += -D_FORTIFY_SOURCE=2
 endif
 if ENABLE_DEV
 AM_CPPFLAGS += -DRURI_DEV
-endif
-if DISABLE_SYSTEMD
-AM_CPPFLAGS += -DDISABLE_SYSTEMD
 endif
 AM_CPPFLAGS += $(COMMIT_CFLAGS)
 

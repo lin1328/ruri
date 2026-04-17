@@ -249,7 +249,6 @@ AM_CONDITIONAL([ENABLE_RURIENV], [test "x${enable_rurienv}" = "xyes"])
 AM_CONDITIONAL([ENABLE_STATIC], [test "x${enable_static}" = "xyes"])
 AM_CONDITIONAL([ENABLE_DEBUG], [test "x${enable_debug}" = "xyes"])
 AM_CONDITIONAL([ENABLE_DEV], [test "x${enable_dev}" = "xyes"])
-AM_CONDITIONAL([DISABLE_SYSTEMD], [test "x${enable_systemd}" = "xno"])
 
 AC_CONFIG_FILES([
     Makefile
