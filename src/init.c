@@ -79,8 +79,6 @@ void ruri_run_systemd_init(char *const command[])
 	}
 
 	verify_pid1_environment();
-	setenv("container", "ruri", 1);
-	setenv("SYSTEMD_IGNORE_CHROOT", "1", 1);
 
 	ruri_log("{base}Execing systemd as PID 1: %s\n", command[0]);
 	execvp(command[0], command);

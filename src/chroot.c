@@ -121,52 +121,23 @@ static void check_binary(const struct RURI_CONTAINER *_Nonnull container)
  * Based on container_id and current time.
  */
 #ifndef DISABLE_SYSTEMD
-static void generate_machine_id(int container_id)
+static void generate_machine_id()
 {
-	unsigned int machine_id_seed = (unsigned int)time(NULL) ^ (unsigned int)container_id;
+	ruri_log("{blue}Generating unique machine-id for systemd.\n");
 	char new_machine_id[33];
 	const char *hex_chars = "0123456789abcdef";
 	for (int i = 0; i < 32; i++) {
-		new_machine_id[i] = hex_chars[(machine_id_seed + i * 7) % 16];
+		new_machine_id[i] = hex_chars[rand() % 16];
 	}
 	new_machine_id[32] = '\0';
-	int machine_id_fd = open("/etc/machine-id", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	remove("/etc/machine-id");
+	unlink("/etc/machine-id");
+	int machine_id_fd = open("/etc/machine-id", O_WRONLY | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (machine_id_fd >= 0) {
 		write(machine_id_fd, new_machine_id, 32);
 		write(machine_id_fd, "\n", 1);
 		close(machine_id_fd);
-		ruri_log("{base}Generated /etc/machine-id: %s\n", new_machine_id);
-	}
-}
-
-/*
- * Validate and fix /etc/machine-id for systemd.
- * If it doesn't exist or is empty, generate a new one.
- */
-static void setup_machine_id(int container_id)
-{
-	int machine_id_fd = open("/etc/machine-id", O_RDONLY | O_CLOEXEC);
-	if (machine_id_fd >= 0) {
-		char machine_id_buf[64] = { 0 };
-		ssize_t machine_id_len = read(machine_id_fd, machine_id_buf, sizeof(machine_id_buf) - 1);
-		close(machine_id_fd);
-		/* Check if file is empty or contains only whitespace */
-		bool machine_id_valid = false;
-		if (machine_id_len > 0) {
-			machine_id_buf[machine_id_len] = '\0';
-			for (ssize_t i = 0; i < machine_id_len; i++) {
-				if (machine_id_buf[i] != ' ' && machine_id_buf[i] != '\t' && machine_id_buf[i] != '\n' && machine_id_buf[i] != '\r') {
-					machine_id_valid = true;
-					break;
-				}
-			}
-		}
-		if (!machine_id_valid) {
-			generate_machine_id(container_id);
-		}
-	} else {
-		/* File doesn't exist, create one */
-		generate_machine_id(container_id);
+		ruri_log("{blue}Generated /etc/machine-id: %s\n", new_machine_id);
 	}
 }
 
@@ -207,8 +178,6 @@ static void prepare_systemd_cgroup_scope(const struct RURI_CONTAINER *_Nonnull c
  */
 static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 {
-	int res = 0;
-
 	/* Mount tmpfs for runtime directories */
 	mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
@@ -218,12 +187,17 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 	/* Create systemd runtime directories */
 	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+	remove("/run/systemd/container");
+	unlink("/run/systemd/container");
 	int systemd_container_config_fd = open("/run/systemd/container", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
 	if (systemd_container_config_fd >= 0) {
 		write(systemd_container_config_fd, "ruri", strlen("ruri"));
 		close(systemd_container_config_fd);
+		ruri_log("{blue}Setup /run/systemd/container for systemd runtime.\n");
+		ruri_log("{blue}systemd will treat this container as a docker container, which is good for compatibility.\n");
+	} else {
+		ruri_warning("{yellow}Failed to setup /run/systemd/container\n");
 	}
-
 	/* Create journal runtime directory */
 	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
@@ -232,7 +206,7 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 	mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 
 	/* Setup /etc/machine-id */
-	setup_machine_id(container->container_id);
+	generate_machine_id();
 }
 #endif
 
@@ -244,11 +218,12 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 	 * The device list and permissions are based on common docker containers.
 	 * If -A is not set, we will mask some dirs in /sys and /proc to avoid security issues.
 	 */
-	// If /proc/1 exists, that means container is already initialized.
+	// If /proc/1/exe exists, that means container is already initialized.
 	// I used to check /sys/class/input, but in WSL1, /sys/class/input is not exist.
-	// But /proc/1 is exist in all Linux systems, because it's the init process.
-	char *test = realpath("/proc/1", NULL);
+	// But /proc/1/exe is exist in all Linux systems, because it's the init process.
+	char *test = realpath("/proc/1/exe", NULL);
 	if (test == NULL) {
+		ruri_log("{blue}Container is not initialized, initializing...\n");
 		int res = 0;
 		// Mount proc,sys and dev.
 		mkdir("/sys", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
@@ -335,8 +310,9 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		symlink("/dev/null", "/dev/tty");
 #ifndef DISABLE_SYSTEMD
 		if (container->systemd_mode) {
-			/* Setup systemd runtime environment */
-			setup_systemd_runtime(container);
+			ruri_log("{blue}systemd mode!\n")
+				/* Setup systemd runtime environment */
+				setup_systemd_runtime(container);
 		}
 #endif
 		if (!container->unmask_dirs) {
@@ -386,6 +362,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 	} else {
 		free(test);
+		ruri_log("{blue}Container is already initialized, skipping initialization.\n");
 	}
 }
 static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
