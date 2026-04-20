@@ -176,13 +176,13 @@ static void prepare_systemd_cgroup_scope(const struct RURI_CONTAINER *_Nonnull c
  */
 static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 {
-	/* Mount tmpfs for runtime directories */
+	// Mount tmpfs for runtime directories.
 	mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	mount("tmpfs", "/run/lock", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 	mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 
-	/* Create systemd runtime directories */
+	// Create systemd runtime directories.
 	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	remove("/run/systemd/container");
@@ -196,20 +196,20 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 	} else {
 		ruri_warning("{yellow}Failed to setup /run/systemd/container\n");
 	}
-	/* Create journal runtime directory */
+	// Create journal runtime directory.
 	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 
-	/* Create dbus runtime directory */
+	// Create dbus runtime directory.
 	int res = mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /run/dbus, dbus service may not work.\n");
 
-	/* Ensure /var/run points to /run for dbus compatibility */
+	// Ensure /var/run points to /run for dbus compatibility.
 	if (access("/var/run", F_OK) != 0) {
 		symlink("/run", "/var/run");
 	}
 
-	/* Setup /etc/machine-id */
+	// Setup /etc/machine-id
 	generate_machine_id();
 }
 
@@ -307,10 +307,9 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		remove("/dev/tty");
 		unlink("/dev/tty");
 		symlink("/dev/null", "/dev/tty");
+		// Setup systemd runtime environment
 		if (container->systemd_mode) {
-			ruri_log("{blue}systemd mode!\n")
-				/* Setup systemd runtime environment */
-				setup_systemd_runtime(container);
+			setup_systemd_runtime(container);
 		}
 		if (!container->unmask_dirs) {
 			// Mask some directories/files that we don't want the container modify it.
@@ -984,9 +983,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		 * subtree_control or cgroup layout from ruri.
 		 */
 		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
-
 		mkdir("/sys/fs/cgroup", 0755);
-
 		int cgroup_mount_flags = MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_RELATIME;
 		int mount_ret = mount("cgroup2", "/sys/fs/cgroup", "cgroup2", cgroup_mount_flags, NULL);
 		if (mount_ret < 0) {
