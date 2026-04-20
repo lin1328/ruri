@@ -254,17 +254,17 @@ struct RURI_ID_MAP {
 		cfprintf(stderr, "\033[4m{base}%s{clear}\n", "https://github.com/Moe-hacker/ruri/issues");                                           \
 		exit(114);                                                                                                                           \
 	}
-#define panic_on_error(ret__, expect__, format__, ...)       \
+#define ruri_panic_on_error(ret__, expect__, format__, ...)  \
 	{                                                    \
 		if (ret__ != expect__) {                     \
 			ruri_error(format__, ##__VA_ARGS__); \
 		}                                            \
 	}
-#define warn_on_error(ret__, expect__, show__, format__, ...)  \
-	{                                                      \
-		if (show__ && ret__ != expect__) {             \
-			ruri_warning(format__, ##__VA_ARGS__); \
-		}                                              \
+#define ruri_warn_on_error(ret__, expect__, show__, format__, ...) \
+	{                                                          \
+		if (show__ && ret__ != expect__) {                 \
+			ruri_warning(format__, ##__VA_ARGS__);     \
+		}                                                  \
 	}
 // Log system.
 #if defined(RURI_DEBUG)

@@ -202,7 +202,7 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 
 	// Create dbus runtime directory.
 	int res = mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
-	warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /run/dbus, dbus service may not work.\n");
+	ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /run/dbus, dbus service may not work.\n");
 
 	// Ensure /var/run points to /run for dbus compatibility.
 	if (access("/var/run", F_OK) != 0) {
@@ -235,22 +235,22 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		mkdir("/dev", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		if (container->ro_root) {
 			res = mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
-			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs as read-only, will continue.\n");
+			ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs as read-only, will continue.\n");
 			res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
-			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs as read-only, will continue.\n");
+			ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs as read-only, will continue.\n");
 		} else {
 			res = mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
-			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs, will continue.\n");
+			ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs, will continue.\n");
 			res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
-			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs, will continue.\n");
+			ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs, will continue.\n");
 		}
 		res = mount("tmpfs", "/dev", "tmpfs", MS_NOSUID, "size=65536k,mode=755");
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devtmpfs, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devtmpfs, will continue.\n");
 		// Continue mounting some other directories in /dev.
 		res = mkdir("/dev/pts", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/pts, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/pts, will continue.\n");
 		res = mount("devpts", "/dev/pts", "devpts", MS_NOSUID | MS_NOEXEC, "gid=5,mode=620,ptmxmode=666,max=1024");
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devpts, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devpts, will continue.\n");
 		char *devshm_options = NULL;
 		if (container->memory == NULL) {
 			devshm_options = strdup("mode=1777");
@@ -259,38 +259,38 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			sprintf(devshm_options, "size=65536k,mode=1777");
 		}
 		res = mkdir("/dev/shm", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/shm, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/shm, will continue.\n");
 		res = mount("tmpfs", "/dev/shm", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount /dev/shm, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount /dev/shm, will continue.\n");
 		usleep(1000);
 		free(devshm_options);
 		// Mount binfmt_misc.
 		res = mount("binfmt_misc", "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, NULL);
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount binfmt_misc, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount binfmt_misc, will continue.\n");
 		// Create system runtime files in /dev and then fix permissions.
 		res = mknod("/dev/null", S_IFCHR, makedev(1, 3));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/null, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/null, will continue.\n");
 		chmod("/dev/null", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		res = mknod("/dev/zero", S_IFCHR, makedev(1, 5));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/zero, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/zero, will continue.\n");
 		chmod("/dev/zero", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		res = mknod("/dev/ptmx", S_IFCHR, makedev(5, 2));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/ptmx, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/ptmx, will continue.\n");
 		chown("/dev/ptmx", 0, 5);
 		chmod("/dev/ptmx", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		res = mknod("/dev/random", S_IFCHR, makedev(1, 8));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/random, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/random, will continue.\n");
 		chmod("/dev/random", S_IRUSR | S_IRGRP | S_IROTH);
 		res = mknod("/dev/urandom", S_IFCHR, makedev(1, 9));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/urandom, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/urandom, will continue.\n");
 		chmod("/dev/urandom", S_IRUSR | S_IRGRP | S_IROTH);
 		res = mkdir("/dev/net", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/net, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/net, will continue.\n");
 		res = mknod("/dev/net/tun", S_IFCHR, makedev(10, 200));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/net/tun, will continue.\n");
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/net/tun, will continue.\n");
 		if (container->use_kvm) {
 			res = mknod("/dev/kvm", S_IFCHR, makedev(10, 232));
-			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/kvm, will continue.\n");
+			ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/kvm, will continue.\n");
 			chmod("/dev/kvm", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		}
 		// Create some system runtime link files in /dev.
@@ -356,7 +356,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			// Try to mask with /dev/null.
 			mount("/dev/null", container->masked_path[i], NULL, MS_BIND, NULL);
 			res2 = mount("/dev/null", container->masked_path[i], NULL, MS_BIND | MS_REMOUNT | MS_RDONLY, NULL);
-			warn_on_error((res1 == 0 || res2 == 0), true, !container->no_warnings, "{yellow}Warning: Failed to mask %s as read-only.\n", container->masked_path[i]);
+			ruri_warn_on_error((res1 == 0 || res2 == 0), true, !container->no_warnings, "{yellow}Warning: Failed to mask %s as read-only.\n", container->masked_path[i]);
 		}
 	} else {
 		free(test);
@@ -380,7 +380,7 @@ static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
 		ruri_mkdirs(container->char_devs[i], 0666);
 		rmdir(container->char_devs[i]);
 		int res = mknod(container->char_devs[i], S_IFCHR, makedev((unsigned int)atoi(container->char_devs[i + 1]), (unsigned int)atoi(container->char_devs[i + 2])));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create char device %s, will continue.\n", container->char_devs[i]);
+		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create char device %s, will continue.\n", container->char_devs[i]);
 		chmod(container->char_devs[i], S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	}
 	chdir("/");
@@ -715,13 +715,13 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 		if (container->user != NULL) {
 			if (atoi(container->user) > 0) {
 				res = setgid((gid_t)atoi(container->user));
-				panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
+				ruri_panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
 				res = setuid((uid_t)atoi(container->user));
-				panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
+				ruri_panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
 				gid_t groups[1];
 				groups[0] = (gid_t)atoi(container->user);
 				res = setgroups(1, groups);
-				panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+				ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 			} else {
 				ruri_error("{red}Skip-setgroups is set, but user is not a uid number QwQ{clear}\n");
 			}
@@ -740,19 +740,19 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 		groups_count = ruri_get_groups((uid_t)atoi(user), groups);
 		if (groups_count > 0) {
 			res = setgroups((size_t)groups_count, groups);
-			panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+			ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 
 		} else {
 			groups[0] = (gid_t)atoi(user);
 			res = setgroups(1, groups);
-			panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+			ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 		}
 		usleep(1000);
 		free(groups);
 		res = setgid((gid_t)atoi(user));
-		panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
+		ruri_panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
 		res = setuid((uid_t)atoi(user));
-		panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
+		ruri_panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
 	} else {
 		if (!ruri_user_exist(user)) {
 			if (strcmp(user, "root") == 0) {
@@ -771,18 +771,18 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			groups_count = ruri_get_groups(user_uid, groups);
 			if (groups_count > 0) {
 				res = setgroups((size_t)groups_count, groups);
-				panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+				ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 			} else {
 				groups[0] = user_uid;
 				res = setgroups(1, groups);
-				panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+				ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 			}
 			usleep(1000);
 			free(groups);
 			res = setgid(user_gid);
-			panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
+			ruri_panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
 			res = setuid(user_uid);
-			panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
+			ruri_panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
 		}
 	}
 	ruri_log("{base}Changed to user: %s (uid: %d, gid: %d)\n", user, getuid(), getgid());
