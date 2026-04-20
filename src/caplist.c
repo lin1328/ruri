@@ -45,6 +45,12 @@ int ruri_cap_from_name(const char *str, cap_value_t *cap)
 		buf[i] = (char)tolower(str[i]);
 	}
 	buf[strlen(str)] = '\0';
+	if (strlen(buf) > 4 && strncmp(buf, "cap_", 4) != 0) {
+		char *new_buf = malloc(strlen(buf) + 5);
+		sprintf(new_buf, "cap_%s", buf);
+		free(buf);
+		buf = new_buf;
+	}
 	int ret = cap_from_name(buf, cap);
 	free(buf);
 	return ret;

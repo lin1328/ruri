@@ -44,6 +44,26 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	 *
 	 * NOTE: Network namespace is not supported.
 	 */
+	// Move self to a new cgroup.
+	if (access("/sys/fs/cgroup/cgroup.type", F_OK) == 0) {
+		char cgroup_path[PATH_MAX] = { '\0' };
+		sprintf(cgroup_path, "/sys/fs/cgroup/ruri_%d", container->container_id);
+		mkdir(cgroup_path, S_IRUSR | S_IWUSR);
+		usleep(200);
+		// Write self pid to cgroup.procs.
+		char cgroup_procs_path[PATH_MAX] = { '\0' };
+		sprintf(cgroup_procs_path, "/sys/fs/cgroup/ruri_%d/cgroup.procs", container->container_id);
+		int fd = open(cgroup_procs_path, O_RDWR | O_CLOEXEC);
+		if (fd < 0 && !container->no_warnings) {
+			ruri_warning("{yellow}Set cgroup.procs failed{clear}\n");
+		}
+		char buf[128] = { '\0' };
+		sprintf(buf, "%d\n", getpid());
+		if (write(fd, buf, strlen(buf)) < 0 && !container->no_warnings) {
+			ruri_warning("{yellow}Set cgroup.procs failed{clear}\n");
+		}
+		close(fd);
+	}
 	// unshare_pid in forked process is 0.
 	pid_t unshare_pid = RURI_INIT_VALUE;
 	// Create namespaces.
@@ -59,8 +79,10 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	if (unshare(CLONE_NEWPID) == -1 && !container->no_warnings) {
 		ruri_warning("{yellow}Warning: seems that pid namespace is not supported on this device QwQ{clear}\n");
 	}
-	if (unshare(CLONE_NEWCGROUP) == -1 && !container->no_warnings) {
-		ruri_warning("{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
+	if (!container->systemd_mode) {
+		if (unshare(CLONE_NEWCGROUP) == -1 && !container->no_warnings) {
+			ruri_warning("{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
+		}
 	}
 	if (unshare(CLONE_NEWTIME) == -1) {
 		if (container->timens_realtime_offset != 0 || container->timens_monotonic_offset != 0) {
@@ -73,6 +95,9 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	if (container->timens_monotonic_offset != 0) {
 		usleep(1000);
 		int fd = open("/proc/self/timens_offsets", O_WRONLY | O_CLOEXEC);
+		if (fd < 0) {
+			ruri_error("{red}Error: failed to open /proc/self/timens_offsets QwQ\n");
+		}
 		char buf[1024] = { '\0' };
 		sprintf(buf, _Generic((time_t)0, long: "monotonic %ld 0", long long: "monotonic %lld 0", default: "monotonic %ld 0"), container->timens_monotonic_offset);
 		write(fd, buf, strlen(buf));
@@ -80,6 +105,9 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	if (container->timens_realtime_offset != 0) {
 		int fd = open("/proc/self/timens_offsets", O_WRONLY | O_CLOEXEC);
+		if (fd < 0) {
+			ruri_error("{red}Error: failed to open /proc/self/timens_offsets QwQ\n");
+		}
 		char buf[1024] = { '\0' };
 		sprintf(buf, _Generic((time_t)0, long: "boottime %ld 0", long long: "boottime %lld 0", default: "boottime %ld 0"), container->timens_realtime_offset);
 		write(fd, buf, strlen(buf));
@@ -113,7 +141,13 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		// Fix `can't access tty` issue.
 		int stat = 0;
 		waitpid(unshare_pid, &stat, 0);
-		exit(stat);
+		if (WIFEXITED(stat)) {
+			exit(WEXITSTATUS(stat));
+		}
+		if (WIFSIGNALED(stat)) {
+			exit(128 + WTERMSIG(stat));
+		}
+		exit(EXIT_FAILURE);
 	} else if (unshare_pid < 0) {
 		ruri_error("{red}Fork error, QwQ?\n");
 	}
@@ -171,15 +205,17 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 		}
 		close(ns_fd);
 	}
-	ns_fd = open(cgroup_ns_file, O_RDONLY | O_CLOEXEC);
-	if (ns_fd < 0 && !container->no_warnings) {
-		ruri_warning("{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
-	} else {
-		usleep(1000);
-		if (setns(ns_fd, CLONE_NEWCGROUP) == -1) {
-			ruri_error("{red}Failed to setns cgroup namespace QwQ\n");
+	if (!container->systemd_mode) {
+		ns_fd = open(cgroup_ns_file, O_RDONLY | O_CLOEXEC);
+		if (ns_fd < 0 && !container->no_warnings) {
+			ruri_warning("{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
+		} else {
+			usleep(1000);
+			if (setns(ns_fd, CLONE_NEWCGROUP) == -1) {
+				ruri_error("{red}Failed to setns cgroup namespace QwQ\n");
+			}
+			close(ns_fd);
 		}
-		close(ns_fd);
 	}
 	ns_fd = open(ipc_ns_file, O_RDONLY | O_CLOEXEC);
 	if (ns_fd < 0 && !container->no_warnings) {
@@ -230,7 +266,13 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 		// Wait until current process exit.
 		int stat = 0;
 		waitpid(unshare_pid, &stat, 0);
-		exit(stat);
+		if (WIFEXITED(stat)) {
+			exit(WEXITSTATUS(stat));
+		}
+		if (WIFSIGNALED(stat)) {
+			exit(128 + WTERMSIG(stat));
+		}
+		exit(EXIT_FAILURE);
 	}
 	// Maybe this will never be run.
 	else if (unshare_pid < 0) {
@@ -256,6 +298,7 @@ void ruri_run_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		unshare_pid = init_unshare_container(container);
 	} else {
 		unshare_pid = join_ns(container);
+		container->first_init = false;
 	}
 	ruri_log("{base}ns pid: %d\n", container->ns_pid);
 	// Check if we have joined the container's namespaces.

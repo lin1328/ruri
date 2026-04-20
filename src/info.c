@@ -50,15 +50,15 @@ void ruri_show_version_info(void)
 	cprintf("{base}             Revamp, Until Reach the Ideal\n");
 	cprintf("{base}            Licensed under the MIT License\n");
 	cprintf("{base}              <https://mit-license.org>\n");
-	cprintf("{base}         Copyright (C) 2022-2024 Moe-hacker\n\n");
-	cprintf("{base}%s%d.%d.%d%s", "ruri version .....:  ", RURI_VERSION_MAJOR, RURI_VERSION_MINOR, RURI_VERSION_PATCH, "\n");
+	cprintf("{base}         Copyright (C) 2022-2026 Moe-hacker\n\n");
+	cprintf("{base}%s%d.%d.%d%s", "Version ..........:  ", RURI_VERSION_MAJOR, RURI_VERSION_MINOR, RURI_VERSION_PATCH, "\n");
 #if defined(RURI_COMMIT_ID)
-	cprintf("{base}%s%s%s", "ruri commit id ...:  ", RURI_COMMIT_ID, "\n");
+	cprintf("{base}%s%s%s", "Commit hash ......:  ", RURI_COMMIT_ID, "\n");
 #endif
 	cprintf("{base}%s%s%s", "Architecture .....:  ", RURI_HOST_ARCH, "\n");
 	struct stat st;
 	if (stat("/proc/self/exe", &st) == 0) {
-		cprintf(_Generic((off_t)0, long: "{base}Binary size ......:  %ldK\n", long long: "{base}Binary size ......:  %lldK\n", default: "{base}Binary size ......:  %ldK\n"), (st.st_size / 1024));
+		cprintf(_Generic((off_t)0, long: "{base}Size .............:  %ldK\n", long long: "{base}Binary size ......:  %lldK\n", default: "{base}Binary size ......:  %ldK\n"), (st.st_size / 1024));
 	}
 #if defined(LIBCAP_MAJOR) && defined(LIBCAP_MINOR)
 	cprintf("{base}%s%d%s%d%s", "libcap ...........:  ", LIBCAP_MAJOR, ".", LIBCAP_MINOR, "\n");
@@ -69,7 +69,10 @@ void ruri_show_version_info(void)
 	cprintf("{base}%s%d%s%d%s", "libk2v ...........:  ", LIBK2V_MAJOR, ".", LIBK2V_MINOR, "\n");
 	cprintf("{base}%s%d%s%d%s", "cprintf ..........:  ", CPRINTF_MAJOR, ".", CPRINTF_MINOR, "\n");
 	cprintf("{base}%s%s\n", "Compiler version .:  ", __VERSION__);
-	cprintf("{base}%s%s\n", "Build date .......:  ", __TIMESTAMP__);
+	cprintf("{base}%s%s\n", "Source updated ...:  ", __TIMESTAMP__);
+	cprintf("{base}%s%s "
+		"%s\n",
+		"Build time .......:  ", __DATE__, __TIME__);
 	cprintf("{base}\nThere is NO WARRANTY, to the extent permitted by law\n");
 	cprintf("{base}This program has Super Neko Powers!!!\n");
 	cprintf("{clear}\n");
@@ -145,8 +148,10 @@ void ruri_show_helps(void)
 	cprintf("{base}  -J, --join-ns [NS_PID] ......................: Join namespace using ns_pid (*13)\n");
 	cprintf("{base}  -O, --oom-score-adj [score] .................: Set oom_score_adj for container (*14)\n");
 	cprintf("{base}  -Q, --mask-path [path] ......................: Mask a path in the container\n");
-	cprintf("{base}  -z, --enable-tty-signals ....................: Enable TTY signals in the container (*15)\n");
-	cprintf("{base}  -g, --skip-setgroups ........................: Skip setgroups() call\n");
+	cprintf("{base}  -y, --systemd ...............................: Run container with systemd support(*15)\n");
+	cprintf("{base}      --even-unstable .........................: You need this to enable systemd support.\n");
+	cprintf("{base}   -z, --enable-tty-signals ...................: Enable TTY signals in the container (*16)\n");
+	cprintf("{base}   -g, --skip-setgroups .......................: Skip setgroups() call\n");
 	cprintf("\n");
 	cprintf("{base}Note:\n");
 	cprintf("{base}(*1)  : Will not work for unshare containers without PID ns support\n");
@@ -160,11 +165,12 @@ void ruri_show_helps(void)
 	cprintf("{base}(*8)  : If you use a username, please make sure it's in /etc/passwd in the container\n");
 	cprintf("{base}(*9)  : This option is only for unshare containers\n");
 	cprintf("{base}(*10) : This option needs net ns, and will enable unshare feature by default\n");
-	cprintf("{base}(*11) : For example, `-I kvm 10 232` or `-I dri/card0 226 0`\n");
+	cprintf("{base}(*11) : For example, `-I kvm 10 232` or `-I dri/card0 226 0`. If major is set to 0, ruri will auto-detect the major and minor number from the host\n");
 	cprintf("{base}(*12) : This feature might not work. The value is in seconds. This feature will auto-enable unshare\n");
 	cprintf("{base}(*13) : This can only be used when the `-N` option is enabled\n");
 	cprintf("{base}(*14) : The value is in the range of -1000 to 1000, but setting a negative value might cause security issues\n");
-	cprintf("{base}(*15) : ruri will ignore SIGTTIN and SIGTTOU by default, enable this option to allow TTY signals in the container\n");
+	cprintf("{base}(*15) : This enables systemd support, mounting /run and /tmp as tmpfs, and setting up cgroup v2.\n");
+	cprintf("{base}(*16) : ruri will ignore SIGTTIN and SIGTTOU by default, enable this option to allow TTY signals in the container\n");
 	cprintf("\n{base}Note:\n");
 	cprintf("{base}BSD style usage is partially supported now. For example, you can use `-pW /root`, but `-W/root` is not allowed.\n");
 	cprintf("{base}{clear}\n");

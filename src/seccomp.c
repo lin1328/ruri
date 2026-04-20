@@ -41,7 +41,7 @@ static int ruri_resolve_seccomp_errno(const char *_Nonnull syscall, scmp_filter_
 	// Support errno prefixes like EACCES:chroot, EPERM:unshare, etc.
 	struct {
 		const char *name;
-		int value;
+		unsigned int value;
 	} errno_map[] = { { "ERRNO:", 0 }, { "E2BIG:", E2BIG }, { "EACCES:", EACCES }, { "EADDRINUSE:", EADDRINUSE }, { "EADDRNOTAVAIL:", EADDRNOTAVAIL }, { "EAFNOSUPPORT:", EAFNOSUPPORT }, { "EAGAIN:", EAGAIN }, { "EALREADY:", EALREADY }, { "EBADE:", EBADE }, { "EBADF:", EBADF }, { "EBADFD:", EBADFD }, { "EBADMSG:", EBADMSG }, { "EBADR:", EBADR }, { "EBADRQC:", EBADRQC }, { "EBADSLT:", EBADSLT }, { "EBUSY:", EBUSY }, { "ECANCELED:", ECANCELED }, { "ECHILD:", ECHILD }, { "ECHRNG:", ECHRNG }, { "ECOMM:", ECOMM }, { "ECONNABORTED:", ECONNABORTED }, { "ECONNREFUSED:", ECONNREFUSED }, { "ECONNRESET:", ECONNRESET }, { "EDEADLK:", EDEADLK }, { "EDEADLOCK:", EDEADLOCK }, { "EDESTADDRREQ:", EDESTADDRREQ }, { "EDOM:", EDOM }, { "EDQUOT:", EDQUOT }, { "EEXIST:", EEXIST }, { "EFAULT:", EFAULT }, { "EFBIG:", EFBIG }, { "EHOSTDOWN:", EHOSTDOWN }, { "EHOSTUNREACH:", EHOSTUNREACH }, { "EHWPOISON:", EHWPOISON }, { "EIDRM:", EIDRM }, { "EILSEQ:", EILSEQ }, { "EINPROGRESS:", EINPROGRESS }, { "EINTR:", EINTR }, { "EINVAL:", EINVAL }, { "EIO:", EIO }, { "EISCONN:", EISCONN }, { "EISDIR:", EISDIR }, { "EISNAM:", EISNAM }, { "EKEYEXPIRED:", EKEYEXPIRED }, { "EKEYREJECTED:", EKEYREJECTED }, { "EKEYREVOKED:", EKEYREVOKED }, { "EL2HLT:", EL2HLT }, { "EL2NSYNC:", EL2NSYNC }, { "EL3HLT:", EL3HLT }, { "EL3RST:", EL3RST }, { "ELIBACC:", ELIBACC }, { "ELIBBAD:", ELIBBAD }, { "ELIBMAX:", ELIBMAX }, { "ELIBSCN:", ELIBSCN }, { "ELIBEXEC:", ELIBEXEC }, { "ELNRNG:", ELNRNG }, { "ELOOP:", ELOOP }, { "EMEDIUMTYPE:", EMEDIUMTYPE }, { "EMFILE:", EMFILE }, { "EMLINK:", EMLINK }, { "EMSGSIZE:", EMSGSIZE }, { "EMULTIHOP:", EMULTIHOP }, { "ENAMETOOLONG:", ENAMETOOLONG }, { "ENETDOWN:", ENETDOWN }, { "ENETRESET:", ENETRESET }, { "ENETUNREACH:", ENETUNREACH }, { "ENFILE:", ENFILE }, { "ENOANO:", ENOANO }, { "ENOBUFS:", ENOBUFS }, { "ENODATA:", ENODATA }, { "ENODEV:", ENODEV }, { "ENOENT:", ENOENT }, { "ENOEXEC:", ENOEXEC }, { "ENOKEY:", ENOKEY }, { "ENOLCK:", ENOLCK }, { "ENOLINK:", ENOLINK }, { "ENOMEDIUM:", ENOMEDIUM }, { "ENOMEM:", ENOMEM }, { "ENOMSG:", ENOMSG }, { "ENONET:", ENONET }, { "ENOPKG:", ENOPKG }, { "ENOPROTOOPT:", ENOPROTOOPT }, { "ENOSPC:", ENOSPC }, { "ENOSR:", ENOSR }, { "ENOSTR:", ENOSTR }, { "ENOSYS:", ENOSYS }, { "ENOTBLK:", ENOTBLK }, { "ENOTCONN:", ENOTCONN }, { "ENOTDIR:", ENOTDIR }, { "ENOTEMPTY:", ENOTEMPTY }, { "ENOTRECOVERABLE:", ENOTRECOVERABLE }, { "ENOTSOCK:", ENOTSOCK }, { "ENOTSUP:", ENOTSUP }, { "ENOTTY:", ENOTTY }, { "ENOTUNIQ:", ENOTUNIQ }, { "ENXIO:", ENXIO }, { "EOPNOTSUPP:", EOPNOTSUPP }, { "EOVERFLOW:", EOVERFLOW }, { "EOWNERDEAD:", EOWNERDEAD }, { "EPERM:", EPERM }, { "EPFNOSUPPORT:", EPFNOSUPPORT }, { "EPIPE:", EPIPE }, { "EPROTO:", EPROTO }, { "EPROTONOSUPPORT:", EPROTONOSUPPORT }, { "EPROTOTYPE:", EPROTOTYPE }, { "ERANGE:", ERANGE }, { "EREMCHG:", EREMCHG }, { "EREMOTE:", EREMOTE }, { "EREMOTEIO:", EREMOTEIO }, { "ERESTART:", ERESTART }, { "ERFKILL:", ERFKILL }, { "EROFS:", EROFS }, { "ESHUTDOWN:", ESHUTDOWN }, { "ESPIPE:", ESPIPE }, { "ESOCKTNOSUPPORT:", ESOCKTNOSUPPORT }, { "ESRCH:", ESRCH }, { "ESTALE:", ESTALE }, { "ESTRPIPE:", ESTRPIPE }, { "ETIME:", ETIME }, { "ETIMEDOUT:", ETIMEDOUT }, { "ETOOMANYREFS:", ETOOMANYREFS }, { "ETXTBSY:", ETXTBSY }, { "EUCLEAN:", EUCLEAN }, { "EUNATCH:", EUNATCH }, { "EUSERS:", EUSERS }, { "EWOULDBLOCK:", EWOULDBLOCK }, { "EXDEV:", EXDEV }, { "EXFULL:", EXFULL } };
 	for (size_t i = 0; i < sizeof(errno_map) / sizeof(errno_map[0]); i++) {
 		if (strncmp(syscall_name, errno_map[i].name, strlen(errno_map[i].name)) == 0) {
@@ -74,8 +74,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			if (ruri_resolve_seccomp_errno(container->seccomp_denied_syscall[i], &ctx) != 0) {
 				ruri_error("Failed to resolve syscall: %s\n", container->seccomp_denied_syscall[i]);
 			}
+		} else {
+			seccomp_rule_add(ctx, SCMP_ACT_KILL, syscall_nr, 0);
 		}
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, syscall_nr, 0);
 	}
 	// Default rules.
 	if (container->enable_default_seccomp) {
@@ -102,6 +103,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
 				seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(clone), 1, SCMP_CMP(2, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
 			}
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
 		}
@@ -218,12 +220,31 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(userfaultfd), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(chroot), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
 	}
 #endif
+	if (container->systemd_mode) {
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(kexec_load), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(open_by_handle_at), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(init_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(delete_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(finit_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(kexec_file_load), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(reboot), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(umount2), 1, SCMP_CMP(5, SCMP_CMP_MASKED_EQ, MNT_FORCE, MNT_FORCE));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(keyctl), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(add_key), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(request_key), 0);
+	}
 	// Disable no_new_privs bit by default.
 	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
 	// Load seccomp rules.
-	seccomp_load(ctx);
+	if (seccomp_load(ctx) != 0) {
+		if (!container->no_warnings) {
+			ruri_warning("{yellow}Warning: Failed to load seccomp filter, maybe your kernel does not support it QwQ{clear}\n");
+		}
+	}
 	ruri_log("{base}Seccomp filter loaded\n");
 #endif
 }

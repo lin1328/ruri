@@ -1,7 +1,6 @@
 # Binary
 ruri
-ruri-amd64.zip
-ruri-arm64.zip
+ruri-*.zip
 # Editor configuration.
 .vscode/
 # Gdb log
@@ -22,27 +21,46 @@ debian/debhelper-build-stamp
 debian/files
 tmpdir*
 test-root
+build/src
+build
+# Cmake
 cmake_install.cmake
 CMakeCache.txt
 CMakeFiles
-build/.cmake
-build/compile_commands.json
-build/Makefile
-build/build.ninja
-build/.ninja_deps
-build/.ninja_log
+.cmake
+*.json
+build.ninja
+.ninja_deps
+.ninja_log
+
+# Automake
+build-aux
 autom4te.cache
+.deps
+.dirstamp
 aclocal.m4
 config.log
 config.status
 config.h
 config.h.in
+config.h.in~
 compile
 configure~
 install-sh
 missing
 configure
 Makefile.in
+depcomp
+config.guess
+config.sub
+test-driver
+*.Po
+
+*.o
+Makefile
+
+# build.c output
+build_tool
 
 # VitePress
 docs/.vitepress/cache

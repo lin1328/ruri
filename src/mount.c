@@ -87,7 +87,10 @@ static int mount_device(const char *_Nonnull source, const char *_Nonnull target
 		return -1;
 	}
 	char buf[4096] = { '\0' };
-	read(fssfd, buf, sizeof(buf));
+	if (read(fssfd, buf, sizeof(buf)) < 0) {
+		close(fssfd);
+		return -1;
+	}
 	close(fssfd);
 	char type[128] = { '\0' };
 	char label[128] = { '\0' };

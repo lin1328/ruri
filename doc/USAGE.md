@@ -223,7 +223,8 @@ For more info, refer to the man page of `user_namespaces(7)` and `unshare(2)`.
 | `-d`, `--cap-drop [cap]` | Drop the specified capability |
 
 These two options can control the capabilities in the container. Cap can be either a value or a name.  
-For example, `-k cap_chown` has the same effect as `-k 0`.  
+For example, `-k cap_chown` has the same effect as `-k 0`.        
+Capabilities can both be lowercase or uppercase, and the `cap_` prefix is optional. For example, `-k chown` also works.                  
 **Behavior note:** ruri will automatically drop some capabilities like `CAP_SYS_ADMIN`, `CAP_SYS_CHROOT`, etc. If you want to keep them, you can use the `-k` option.  
 For more info, refer to the man page of `capabilities(7)`.
 
@@ -388,7 +389,7 @@ Note: This option needs kernel and host support for KVM.
 |--------|-------------|
 | `-I`, `--char-dev [device] [major] [minor]` | Add a character device to the container |
 
-Add a character device to the container, for example `-I kvm 10 232` or `-I dri/card0 226 0`.  
+Add a character device to the container, for example `-I kvm 10 232` or `-I dri/card0 226 0`. If major is set to 0, ruri will try to auto-detect the major and minor number of the device from the host.    
 Note: For security reasons, creating block devices is not supported. You can use the `-m` option to mount a block device into the container instead.  
 **Behavior note:** This option will create a character device in the `/dev/` directory of the container; no need to add the `/dev/` prefix.
 

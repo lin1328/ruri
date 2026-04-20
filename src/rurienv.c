@@ -45,15 +45,17 @@ static bool is_ruri_pid(pid_t pid)
 	 * If not, we think the pid is a ruri process.
 	 */
 	char pid_ns_mnt[PATH_MAX] = { '\0' };
-	sprintf(pid_ns_mnt, "/proc/%d/ns/mnt", pid);
-	char *pid_ns_mnt_realpath = malloc(PATH_MAX);
+	snprintf(pid_ns_mnt, sizeof(pid_ns_mnt), "/proc/%d/ns/mnt", pid);
+	// Allocate PATH_MAX + 1 to guarantee room for the null terminator
+	// even when readlink fills the entire buffer.
+	char *pid_ns_mnt_realpath = malloc(PATH_MAX + 1);
 	ssize_t len = readlink(pid_ns_mnt, pid_ns_mnt_realpath, PATH_MAX);
 	if (len <= 0) {
 		free(pid_ns_mnt_realpath);
 		return false;
 	}
 	pid_ns_mnt_realpath[len] = '\0';
-	char *self_ns_mnt_realpath = malloc(PATH_MAX);
+	char *self_ns_mnt_realpath = malloc(PATH_MAX + 1);
 	len = readlink("/proc/self/ns/mnt", self_ns_mnt_realpath, PATH_MAX);
 	if (len <= 0) {
 		free(self_ns_mnt_realpath);
@@ -82,21 +84,19 @@ pid_t ruri_get_ns_pid(const char *_Nonnull container_dir)
 	 * If .rurienv does not exist, return RURI_INIT_VALUE.
 	 */
 	char file[PATH_MAX] = { '\0' };
-	sprintf(file, "%s/.rurienv", container_dir);
-	int fd = open(file, O_RDONLY | O_CLOEXEC);
-	// If .rurienv file does not exist.
-	if (fd < 0) {
+	if (snprintf(file, sizeof(file), "%s/.rurienv", container_dir) >= (int)sizeof(file)) {
 		return RURI_INIT_VALUE;
 	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	// If .rurienv file does not exist.
+	if (access(file, F_OK) != 0) {
+		return RURI_INIT_VALUE;
+	}
+	size_t size = k2v_get_filesize(file);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
 	// Read .rurienv file.
-	char *buf = k2v_open_file(file, (size_t)size);
+	char *buf = k2v_open_file(file, (size_t)size + 4);
 	pid_t ret = k2v_get_key(int, "ns_pid", buf);
 	free(buf);
 	if (ret <= 0) {
@@ -214,6 +214,9 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 	// skip_setgroups.
 	ret = k2v_add_comment(ret, "Skip setgroups() call.");
 	ret = k2v_add_config(bool, ret, "skip_setgroups", container->skip_setgroups);
+	// Systemd mode.
+	ret = k2v_add_comment(ret, "Systemd mode.");
+	ret = k2v_add_config(bool, ret, "systemd_mode", container->systemd_mode);
 	return ret;
 }
 // Store container info.
@@ -234,7 +237,10 @@ void ruri_store_info(const struct RURI_CONTAINER *_Nonnull container)
 	// Format container info.
 	char *info = build_container_info(container);
 	char file[PATH_MAX] = { '\0' };
-	sprintf(file, "%s/.rurienv", container->container_dir);
+	if (snprintf(file, sizeof(file), "%s/.rurienv", container->container_dir) >= (int)sizeof(file)) {
+		free(info);
+		ruri_error("{red}Error: container directory path is too long QwQ\n");
+	}
 	// Umount the .rurienv file.
 	umount2(file, MNT_DETACH | MNT_FORCE);
 	int fd = open(file, O_RDONLY | O_CLOEXEC);
@@ -285,10 +291,15 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	 * and return a struct with malloced memory.
 	 */
 	char file[PATH_MAX] = { '\0' };
-	sprintf(file, "%s/.rurienv", container_dir);
-	int fd = open(file, O_RDONLY | O_CLOEXEC);
+	if (snprintf(file, sizeof(file), "%s/.rurienv", container_dir) >= (int)sizeof(file)) {
+		if (container == NULL) {
+			container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
+			ruri_init_config(container);
+		}
+		return container;
+	}
 	// If .rurienv file does not exist.
-	if (fd < 0) {
+	if (access(file, F_OK) != 0) {
 		// Return a malloced struct for ruri_umount_container() and ruri_container_ps().
 		if (container == NULL) {
 			container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
@@ -300,15 +311,12 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 		return container;
 	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	size_t size = k2v_get_filesize(file);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
 	// Read .rurienv file.
-	char *buf = k2v_open_file(file, (size_t)size);
+	char *buf = k2v_open_file(file, (size_t)size + 4);
 	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", buf);
 	// We only need to get part of container info when container is NULL.
 	if (container == NULL) {
@@ -329,7 +337,6 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 		// Get rootless.
 		container->rootless = k2v_get_key(bool, "rootless", buf);
-		close(fd);
 		free(buf);
 		return container;
 	}
@@ -340,7 +347,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		free(buf);
 		// Unset immutable flag of .rurienv.
 		umount2(file, MNT_DETACH | MNT_FORCE);
-		fd = open(file, O_RDONLY | O_CLOEXEC);
+		int fd = open(file, O_RDONLY | O_CLOEXEC);
 		if (fd < 0 && !container->no_warnings) {
 			ruri_warning("{yellow}Open .rurienv failed{clear}\n");
 		}
@@ -453,6 +460,8 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	int envlen = k2v_get_key(char_array, "env", buf, container->env, RURI_MAX_ENVS);
 	container->env[envlen] = NULL;
 	container->env[envlen + 1] = NULL;
+	// Get systemd_mode.
+	container->systemd_mode = k2v_get_key(bool, "systemd_mode", buf);
 	// Qemu will only be set when initializing container.
 	free(container->cross_arch);
 	free(container->qemu_path);

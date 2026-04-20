@@ -88,6 +88,8 @@ void ruri_init_config(struct RURI_CONTAINER *_Nonnull container)
 	container->masked_path[0] = NULL;
 	container->enable_tty_signals = false;
 	container->skip_setgroups = false;
+	container->first_init = true;
+	container->systemd_mode = false;
 }
 static int pmcrts(const char *s1, const char *s2)
 {
@@ -113,15 +115,18 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 	 */
 	// Add the shebang.
 	char ruri_bin_path[PATH_MAX] = { '\0' };
-	if (readlink("/proc/self/exe", ruri_bin_path, PATH_MAX) <= 0) {
-		sprintf(ruri_bin_path, "%s", "/usr/bin/ruri");
+	ssize_t ruri_bin_path_len = readlink("/proc/self/exe", ruri_bin_path, PATH_MAX - 1);
+	if (ruri_bin_path_len <= 0) {
+		snprintf(ruri_bin_path, sizeof(ruri_bin_path), "%s", "/usr/bin/ruri");
+	} else {
+		ruri_bin_path[ruri_bin_path_len] = '\0';
 	}
 	char shebang[PATH_MAX + 16] = { '\0' };
 	// Detect rurima.
 	if (pmcrts(ruri_bin_path, "rurima") == 0) {
-		sprintf(shebang, "#!%s ruri -c\n\n", ruri_bin_path);
+		snprintf(shebang, sizeof(shebang), "#!%s ruri -c\n\n", ruri_bin_path);
 	} else {
-		sprintf(shebang, "#!%s -c\n\n", ruri_bin_path);
+		snprintf(shebang, sizeof(shebang), "#!%s -c\n\n", ruri_bin_path);
 	}
 	char *ret = strdup(shebang);
 	// container_dir.
@@ -391,6 +396,17 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 	// skip_setgroups.
 	ret = k2v_add_comment(ret, "Skip setgroups() call.");
 	ret = k2v_add_config(bool, ret, "skip_setgroups", container->skip_setgroups);
+	ret = k2v_add_newline(ret);
+	// systemd_mode.
+	ret = k2v_add_comment(ret, "Enable systemd mode.");
+	ret = k2v_add_comment(ret, "Also enables unshare.");
+	ret = k2v_add_comment(ret, "Default is false.");
+	ret = k2v_add_config(bool, ret, "systemd_mode", container->systemd_mode);
+	ret = k2v_add_newline(ret);
+	// first_init.
+	ret = k2v_add_comment(ret, "Mark if this is the first init process.");
+	ret = k2v_add_comment(ret, "Used internally for systemd mode.");
+	ret = k2v_add_config(bool, ret, "first_init", container->first_init);
 	return ret;
 }
 void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_Nonnull path)
@@ -399,20 +415,16 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	 * Read k2v format config file,
 	 * and set container config.
 	 */
-	int fd = open(path, O_RDONLY | O_CLOEXEC);
-	if (fd < 0) {
-		ruri_error("{red}No such file or directory:%s\n{clear}", path);
-	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	size_t size = k2v_get_filesize(path);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
-	char *buf = k2v_open_file(path, (size_t)size);
+	char *buf = k2v_open_file(path, (size_t)size + 4);
+	if (buf == NULL) {
+		ruri_error("{red}Failed to read config file:%s\n{clear}", path);
+	}
 	// Check if config is valid.
-	char *key_list[] = { "timens_realtime_offset", "timens_monotonic_offset", "hidepid", "char_devs", "use_kvm", "no_network", "container_dir", "user", "drop_caplist", "no_new_privs", "enable_seccomp", "rootless", "no_warnings", "cross_arch", "qemu_path", "use_rurienv", "cpuset", "memory", "cpupercent", "just_chroot", "unmask_dirs", "mount_host_runtime", "work_dir", "rootfs_source", "ro_root", "extra_mountpoint", "extra_ro_mountpoint", "env", "command", "hostname", NULL };
+	char *key_list[] = { "timens_realtime_offset", "timens_monotonic_offset", "hidepid", "char_devs", "use_kvm", "no_network", "container_dir", "user", "drop_caplist", "no_new_privs", "enable_seccomp", "rootless", "no_warnings", "cross_arch", "qemu_path", "use_rurienv", "cpuset", "memory", "cpupercent", "just_chroot", "unmask_dirs", "mount_host_runtime", "work_dir", "rootfs_source", "ro_root", "extra_mountpoint", "extra_ro_mountpoint", "env", "command", "hostname", "systemd_mode", "first_init", NULL };
 	for (int i = 0; key_list[i] != NULL; i++) {
 		if (!have_key(key_list[i], buf)) {
 			ruri_error("{red}Invalid config file, there is no key:%s\nHint:\n You can try to use `ruri -C config` to fix the config file{clear}", key_list[i]);
@@ -532,6 +544,10 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	// Get command.
 	int comlen = k2v_get_key(char_array, "command", buf, container->command, RURI_MAX_COMMANDS);
 	container->command[comlen] = NULL;
+	// Get systemd_mode.
+	container->systemd_mode = k2v_get_key(bool, "systemd_mode", buf);
+	// Get first_init.
+	container->first_init = k2v_get_key(bool, "first_init", buf);
 	free(buf);
 	buf = ruri_container_info_to_k2v(container);
 	ruri_log("{base}Container config in %s:{cyan}\n%s", path, buf);
@@ -546,18 +562,14 @@ void ruri_correct_config(const char *_Nonnull path)
 	// Disable strict mode for libk2v.
 	k2v_show_warning = false;
 	k2v_stop_at_warning = false;
-	int fd = open(path, O_RDONLY | O_CLOEXEC);
-	if (fd < 0) {
-		ruri_error("{red}No such file or directory:%s\n{clear}", path);
-	}
-	struct stat filestat;
-	fstat(fd, &filestat);
-	off_t size = filestat.st_size;
+	size_t size = k2v_get_filesize(path);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	close(fd);
-	char *buf = k2v_open_file(path, (size_t)size);
+	char *buf = k2v_open_file(path, (size_t)size + 4);
+	if (buf == NULL) {
+		ruri_error("{red}Failed to read config file:%s\n{clear}", path);
+	}
 	if (!have_key("container_dir", buf)) {
 		ruri_error("{red}Invalid config file, there is no key:container_dir\n{clear}");
 	}
@@ -796,10 +808,22 @@ void ruri_correct_config(const char *_Nonnull path)
 	} else {
 		container.oom_score_adj = k2v_get_key(int, "oom_score_adj", buf);
 	}
+	if (!have_key("systemd_mode", buf)) {
+		ruri_warning("{green}No key systemd_mode found, set to false\n{clear}");
+		container.systemd_mode = false;
+	} else {
+		container.systemd_mode = k2v_get_key(bool, "systemd_mode", buf);
+	}
+	if (!have_key("first_init", buf)) {
+		ruri_warning("{green}No key first_init found, set to true\n{clear}");
+		container.first_init = true;
+	} else {
+		container.first_init = k2v_get_key(bool, "first_init", buf);
+	}
 	free(buf);
 	unlink(path);
 	remove(path);
-	fd = open(path, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IRGRP | S_IROTH | S_IWGRP | S_IWUSR | S_IWOTH);
+	int fd = open(path, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IRGRP | S_IROTH | S_IWGRP | S_IWUSR | S_IWOTH);
 	if (fd < 0) {
 		ruri_error("{red}Error: failed to open output file QwQ\n");
 	}

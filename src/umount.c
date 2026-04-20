@@ -144,7 +144,9 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 	struct RURI_CONTAINER *container = ruri_read_info(NULL, container_dir);
 	ruri_log("{base}Umounting container...\n");
 	char infofile[PATH_MAX] = { '\0' };
-	sprintf(infofile, "%s/.rurienv", container_dir);
+	if (snprintf(infofile, sizeof(infofile), "%s/.rurienv", container_dir) >= (int)sizeof(infofile)) {
+		ruri_error("{red}Error: container directory path is too long QwQ\n");
+	}
 	// Umount .rurienv file.
 	umount2(infofile, MNT_DETACH | MNT_FORCE);
 	int fd = open(infofile, O_RDONLY | O_CLOEXEC);
@@ -164,19 +166,19 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 	char proc_dir[PATH_MAX];
 	char dev_dir[PATH_MAX];
 	char to_umountpoint[PATH_MAX];
-	strcpy(sys_dir, container_dir);
-	strcpy(proc_dir, container_dir);
-	strcpy(dev_dir, container_dir);
-	strcat(sys_dir, "/sys");
-	strcat(proc_dir, "/proc");
-	strcat(dev_dir, "/dev");
+	if (snprintf(sys_dir, sizeof(sys_dir), "%s/sys", container_dir) >= (int)sizeof(sys_dir) || snprintf(proc_dir, sizeof(proc_dir), "%s/proc", container_dir) >= (int)sizeof(proc_dir) || snprintf(dev_dir, sizeof(dev_dir), "%s/dev", container_dir) >= (int)sizeof(dev_dir)) {
+		ruri_error("{red}Error: container directory path is too long QwQ\n");
+	}
 	// Umount other mountpoints.
 	if (container != NULL) {
 		// Umount extra_mountpoint.
 		for (int i = 1; true; i += 2) {
 			if (container->extra_mountpoint[i] != NULL) {
-				strcpy(to_umountpoint, container_dir);
-				strcat(to_umountpoint, container->extra_mountpoint[i]);
+				if (snprintf(to_umountpoint, sizeof(to_umountpoint), "%s%s", container_dir, container->extra_mountpoint[i]) >= (int)sizeof(to_umountpoint)) {
+					free(container->extra_mountpoint[i]);
+					free(container->extra_mountpoint[i - 1]);
+					continue;
+				}
 				ruri_log("{base}Umounting %s\n", to_umountpoint);
 				for (int j = 0; j < 10; j++) {
 					umount2(to_umountpoint, MNT_DETACH);
@@ -195,8 +197,11 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 		// Umount extra_ro_mountpoint.
 		for (int i = 1; true; i += 2) {
 			if (container->extra_ro_mountpoint[i] != NULL) {
-				strcpy(to_umountpoint, container_dir);
-				strcat(to_umountpoint, container->extra_ro_mountpoint[i]);
+				if (snprintf(to_umountpoint, sizeof(to_umountpoint), "%s%s", container_dir, container->extra_ro_mountpoint[i]) >= (int)sizeof(to_umountpoint)) {
+					free(container->extra_ro_mountpoint[i]);
+					free(container->extra_ro_mountpoint[i - 1]);
+					continue;
+				}
 				for (int j = 0; j < 10; j++) {
 					ruri_log("{base}Umounting %s\n", to_umountpoint);
 					umount2(to_umountpoint, MNT_DETACH);
@@ -207,8 +212,8 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 				// Not rmdir(), so directory will not be removed.
 				remove(to_umountpoint);
 				// Make ASAN happy.
-				free(container->extra_mountpoint[i]);
-				free(container->extra_mountpoint[i - 1]);
+				free(container->extra_ro_mountpoint[i]);
+				free(container->extra_ro_mountpoint[i - 1]);
 			} else {
 				break;
 			}

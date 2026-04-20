@@ -213,7 +213,11 @@ static void set_id_map(uid_t uid, gid_t gid)
 		ruri_warning("{red}Failed to open /proc/self/uid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
 		ruri_error("{red}Failed to open /proc/self/uid_map\n");
 	}
-	write(uidmap_fd, uid_map, strlen(uid_map));
+	if (write(uidmap_fd, uid_map, strlen(uid_map)) < 0) {
+		close(uidmap_fd);
+		ruri_warning("{red}Failed to write to /proc/self/uid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
+		ruri_error("{red}Failed to write to /proc/self/uid_map\n");
+	}
 	close(uidmap_fd);
 	// Set gid map.
 	int setgroups_fd = open("/proc/self/setgroups", O_RDWR | O_CLOEXEC);
@@ -230,12 +234,20 @@ static void set_id_map(uid_t uid, gid_t gid)
 		ruri_warning("{red}Failed to open /proc/self/gid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
 		ruri_error("{red}Failed to open /proc/self/gid_map\n");
 	}
-	write(gidmap_fd, gid_map, strlen(gid_map));
+	if (write(gidmap_fd, gid_map, strlen(gid_map)) < 0) {
+		close(gidmap_fd);
+		ruri_warning("{red}Failed to write to /proc/self/gid_map, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
+		ruri_error("{red}Failed to write to /proc/self/gid_map\n");
+	}
 	close(gidmap_fd);
 	// Maybe needless.
 	setuid(0);
 	setgid(0);
 	setgroups_fd = open("/proc/self/setgroups", O_RDWR | O_CLOEXEC);
+	if (setgroups_fd < 0) {
+		// It's fine.
+		return;
+	}
 	write(setgroups_fd, "allow", 5);
 	close(setgroups_fd);
 }
@@ -357,11 +369,13 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 		close(time_ns_fd);
 		// Join net ns.
-		// This action will be forced, and will not error.
+		// This action will be forced.
 		char net_ns_file[PATH_MAX] = { '\0' };
 		sprintf(net_ns_file, "%s%d%s", "/proc/", container->ns_pid, "/ns/net");
 		int net_ns_fd = open(net_ns_file, O_RDONLY | O_CLOEXEC);
-		setns(net_ns_fd, CLONE_NEWNET);
+		if (setns(net_ns_fd, CLONE_NEWNET) == -1 && !container->no_warnings) {
+			ruri_warning("{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+		}
 	} else {
 		// We need to own mount namespace.
 		try_unshare(CLONE_NEWNS);

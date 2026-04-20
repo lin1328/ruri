@@ -211,6 +211,9 @@ struct RURI_CONTAINER {
 	bool enable_tty_signals;
 	// Skip setting groups for user
 	bool skip_setgroups;
+	// First init.
+	bool first_init;
+	bool systemd_mode;
 };
 // For ruri_get_magic().
 #define ruri_magicof(x) (x##_magic)
@@ -250,6 +253,18 @@ struct RURI_ID_MAP {
 		cfprintf(stderr, "{base}%s{clear}\n", "If you think something is wrong, please report at:");                                         \
 		cfprintf(stderr, "\033[4m{base}%s{clear}\n", "https://github.com/Moe-hacker/ruri/issues");                                           \
 		exit(114);                                                                                                                           \
+	}
+#define panic_on_error(ret__, expect__, format__, ...)       \
+	{                                                    \
+		if (ret__ != expect__) {                     \
+			ruri_error(format__, ##__VA_ARGS__); \
+		}                                            \
+	}
+#define warn_on_error(ret__, expect__, show__, format__, ...)  \
+	{                                                      \
+		if (show__ && ret__ != expect__) {             \
+			ruri_warning(format__, ##__VA_ARGS__); \
+		}                                              \
 	}
 // Log system.
 #if defined(RURI_DEBUG)

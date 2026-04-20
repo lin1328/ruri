@@ -53,13 +53,9 @@ jobs:
     strategy:
       matrix:
         arch: [x86_64, x86, aarch64, armhf, armv7, ppc64le, loongarch64, riscv64, s390x]
-        #arch: [x86_64, x86, aarch64, armhf, armv7, ppc64le, loongarch64, riscv64]
     env:
       ARCHITECTURE: ${{ matrix.arch }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -68,7 +64,7 @@ jobs:
 
       - name: Build ruri for containers
         run: |
-          cd build
+          mkdir -p build && cd build
           git clone --depth 1 https://github.com/moe-hacker/ruri.git
           cd ruri
           cc -Wl,--gc-sections -static src/*.c src/easteregg/*.c -o ruri -lcap -lseccomp -lpthread
@@ -93,7 +89,7 @@ jobs:
         shell: bash
         run: |
           cd build
-          cp build.sh "$ARCHITECTURE/build.sh"
+          cp ruri/.github/build.sh "$ARCHITECTURE/build.sh"
           sudo chmod +x ../ruri
           sudo chmod +x "$ARCHITECTURE/build.sh"
 

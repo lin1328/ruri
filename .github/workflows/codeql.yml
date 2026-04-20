@@ -83,14 +83,11 @@ jobs:
       run: |
          sudo apt update
          sudo apt install -y \
-              make \
-              clang \
-              libseccomp-dev \
-              libcap-dev \
-              libc6-dev \
-              binutils
-          aclocal
-          autoconf
+            autoconf automake libtool make gcc \
+            libseccomp-dev libcap-dev libc6-dev \
+            binutils
+              
+          autoreconf -fi
           ./configure --enable-debug --enable-dev
           make
 
