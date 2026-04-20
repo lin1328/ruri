@@ -178,13 +178,13 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 {
 	/* Mount tmpfs for runtime directories */
 	mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
-	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	mount("tmpfs", "/run/lock", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 	mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 
 	/* Create systemd runtime directories */
-	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
+	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	remove("/run/systemd/container");
 	unlink("/run/systemd/container");
 	int systemd_container_config_fd = open("/run/systemd/container", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
@@ -197,11 +197,17 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 		ruri_warning("{yellow}Failed to setup /run/systemd/container\n");
 	}
 	/* Create journal runtime directory */
-	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
+	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 
 	/* Create dbus runtime directory */
-	mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	int res = mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
+	warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /run/dbus, dbus service may not work.\n");
+
+	/* Ensure /var/run points to /run for dbus compatibility */
+	if (access("/var/run", F_OK) != 0) {
+		symlink("/run", "/var/run");
+	}
 
 	/* Setup /etc/machine-id */
 	generate_machine_id();
@@ -328,7 +334,9 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			mount("tmpfs", "/sys/kernel/debug", "tmpfs", MS_RDONLY, NULL);
 			mount("tmpfs", "/sys/module", "tmpfs", MS_RDONLY, NULL);
 			mount("tmpfs", "/sys/class/net", "tmpfs", MS_RDONLY, NULL);
-			mount("tmpfs", "/sys/fs/cgroup", "tmpfs", MS_RDONLY, NULL);
+			if (!container->systemd_mode) {
+				mount("tmpfs", "/sys/fs/cgroup", "tmpfs", MS_RDONLY, NULL);
+			}
 			// Protect some system runtime directories by mounting themselves as read-only.
 			mount("/proc/bus", "/proc/bus", NULL, MS_BIND | MS_REC, NULL);
 			mount("/proc/bus", "/proc/bus", NULL, MS_BIND | MS_RDONLY | MS_REMOUNT, NULL);
