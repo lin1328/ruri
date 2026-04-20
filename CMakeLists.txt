@@ -255,10 +255,10 @@ target_compile_options(ruri PRIVATE $<$<CONFIG:Release>:-O2>)
 target_link_options(ruri PRIVATE $<$<CONFIG:Release>:-O2>)
 
 if(DISABLE_RURIENV)
-    target_compile_definitions(ruri PRIVATE DISABLE_RURIENV)
+target_compile_definitions(ruri PRIVATE DISABLE_RURIENV)
 endif()
 if(DISABLE_RURIENV AND DISABLE_LIBCAP AND DISABLE_LIBSECCOMP)
-    target_compile_definitions(ruri PRIVATE RURI_CORE_ONLY)
+target_compile_definitions(ruri PRIVATE RURI_CORE_ONLY)
 endif()
 
 if(GIT_RESULT EQUAL 0 AND GIT_COMMIT_ID)

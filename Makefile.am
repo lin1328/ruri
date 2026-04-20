@@ -3,30 +3,30 @@ bin_PROGRAMS = ruri
 # All .c files unconditionally participate in compilation;
 # behavior is controlled internally in the C code via #ifdef DISABLE_*.
 ruri_SOURCES = \
-    src/caplist.c                       \
-    src/cgroup.c                        \
-    src/chroot.c                        \
-    src/config.c                        \
-    src/cprintf.c                       \
-    src/elf-magic.c                     \
-    src/info.c                          \
-    src/k2v.c                           \
-    src/main.c                          \
-    src/mount.c                         \
-    src/passwd.c                        \
-    src/ps.c                            \
-    src/rootless.c                      \
-    src/ruri.c                          \
-    src/rurienv.c                       \
-    src/rurifetch.c                     \
-    src/seccomp.c                       \
-    src/signal.c                        \
-    src/umount.c                        \
-    src/unshare.c                       \
-    src/easteregg/action.c              \
-    src/easteregg/layer.c               \
-    src/easteregg/nekofeng.c            \
-    src/easteregg/typewriter.c
+	src/caplist.c \
+	src/cgroup.c \
+	src/chroot.c \
+	src/config.c \
+	src/cprintf.c \
+	src/elf-magic.c \
+	src/info.c \
+	src/k2v.c \
+	src/main.c \
+	src/mount.c \
+	src/passwd.c \
+	src/ps.c \
+	src/rootless.c \
+	src/ruri.c \
+	src/rurienv.c \
+	src/rurifetch.c \
+	src/seccomp.c \
+	src/signal.c \
+	src/umount.c \
+	src/unshare.c \
+	src/easteregg/action.c \
+	src/easteregg/layer.c \
+	src/easteregg/nekofeng.c \
+	src/easteregg/typewriter.c
 
 AM_CPPFLAGS = \
     -I$(top_builddir)/src/include           \

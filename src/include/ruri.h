@@ -212,6 +212,7 @@ struct RURI_CONTAINER {
 	bool skip_setgroups;
 	// First init.
 	bool first_init;
+	bool systemd_mode;
 };
 // For ruri_get_magic().
 #define ruri_magicof(x) (x##_magic)

@@ -116,6 +116,97 @@ static void check_binary(const struct RURI_CONTAINER *_Nonnull container)
 		}
 	}
 }
+/*
+ * Generate a unique machine-id for systemd.
+ */
+static void generate_machine_id()
+{
+	ruri_log("{blue}Generating unique machine-id for systemd.\n");
+	char new_machine_id[33];
+	const char *hex_chars = "0123456789abcdef";
+	for (int i = 0; i < 32; i++) {
+		new_machine_id[i] = hex_chars[rand() % 16];
+	}
+	new_machine_id[32] = '\0';
+	remove("/etc/machine-id");
+	unlink("/etc/machine-id");
+	int machine_id_fd = open("/etc/machine-id", O_WRONLY | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (machine_id_fd >= 0) {
+		write(machine_id_fd, new_machine_id, 32);
+		write(machine_id_fd, "\n", 1);
+		close(machine_id_fd);
+		ruri_log("{blue}Generated /etc/machine-id: %s\n", new_machine_id);
+	}
+}
+
+/*
+ * Move PID 1 into a dedicated cgroup subtree before execing systemd.
+ * This avoids inheriting an invalid parent cgroup such as /init.
+ */
+static void prepare_systemd_cgroup_scope(const struct RURI_CONTAINER *_Nonnull container)
+{
+	char scope_dir[PATH_MAX] = { 0 };
+	char scope_procs[PATH_MAX] = { 0 };
+	char pid_buf[64] = { 0 };
+
+	snprintf(scope_dir, sizeof(scope_dir), "/sys/fs/cgroup/ruri-%d", container->container_id);
+	snprintf(scope_procs, sizeof(scope_procs), "%s/cgroup.procs", scope_dir);
+
+	if (mkdir(scope_dir, 0755) < 0 && errno != EEXIST) {
+		ruri_warning("{yellow}Warning: Failed to create systemd cgroup scope %s: %s\n", scope_dir, strerror(errno));
+		return;
+	}
+
+	int fd = open(scope_procs, O_WRONLY | O_CLOEXEC);
+	if (fd < 0) {
+		ruri_warning("{yellow}Warning: Failed to open %s: %s\n", scope_procs, strerror(errno));
+		return;
+	}
+
+	snprintf(pid_buf, sizeof(pid_buf), "%d\n", getpid());
+	if (write(fd, pid_buf, strlen(pid_buf)) < 0) {
+		ruri_warning("{yellow}Warning: Failed to move systemd pid into %s: %s\n", scope_dir, strerror(errno));
+	}
+	close(fd);
+}
+
+/*
+ * Setup complete systemd runtime environment.
+ * This includes all directories and files systemd needs to function.
+ */
+static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
+{
+	/* Mount tmpfs for runtime directories */
+	mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
+	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mount("tmpfs", "/run/lock", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
+	mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
+
+	/* Create systemd runtime directories */
+	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	remove("/run/systemd/container");
+	unlink("/run/systemd/container");
+	int systemd_container_config_fd = open("/run/systemd/container", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+	if (systemd_container_config_fd >= 0) {
+		write(systemd_container_config_fd, "ruri", strlen("ruri"));
+		close(systemd_container_config_fd);
+		ruri_log("{blue}Setup /run/systemd/container for systemd runtime.\n");
+		ruri_log("{blue}systemd will treat this container as a docker container, which is good for compatibility.\n");
+	} else {
+		ruri_warning("{yellow}Failed to setup /run/systemd/container\n");
+	}
+	/* Create journal runtime directory */
+	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+	/* Create dbus runtime directory */
+	mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+	/* Setup /etc/machine-id */
+	generate_machine_id();
+}
+
 // Run after chroot(2), called by ruri_run_chroot_container().
 static void init_container(struct RURI_CONTAINER *_Nonnull container)
 {
@@ -124,11 +215,12 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 	 * The device list and permissions are based on common docker containers.
 	 * If -A is not set, we will mask some dirs in /sys and /proc to avoid security issues.
 	 */
-	// If /proc/1 exists, that means container is already initialized.
+	// If /proc/1/exe exists, that means container is already initialized.
 	// I used to check /sys/class/input, but in WSL1, /sys/class/input is not exist.
-	// But /proc/1 is exist in all Linux systems, because it's the init process.
-	char *test = realpath("/proc/1", NULL);
+	// But /proc/1/exe is exist in all Linux systems, because it's the init process.
+	char *test = realpath("/proc/1/exe", NULL);
 	if (test == NULL) {
+		ruri_log("{blue}Container is not initialized, initializing...\n");
 		int res = 0;
 		// Mount proc,sys and dev.
 		mkdir("/sys", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
@@ -142,8 +234,13 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		} else {
 			res = mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
 			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs, will continue.\n");
-			res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
-			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs, will continue.\n");
+			if (!container->systemd_mode) {
+				res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
+				warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs, will continue.\n");
+			} else {
+				res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
+				warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs as read-only, will continue.\n");
+			}
 		}
 		res = mount("tmpfs", "/dev", "tmpfs", MS_NOSUID, "size=65536k,mode=755");
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devtmpfs, will continue.\n");
@@ -172,10 +269,6 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		res = mknod("/dev/null", S_IFCHR, makedev(1, 3));
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/null, will continue.\n");
 		chmod("/dev/null", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		res = mknod("/dev/console", S_IFCHR, makedev(5, 0));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/console, will continue.\n");
-		chown("/dev/console", 0, 5);
-		chmod("/dev/console", S_IRUSR | S_IWUSR | S_IWGRP | S_IWOTH);
 		res = mknod("/dev/zero", S_IFCHR, makedev(1, 5));
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/zero, will continue.\n");
 		chmod("/dev/zero", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -183,10 +276,6 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/ptmx, will continue.\n");
 		chown("/dev/ptmx", 0, 5);
 		chmod("/dev/ptmx", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		res = mknod("/dev/tty", S_IFCHR, makedev(5, 0));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/tty, will continue.\n");
-		chown("/dev/tty", 0, 5);
-		chmod("/dev/tty", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 		res = mknod("/dev/random", S_IFCHR, makedev(1, 8));
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/random, will continue.\n");
 		chmod("/dev/random", S_IRUSR | S_IRGRP | S_IROTH);
@@ -207,21 +296,19 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		symlink("/proc/self/fd/0", "/dev/stdin");
 		symlink("/proc/self/fd/1", "/dev/stdout");
 		symlink("/proc/self/fd/2", "/dev/stderr");
-		res = mknod("/dev/tty0", S_IFCHR, makedev(5, 0));
-		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/tty0, will continue.\n");
-		chown("/dev/tty0", 0, 5);
-		chmod("/dev/tty0", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		if (false) {
-			mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
-			mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-			mount("tmpfs", "/run/lock", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
-			mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
-			mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-			int systemd_container_config_fd = open("/run/systemd/container", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
-			if (systemd_container_config_fd >= 0) {
-				write(systemd_container_config_fd, "ruri", strlen("ruri"));
-				close(systemd_container_config_fd);
-			}
+		remove("/dev/console");
+		unlink("/dev/console");
+		symlink("/dev/null", "/dev/console");
+		remove("/dev/tty0");
+		unlink("/dev/tty0");
+		symlink("/dev/null", "/dev/tty0");
+		remove("/dev/tty");
+		unlink("/dev/tty");
+		symlink("/dev/null", "/dev/tty");
+		if (container->systemd_mode) {
+			ruri_log("{blue}systemd mode!\n")
+				/* Setup systemd runtime environment */
+				setup_systemd_runtime(container);
 		}
 		if (!container->unmask_dirs) {
 			// Mask some directories/files that we don't want the container modify it.
@@ -253,6 +340,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			mount("/proc/sys", "/proc/sys", NULL, MS_BIND | MS_RDONLY | MS_REMOUNT, NULL);
 			mount("/proc/sys-trigger", "/proc/sys-trigger", NULL, MS_BIND | MS_REC, NULL);
 			mount("/proc/sys-trigger", "/proc/sys-trigger", NULL, MS_BIND | MS_RDONLY | MS_REMOUNT, NULL);
+			mount("/dev/null", "/sys/class/tty/console/active", NULL, MS_BIND, NULL);
 		}
 		// Mask other user-specified path.
 		for (int i = 0; i < RURI_MAX_MOUNTPOINTS; i++) {
@@ -269,6 +357,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 	} else {
 		free(test);
+		ruri_log("{blue}Container is already initialized, skipping initialization.\n");
 	}
 }
 static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
@@ -670,6 +759,7 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			int groups_count = 0;
 			gid_t *groups = malloc(NGROUPS_MAX * sizeof(gid_t));
 			uid_t user_uid = ruri_get_user_uid(user);
+			gid_t user_gid = ruri_get_user_gid(user);
 			if (RURI_PWD_ERRNO != 0) {
 				ruri_warning("{yellow}Warning: failed to get user info for `%s`: %s{clear}\n", user, strerror(RURI_PWD_ERRNO));
 				return;
@@ -685,11 +775,6 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			}
 			usleep(1000);
 			free(groups);
-			gid_t user_gid = ruri_get_user_gid(user);
-			if (RURI_PWD_ERRNO != 0) {
-				ruri_warning("{yellow}Warning: failed to get user info for `%s`: %s{clear}\n", user, strerror(RURI_PWD_ERRNO));
-				return;
-			}
 			res = setgid(user_gid);
 			panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
 			res = setuid(user_uid);
@@ -883,14 +968,34 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	// Umount binfmt_misc apifs.
 	umount2("/proc/sys/fs/binfmt_misc", MNT_DETACH | MNT_FORCE);
 	// Set up cgroup limit.
-	if (!container->just_chroot) {
+	// In systemd mode, let systemd manage the delegated cgroup hierarchy itself.
+	if (!container->just_chroot && !container->systemd_mode) {
 		ruri_set_limit(container);
 	}
-	if (container->enable_unshare && container->first_init && false) {
+	if (container->enable_unshare && container->first_init && container->systemd_mode) {
+		/*
+		 * Setup a clean cgroup v2 mount for systemd.
+		 * Let systemd create and manage its own scopes instead of pre-configuring
+		 * subtree_control or cgroup layout from ruri.
+		 */
 		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
-		umount2("/sys/fs/", MNT_DETACH | MNT_FORCE);
+
+		/* Create cgroup mount point */
 		mkdir("/sys/fs/cgroup", 0555);
-		mount("cgroup2", "/sys/fs/cgroup", "cgroup2", 0, NULL);
+
+		/*
+		 * Mount cgroup2 filesystem.
+		 * Use 'nsdelegate' option to enable namespace delegation if available.
+		 * This allows systemd to manage cgroups within the container.
+		 */
+		int cgroup_mount_flags = MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_RELATIME;
+		int mount_ret = mount("cgroup2", "/sys/fs/cgroup", "cgroup2", cgroup_mount_flags, NULL);
+		if (mount_ret < 0) {
+			ruri_warning("{yellow}Warning: Failed to mount cgroup2: %s\n", strerror(errno));
+		} else {
+			ruri_log("{base}Mounted clean cgroup v2 hierarchy for systemd mode\n");
+			prepare_systemd_cgroup_scope(container);
+		}
 	}
 	// Create character devices.
 	if (container->char_devs[0] != NULL) {
@@ -901,11 +1006,13 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		set_oom_score(container->oom_score_adj);
 	}
 	// Set up Seccomp BPF.
-	if (container->enable_default_seccomp || container->seccomp_denied_syscall[0] != NULL) {
+	if (container->enable_default_seccomp || container->seccomp_denied_syscall[0] != NULL || container->systemd_mode) {
 		ruri_setup_seccomp(container);
 	}
-	// Drop caps.
-	drop_caps(container);
+	// Let systemd retain its capabilities and manage them itself as PID 1.
+	if (!container->systemd_mode) {
+		drop_caps(container);
+	}
 	// Set envs.
 	set_envs(container);
 	// Fix a bug that the terminal is frozen.
@@ -916,20 +1023,23 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	if (container->no_new_privs) {
 		prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 	}
-	// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
-	prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	if (!container->systemd_mode) {
+		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
+		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	}
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	// NOTE: this might cause unknown issues.
 	for (int i = 3; i <= 10; i++) {
 		close(i);
 	}
-	// Fix console color.
-	cprintf("{clear}");
-	// Change uid and gid.
-	change_user(container);
 	// Execute command in container.
 	// Use exec(3) function because system(3) may be unavailable now.
+	if (container->systemd_mode && container->first_init) {
+		if (getpid() != 1) {
+			ruri_error("{red}Error: systemd mode requires the container to be init process (PID 1) QwQ\n");
+		}
+	}
 	if (execvp(container->command[0], container->command) == -1) {
 		// Catch exceptions.
 		ruri_error("{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
@@ -1024,8 +1134,10 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	if (container->no_new_privs) {
 		prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 	}
-	// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
-	prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	if (!container->systemd_mode) {
+		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
+		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
+	}
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	for (int i = 3; i <= 10; i++) {

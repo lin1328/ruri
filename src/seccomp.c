@@ -103,6 +103,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
 				seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(clone), 1, SCMP_CMP(2, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
 			}
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
 		}
@@ -219,8 +220,23 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(userfaultfd), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(chroot), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
 	}
 #endif
+	if (container->systemd_mode) {
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(kexec_load), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(open_by_handle_at), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(init_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(delete_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(finit_module), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(kexec_file_load), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(reboot), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(umount2), 1, SCMP_CMP(5, SCMP_CMP_MASKED_EQ, MNT_FORCE, MNT_FORCE));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(keyctl), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(add_key), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(request_key), 0);
+	}
 	// Disable no_new_privs bit by default.
 	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
 	// Load seccomp rules.
