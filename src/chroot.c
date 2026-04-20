@@ -42,7 +42,9 @@ static bool su_biany_exist(char *_Nonnull container_dir)
 	 * so we need to check it.
 	 */
 	char su_path[PATH_MAX] = { '\0' };
-	sprintf(su_path, "%s/bin/su", container_dir);
+	if (snprintf(su_path, sizeof(su_path), "%s/bin/su", container_dir) >= (int)sizeof(su_path)) {
+		return false;
+	}
 	int fd = open(su_path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		return false;
@@ -65,7 +67,9 @@ static bool busybox_exists(char *_Nonnull container_dir)
 	 * Check if busybox exists in container.
 	 */
 	char busybox_path[PATH_MAX] = { '\0' };
-	sprintf(busybox_path, "%s/bin/busybox", container_dir);
+	if (snprintf(busybox_path, sizeof(busybox_path), "%s/bin/busybox", container_dir) >= (int)sizeof(busybox_path)) {
+		return false;
+	}
 	int fd = open(busybox_path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
 		return false;
@@ -100,8 +104,10 @@ static void check_binary(const struct RURI_CONTAINER *_Nonnull container)
 		}
 		// Check if QEMU binary exists and is not a directory.
 		char qemu_binary[PATH_MAX];
-		strcpy(qemu_binary, container->container_dir);
-		strcat(qemu_binary, container->qemu_path);
+		if (snprintf(qemu_binary, sizeof(qemu_binary), "%s%s", container->container_dir, container->qemu_path) >= (int)sizeof(qemu_binary)) {
+			ruri_umount_container(container->container_dir);
+			ruri_error("{red}Error: QEMU binary path is too long QwQ\n");
+		}
 		struct stat qemu_binary_stat;
 		// lstat(3) will return -1 while the init_binary does not exist.
 		if (lstat(qemu_binary, &qemu_binary_stat) != 0) {
@@ -301,23 +307,33 @@ static void mount_host_runtime(const struct RURI_CONTAINER *_Nonnull container)
 	char buf[PATH_MAX] = { '\0' };
 	// Mount /dev.
 	memset(buf, '\0', sizeof(buf));
-	sprintf(buf, "%s/dev", container->container_dir);
+	if (snprintf(buf, sizeof(buf), "%s/dev", container->container_dir) >= (int)sizeof(buf)) {
+		return;
+	}
 	mount("/dev", buf, NULL, MS_BIND, NULL);
 	// mount /proc.
 	memset(buf, '\0', sizeof(buf));
-	sprintf(buf, "%s/proc", container->container_dir);
+	if (snprintf(buf, sizeof(buf), "%s/proc", container->container_dir) >= (int)sizeof(buf)) {
+		return;
+	}
 	mount("/proc", buf, NULL, MS_BIND, NULL);
 	// Mount /sys.
 	memset(buf, '\0', sizeof(buf));
-	sprintf(buf, "%s/sys", container->container_dir);
+	if (snprintf(buf, sizeof(buf), "%s/sys", container->container_dir) >= (int)sizeof(buf)) {
+		return;
+	}
 	mount("/sys", buf, NULL, MS_BIND, NULL);
 	// Mount binfmt_misc.
 	memset(buf, '\0', sizeof(buf));
-	sprintf(buf, "%s/proc/sys/fs/binfmt_misc", container->container_dir);
+	if (snprintf(buf, sizeof(buf), "%s/proc/sys/fs/binfmt_misc", container->container_dir) >= (int)sizeof(buf)) {
+		return;
+	}
 	mount("binfmt_misc", buf, "binfmt_misc", 0, NULL);
 	// Mount devpts.
 	memset(buf, '\0', sizeof(buf));
-	sprintf(buf, "%s/dev/pts", container->container_dir);
+	if (snprintf(buf, sizeof(buf), "%s/dev/pts", container->container_dir) >= (int)sizeof(buf)) {
+		return;
+	}
 	mkdir(buf, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("/dev/pts", buf, "none", MS_BIND, NULL);
 	// Mount devshm.
@@ -329,7 +345,10 @@ static void mount_host_runtime(const struct RURI_CONTAINER *_Nonnull container)
 		sprintf(devshm_options, "size=%s,mode=1777", container->memory);
 	}
 	memset(buf, '\0', sizeof(buf));
-	sprintf(buf, "%s/dev/shm", container->container_dir);
+	if (snprintf(buf, sizeof(buf), "%s/dev/shm", container->container_dir) >= (int)sizeof(buf)) {
+		free(devshm_options);
+		return;
+	}
 	mkdir(buf, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("tmpfs", buf, "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);
 	usleep(1000);
@@ -417,7 +436,10 @@ static void setup_binfmt_misc(const struct RURI_CONTAINER *_Nonnull container)
 	}
 	char buf[1024] = { '\0' };
 	// Format: ":name:type:offset:magic:mask:interpreter:flags".
-	sprintf(buf, ":%s%d:M:0:%s:%s:%s:PCF", "ruri-", container->container_id, magic->magic, magic->mask, container->qemu_path);
+	if (snprintf(buf, sizeof(buf), ":%s%d:M:0:%s:%s:%s:PCF", "ruri-", container->container_id, magic->magic, magic->mask, container->qemu_path) >= (int)sizeof(buf)) {
+		ruri_umount_container(container->container_dir);
+		ruri_error("{red}Error: binfmt_misc registration string is too long QwQ\n");
+	}
 	// Just to make clang-tidy happy.
 	free(magic);
 	// This needs CONFIG_BINFMT_MISC enabled in your kernel.
@@ -504,7 +526,10 @@ static void copy_qemu_binary(struct RURI_CONTAINER *container)
 	// Copy qemu binary into container.
 	if (qemu_path != NULL) {
 		char target[PATH_MAX] = { '\0' };
-		sprintf(target, "%s/qemu-ruri", container->container_dir);
+		if (snprintf(target, sizeof(target), "%s/qemu-ruri", container->container_dir) >= (int)sizeof(target)) {
+			free(qemu_path);
+			ruri_error("{red}Error: container directory path is too long QwQ\n");
+		}
 		unlink(target);
 		remove(target);
 		rmdir(target);
@@ -544,7 +569,9 @@ static bool pivot_root_succeed(const char *_Nonnull container_dir)
 	if (chdir(container_dir) != 0) {
 		return true;
 	}
-	sprintf(dev_null, "%s/./dev/null", container_dir);
+	if (snprintf(dev_null, sizeof(dev_null), "%s/./dev/null", container_dir) >= (int)sizeof(dev_null)) {
+		return true;
+	}
 	if (stat(dev_null, &dev_null_stat) != 0) {
 		return true;
 	}
@@ -767,7 +794,9 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	// mount_host_runtime() and ruri_store_info() will be called here.
 	char buf[PATH_MAX] = { '\0' };
 	// I used to check /sys/class/input, but in WSL1, /sys/class/input is not exist.
-	sprintf(buf, "%s/proc/1", container->container_dir);
+	if (snprintf(buf, sizeof(buf), "%s/proc/1", container->container_dir) >= (int)sizeof(buf)) {
+		ruri_error("{red}Error: container directory path is too long QwQ\n");
+	}
 	char *test = realpath(buf, NULL);
 	if (test == NULL) {
 		// Mount mountpoints.

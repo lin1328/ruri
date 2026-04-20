@@ -66,7 +66,7 @@ void ruri_clear_env(char *const *_Nonnull argv)
 		fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE | F_SEAL_SEAL);
 		// Replace the current process with the ruri binary in memfd.
 		char path[PATH_MAX];
-		sprintf(path, "/proc/%d/fd/%d", getpid(), fd);
+		snprintf(path, sizeof(path), "/proc/%d/fd/%d", getpid(), fd);
 		if (execve(path, argv, envp) < 0) {
 			execve("/proc/self/exe", argv, envp);
 		}

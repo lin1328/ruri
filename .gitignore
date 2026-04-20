@@ -59,6 +59,9 @@ test-driver
 *.o
 Makefile
 
+# build.c output
+build_tool
+
 # VitePress
 docs/.vitepress/cache
 docs/.vitepress/.temp
