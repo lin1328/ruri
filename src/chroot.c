@@ -239,14 +239,9 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs as read-only, will continue.\n");
 		} else {
 			res = mount("proc", "/proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
-			warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs, will continue.\n");
-			if (!container->systemd_mode) {
-				res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
-				warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs, will continue.\n");
-			} else {
-				res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
-				warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs as read-only, will continue.\n");
-			}
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount procfs, will continue.\n");
+		res = mount("sysfs", "/sys", "sysfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL);
+		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount sysfs, will continue.\n");
 		}
 		res = mount("tmpfs", "/dev", "tmpfs", MS_NOSUID, "size=65536k,mode=755");
 		warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devtmpfs, will continue.\n");
@@ -988,20 +983,24 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		 */
 		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
 
-		/* Create cgroup mount point */
-		mkdir("/sys/fs/cgroup", 0555);
+		mkdir("/sys/fs/cgroup", 0755);
 
-		/*
-		 * Mount cgroup2 filesystem.
-		 * Use 'nsdelegate' option to enable namespace delegation if available.
-		 * This allows systemd to manage cgroups within the container.
-		 */
 		int cgroup_mount_flags = MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_RELATIME;
 		int mount_ret = mount("cgroup2", "/sys/fs/cgroup", "cgroup2", cgroup_mount_flags, NULL);
 		if (mount_ret < 0) {
 			ruri_warning("{yellow}Warning: Failed to mount cgroup2: %s\n", strerror(errno));
 		} else {
 			ruri_log("{base}Mounted clean cgroup v2 hierarchy for systemd mode\n");
+			int subtree_fd = open("/sys/fs/cgroup/cgroup.subtree_control", O_WRONLY | O_CLOEXEC);
+			if (subtree_fd >= 0) {
+				write(subtree_fd, "+memory\n", strlen("+memory\n"));
+				write(subtree_fd, "+cpu\n", strlen("+cpu\n"));
+				write(subtree_fd, "+cpuset\n", strlen("+cpuset\n"));
+				write(subtree_fd, "+io\n", strlen("+io\n"));
+				write(subtree_fd, "+pids\n", strlen("+pids\n"));
+				close(subtree_fd);
+				ruri_log("{base}Enabled cgroup controllers for systemd\n");
+			}
 			prepare_systemd_cgroup_scope(container);
 		}
 	}
