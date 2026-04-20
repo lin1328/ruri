@@ -1015,6 +1015,8 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	if (container->enable_default_seccomp || container->seccomp_denied_syscall[0] != NULL || container->systemd_mode) {
 		ruri_setup_seccomp(container);
 	}
+	// Change user.
+	change_user(container);
 	// Drop specified capabilities.
 	drop_caps(container);
 	// Set envs.
@@ -1126,6 +1128,8 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	if (container->enable_default_seccomp || container->seccomp_denied_syscall[0] != NULL) {
 		ruri_setup_seccomp(container);
 	}
+	// Change user.
+	change_user(container);
 	// Drop caps.
 	drop_caps(container);
 	// Set envs.
@@ -1149,8 +1153,6 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	}
 	// Fix console color.
 	cprintf("{clear}");
-	// Change uid and gid.
-	change_user(container);
 	// Execute command in container.
 	// Use exec(3) function because system(3) may be unavailable now.
 	if (execvp(container->command[0], container->command) == -1) {
