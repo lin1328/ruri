@@ -66,7 +66,6 @@ char *cprintf_regen_format__(const char *f)
 	 */
 	char *ret = strdup(cprintf_avoid_null__(f));
 	int j = 0;
-	int count = 0;
 	size_t len = cprintf_strlen__(f);
 	if (len == 0) {
 		cprintf_mark_buf__(ret);
@@ -78,7 +77,6 @@ char *cprintf_regen_format__(const char *f)
 			ret[j + 1] = 's';
 			j += 2;
 			i++;
-			count++;
 		} else {
 			ret[j] = f[i];
 			j++;
