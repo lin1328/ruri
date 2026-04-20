@@ -226,6 +226,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 	// But /proc/1/exe is exist in all Linux systems, because it's the init process.
 	char *test = realpath("/proc/1/exe", NULL);
 	if (test == NULL) {
+		container->first_init = true;
 		ruri_log("{blue}Container is not initialized, initializing...\n");
 		int res = 0;
 		// Mount proc,sys and dev.
@@ -360,6 +361,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 	} else {
 		free(test);
+		container->first_init = false;
 		ruri_log("{blue}Container is already initialized, skipping initialization.\n");
 	}
 }
