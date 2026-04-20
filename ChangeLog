@@ -3,6 +3,7 @@
   * Auto detect device major and minor number when major is set to 0 in `--char-dev` option.
   * Auto add `cap_` prefix for capability name in `--cap-drop` and `--cap-add` option.
   * Experimentally support `--systemd` with `--even-unstable` option, but it may not work as expected.
+  * Add `--strict-mode` option to make ruri exit immediately when any error.
 # v3.9.3:
   * Add `-g` option: `--skip-setgroups`.
   * Make setgroups() enabled for root user by default.

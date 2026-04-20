@@ -153,19 +153,19 @@ static void prepare_systemd_cgroup_scope(const struct RURI_CONTAINER *_Nonnull c
 	snprintf(scope_procs, sizeof(scope_procs), "%s/cgroup.procs", scope_dir);
 
 	if (mkdir(scope_dir, 0755) < 0 && errno != EEXIST) {
-		ruri_warning("{yellow}Warning: Failed to create systemd cgroup scope %s: %s\n", scope_dir, strerror(errno));
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to create systemd cgroup scope %s: %s\n", scope_dir, strerror(errno));
 		return;
 	}
 
 	int fd = open(scope_procs, O_WRONLY | O_CLOEXEC);
 	if (fd < 0) {
-		ruri_warning("{yellow}Warning: Failed to open %s: %s\n", scope_procs, strerror(errno));
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to open %s: %s\n", scope_procs, strerror(errno));
 		return;
 	}
 
 	snprintf(pid_buf, sizeof(pid_buf), "%d\n", getpid());
 	if (write(fd, pid_buf, strlen(pid_buf)) < 0) {
-		ruri_warning("{yellow}Warning: Failed to move systemd pid into %s: %s\n", scope_dir, strerror(errno));
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to move systemd pid into %s: %s\n", scope_dir, strerror(errno));
 	}
 	close(fd);
 }
@@ -194,7 +194,7 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 		ruri_log("{blue}Setup /run/systemd/container for systemd runtime.\n");
 		ruri_log("{blue}systemd will treat this container as a docker container, which is good for compatibility.\n");
 	} else {
-		ruri_warning("{yellow}Failed to setup /run/systemd/container\n");
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Failed to setup /run/systemd/container\n");
 	}
 	// Create journal runtime directory.
 	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
@@ -370,7 +370,7 @@ static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
 		if (container->char_devs[0] == NULL || container->no_warnings) {
 			return;
 		}
-		ruri_warning("{yellow}Warning: Failed to chdir(2) to /dev, will not create char devices.\n");
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to chdir(2) to /dev, will not create char devices.\n");
 		return;
 	}
 	for (int i = 0; true; i += 3) {
@@ -466,9 +466,9 @@ static void drop_caps(const struct RURI_CONTAINER *_Nonnull container)
 		// so that we can avoid unnecessary warnings.
 		if (CAP_IS_SUPPORTED(container->drop_caplist[i])) {
 			// Drop CapBnd.
-			if (cap_drop_bound(container->drop_caplist[i]) != 0 && !container->no_warnings) {
-				ruri_warning("{yellow}Warning: Failed to drop cap `%s`\n", cap_to_name(container->drop_caplist[i]));
-				ruri_warning("{yellow}error reason: %s{clear}\n", strerror(errno));
+			if (cap_drop_bound(container->drop_caplist[i]) != 0) {
+				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to drop cap `%s`\n", cap_to_name(container->drop_caplist[i]));
+				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}error reason: %s{clear}\n", strerror(errno));
 			}
 			// Drop CapAmb.
 			prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, container->drop_caplist[i], 0, 0);
@@ -523,7 +523,7 @@ static void setup_binfmt_misc(const struct RURI_CONTAINER *_Nonnull container)
 	struct RURI_ELF_MAGIC *magic = ruri_get_magic(container->cross_arch);
 	// Umount container if we get an error.
 	if (magic == NULL) {
-		ruri_warning("{red}Error: unknown architecture or same architecture as host: %s\n\nSupported architectures: aarch64, alpha, arm, armeb, cris, hexagon, hppa, i386, loongarch64, m68k, microblaze, mips, mips64, mips64el, mipsel, mipsn32, mipsn32el, ppc, ppc64, ppc64le, riscv32, riscv64, s390x, sh4, sh4eb, sparc, sparc32plus, sparc64, x86_64, xtensa, xtensaeb{clear}\n", container->cross_arch);
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Error: unknown architecture or same architecture as host: %s\n\nSupported architectures: aarch64, alpha, arm, armeb, cris, hexagon, hppa, i386, loongarch64, m68k, microblaze, mips, mips64, mips64el, mipsel, mipsn32, mipsn32el, ppc, ppc64, ppc64le, riscv32, riscv64, s390x, sh4, sh4eb, sparc, sparc32plus, sparc64, x86_64, xtensa, xtensaeb{clear}\n", container->cross_arch);
 		ruri_umount_container(container->container_dir);
 		ruri_error(" ");
 	}
@@ -692,9 +692,7 @@ static int try_pivot_root(const struct RURI_CONTAINER *_Nonnull container)
 	chdir(container->container_dir);
 	if (syscall(SYS_pivot_root, ".", ".") == -1) {
 		ruri_log("{base}pivot_root(2) failed, using chroot(2) instead.\n");
-		if (!container->no_warnings) {
-			ruri_warning("{yellow}Warning: pivot_root(2) failed, using chroot(2) instead QwQ\n");
-		}
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: pivot_root(2) failed, using chroot(2) instead QwQ\n");
 		return -1;
 	}
 	chdir("/");
@@ -765,7 +763,7 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			uid_t user_uid = ruri_get_user_uid(user);
 			gid_t user_gid = ruri_get_user_gid(user);
 			if (RURI_PWD_ERRNO != 0) {
-				ruri_warning("{yellow}Warning: failed to get user info for `%s`: %s{clear}\n", user, strerror(RURI_PWD_ERRNO));
+				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: failed to get user info for `%s`: %s{clear}\n", user, strerror(RURI_PWD_ERRNO));
 				return;
 			}
 			groups_count = ruri_get_groups(user_uid, groups);
@@ -791,7 +789,7 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 	if (ngroups > 0) {
 		gid_t *groups = malloc((size_t)ngroups * sizeof(gid_t));
 		if (groups == NULL) {
-			ruri_warning("{yellow}Warning: malloc failed when allocating supplementary groups\n");
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: malloc failed when allocating supplementary groups\n");
 			return;
 		}
 		getgroups(ngroups, groups);
@@ -949,8 +947,8 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	// Change to the work dir.
 	if (container->work_dir != NULL) {
-		if (chdir(container->work_dir) == -1 && !container->no_warnings) {
-			ruri_warning("{yellow}Warning: Failed to change to work dir `%s`\n", container->work_dir);
+		if (chdir(container->work_dir) == -1) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to change to work dir `%s`\n", container->work_dir);
 		}
 	}
 	// Mount/create system runtime dir/files.
@@ -987,7 +985,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		int cgroup_mount_flags = MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_RELATIME;
 		int mount_ret = mount("cgroup2", "/sys/fs/cgroup", "cgroup2", cgroup_mount_flags, NULL);
 		if (mount_ret < 0) {
-			ruri_warning("{yellow}Warning: Failed to mount cgroup2: %s\n", strerror(errno));
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to mount cgroup2: %s\n", strerror(errno));
 		} else {
 			ruri_log("{base}Mounted clean cgroup v2 hierarchy for systemd mode\n");
 			int subtree_fd = open("/sys/fs/cgroup/cgroup.subtree_control", O_WRONLY | O_CLOEXEC);
@@ -1104,8 +1102,8 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	chdir("/");
 	// Change to the work dir.
 	if (container->work_dir != NULL) {
-		if (chdir(container->work_dir) == -1 && !container->no_warnings) {
-			ruri_warning("{yellow}Warning: Failed to change to work dir `%s`\n", container->work_dir);
+		if (chdir(container->work_dir) == -1) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to change to work dir `%s`\n", container->work_dir);
 		}
 	}
 	// Fix /etc/mtab.

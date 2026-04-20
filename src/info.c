@@ -150,8 +150,9 @@ void ruri_show_helps(void)
 	cprintf("{base}  -Q, --mask-path [path] ......................: Mask a path in the container\n");
 	cprintf("{base}  -y, --systemd ...............................: Run container with systemd support(*15)\n");
 	cprintf("{base}      --even-unstable .........................: You need this to enable systemd support.\n");
-	cprintf("{base}   -z, --enable-tty-signals ...................: Enable TTY signals in the container (*16)\n");
-	cprintf("{base}   -g, --skip-setgroups .......................: Skip setgroups() call\n");
+	cprintf("{base}  -z, --enable-tty-signals ....................: Enable TTY signals in the container (*16)\n");
+	cprintf("{base}  -g, --skip-setgroups ........................: Skip setgroups() call\n");
+	cprintf("{base}      --strict-mode ...........................: Force panic on error, for better security\n");
 	cprintf("\n");
 	cprintf("{base}Note:\n");
 	cprintf("{base}(*1)  : Will not work for unshare containers without PID ns support\n");

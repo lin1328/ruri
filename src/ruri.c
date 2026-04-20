@@ -34,6 +34,8 @@
  * I know code here is too shit, but it works,
  * maybe I will rewrite it one day, I hope.
  */
+// Force panic bit.
+bool ruri_force_panic = false;
 // Clear environment variables.
 void ruri_clear_env(char *const *_Nonnull argv)
 {
@@ -713,6 +715,10 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		// Force enable systemd, as it is very unstable and even might panic host.
 		else if (strcmp(argv[index], "--even-unstable") == 0) {
 			even_unstable = true;
+		}
+		// Force panic on error, for security.
+		else if (strcmp(argv[index], "--strict-mode") == 0) {
+			ruri_force_panic = true;
 		}
 		// If use_config_file is true.
 		// The first unrecognized argument will be treated as command to exec in container.

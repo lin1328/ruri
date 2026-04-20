@@ -222,9 +222,7 @@ static void set_cgroup_v1(const struct RURI_CONTAINER *_Nonnull container, const
 	}
 	goto cleanup;
 fail:
-	if (!container->no_warnings) {
-		ruri_warning("{yellow}Set %s limit failed{clear}\n", controller_name);
-	}
+	ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to set cgroup v1 %s limit\n", controller_name);
 cleanup:
 	umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
 }
@@ -270,7 +268,7 @@ static int cgroup_v2_attach(const struct RURI_CONTAINER *_Nonnull container)
 	sprintf(buf, "%d\n", pid);
 	if (open_and_write(cgroup_procs_path, buf)) {
 		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
-		ruri_warning("{yellow}Attach cgroup failed{clear}\n");
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to attach cgroup\n");
 		// Report failure for apifs cleanup
 		return 1;
 	}
@@ -384,9 +382,7 @@ static void set_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container, const
 	}
 	goto cleanup;
 fail:
-	if (!container->no_warnings) {
-		ruri_warning("{yellow}Set %s limit failed{clear}\n", controller_name);
-	}
+	ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to set cgroup v2 %s limit\n", controller_name);
 cleanup:
 	umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
 }
@@ -407,19 +403,16 @@ void ruri_attach_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container)
 	// Add pid to container_id cgroup.
 	set_cgroup_v2(container, "attach");
 }
-void ruri_cgroup_attatch(const struct RURI_CONTAINER *_Nonnull container)
+void ruri_cgroup_attach(const struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
-	 * Mount cgroupv1 hierarchy and attach process.
+	 * Mount cgroup controller and attach process.
 	 * Nothing to return, only warnings to show if cgroup is not supported.
-	 * Control file: /sys/fs/cgroup/${controller}/ruri/${container_id}/cgroup.procs
 	 */
 	ruri_log("{blue}Attaching cgroup...\n");
 	if (is_cgroupv2_support("memory") && is_cgroupv2_support("cpu") && is_cgroupv2_support("cpuset")) {
 		if (mount_cgroup_v2()) {
-			if (!container->no_warnings) {
-				ruri_warning("{yellow}Failed to mount cgroup v2, skipping cgroup limit setup\n");
-			}
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to mount cgroup v2, skipping cgroup limit setup\n");
 			return;
 		}
 		cgroup_v2_attach(container);
@@ -427,23 +420,17 @@ void ruri_cgroup_attatch(const struct RURI_CONTAINER *_Nonnull container)
 		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
 	} else {
 		if (mount_cgroup_v1("memory")) {
-			if (!container->no_warnings) {
-				ruri_warning("{yellow}Failed to mount cgroup v1, skipping cgroup limit setup\n");
-			}
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to mount cgroup v1, skipping cgroup limit setup\n");
 		} else {
 			cgroup_v1_attach(container, "memory");
 		}
 		if (mount_cgroup_v1("cpu")) {
-			if (!container->no_warnings) {
-				ruri_warning("{yellow}Failed to mount cgroup v1, skipping cpu limit setup\n");
-			}
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to mount cgroup v1, skipping cpu limit setup\n");
 		} else {
 			cgroup_v1_attach(container, "cpu");
 		}
 		if (mount_cgroup_v1("cpuset")) {
-			if (!container->no_warnings) {
-				ruri_warning("{yellow}Failed to mount cgroup v1, skipping cpuset limit setup\n");
-			}
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to mount cgroup v1, skipping cpuset limit setup\n");
 		} else {
 			cgroup_v1_attach(container, "cpuset");
 		}
@@ -458,7 +445,7 @@ void ruri_set_limit(const struct RURI_CONTAINER *_Nonnull container)
 	 */
 	if (!container->first_init) {
 		ruri_log("{blue}Container is already initialized, skipping cgroup limit setup.\n");
-		ruri_cgroup_attatch(container);
+		ruri_cgroup_attach(container);
 		return;
 	} else {
 		ruri_log("{blue}Setting cgroup limits for the first time...\n");

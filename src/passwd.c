@@ -682,7 +682,7 @@ int ruri_get_groups(uid_t uid, gid_t groups[])
 	}
 	gid_t user_gid = ruri_get_user_gid(username);
 	if (RURI_PWD_ERRNO != 0) {
-		ruri_warning("{yellow}Warning: failed to parse user gid for `%s`\n", username);
+		ruri_warn_on_error(1, 0, true, "{yellow}Warning: failed to parse user gid for `%s`\n", username);
 		free(username);
 		return 0;
 	}
@@ -717,7 +717,7 @@ int ruri_get_groups(uid_t uid, gid_t groups[])
 	while (p != NULL) {
 		tmpgid = line_get_group_gid(p);
 		if (RURI_PWD_ERRNO_INTERNAL != 0) {
-			ruri_warning("{yellow}Warning: failed to parse /etc/group line: %s{clear}\n", p);
+			ruri_warn_on_error(1, 0, true, "{yellow}Warning: failed to parse /etc/group line: %s{clear}\n", p);
 			free(username);
 			free(buf);
 			return 0;

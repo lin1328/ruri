@@ -260,11 +260,19 @@ struct RURI_ID_MAP {
 			ruri_error(format__, ##__VA_ARGS__); \
 		}                                            \
 	} while (0)
-#define ruri_warn_on_error(ret__, expect__, show__, format__, ...) \
-	do {                                                       \
-		if (show__ && ret__ != expect__) {                 \
-			ruri_warning(format__, ##__VA_ARGS__);     \
-		}                                                  \
+extern bool ruri_force_panic;
+#define ruri_warn_on_error(ret__, expect__, show__, format__, ...)                         \
+	do {                                                                               \
+		if (ret__ != expect__) {                                                   \
+			if (ruri_force_panic) {                                            \
+				ruri_warning(format__, ##__VA_ARGS__);                     \
+				ruri_error("{red}Force panic is enabled, exiting now.\n"); \
+			} else {                                                           \
+				if (show__) {                                              \
+					ruri_warning(format__, ##__VA_ARGS__);             \
+				}                                                          \
+			}                                                                  \
+		}                                                                          \
 	} while (0)
 // Log system.
 #if defined(RURI_DEBUG)

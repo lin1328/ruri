@@ -241,7 +241,7 @@ static int mount_as_filesystem(const char *_Nonnull source, const char *_Nonnull
 	struct stat dev_stat;
 	// Check if source exists.
 	if (lstat(source, &dev_stat) != 0) {
-		ruri_warning("{red}Error: {base}Source {cyan}%s{base} does not exist.\n", source);
+		ruri_warn_on_error(1, 0, true, "{red}Error: {base}Source {cyan}%s{base} does not exist.\n", source);
 		return -1;
 	}
 	ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with fstype {cyan}%s{base} and flags {cyan}%d{base}\n", source, target, fstype, mountflags);

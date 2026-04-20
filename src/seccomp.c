@@ -241,9 +241,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
 	// Load seccomp rules.
 	if (seccomp_load(ctx) != 0) {
-		if (!container->no_warnings) {
-			ruri_warning("{yellow}Warning: Failed to load seccomp filter, maybe your kernel does not support it QwQ{clear}\n");
-		}
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: failed to load seccomp filter QwQ{clear}\n");
 	}
 	ruri_log("{base}Seccomp filter loaded\n");
 #endif
