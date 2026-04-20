@@ -1,6 +1,8 @@
 # v3.9.4:
   * Skip setgroups() when user is root and cannot parse /etc/group and /etc/passwd.
   * Auto detect device major and minor number when major is set to 0 in `--char-dev` option.
+  * Auto add `cap_` prefix for capability name in `--cap-drop` and `--cap-add` option.
+  * Experimentally support `--systemd` with `--even-unstable` option, but it may not work as expected.
 # v3.9.3:
   * Add `-g` option: `--skip-setgroups`.
   * Make setgroups() enabled for root user by default.
