@@ -233,13 +233,13 @@ struct RURI_ID_MAP {
 };
 // Warnings.
 #define ruri_warning(format, ...)                                                                \
-	{                                                                                        \
+	do {                                                                                     \
 		cfprintf(stderr, "{yellow}at %s() at %d at %s: ", __func__, __LINE__, __FILE__); \
 		cfprintf(stderr, format, ##__VA_ARGS__);                                         \
-	}
+	} while (0)
 // Show error msg and exit.
 #define ruri_error(format, ...)                                                                                                                      \
-	{                                                                                                                                            \
+	do {                                                                                                                                         \
 		cfprintf(stderr, "{red}In %s() in %s line %d:\n", __func__, __FILE__, __LINE__);                                                     \
 		cfprintf(stderr, format, ##__VA_ARGS__);                                                                                             \
 		cfprintf(stderr, "{base}%s{clear}\n", "\n  .^.   .^.");                                                                              \
@@ -253,28 +253,28 @@ struct RURI_ID_MAP {
 		cfprintf(stderr, "{base}%s{clear}\n", "If you think something is wrong, please report at:");                                         \
 		cfprintf(stderr, "\033[4m{base}%s{clear}\n", "https://github.com/Moe-hacker/ruri/issues");                                           \
 		exit(114);                                                                                                                           \
-	}
+	} while (0)
 #define ruri_panic_on_error(ret__, expect__, format__, ...)  \
-	{                                                    \
+	do {                                                 \
 		if (ret__ != expect__) {                     \
 			ruri_error(format__, ##__VA_ARGS__); \
 		}                                            \
-	}
+	} while (0)
 #define ruri_warn_on_error(ret__, expect__, show__, format__, ...) \
-	{                                                          \
+	do {                                                       \
 		if (show__ && ret__ != expect__) {                 \
 			ruri_warning(format__, ##__VA_ARGS__);     \
 		}                                                  \
-	}
+	} while (0)
 // Log system.
 #if defined(RURI_DEBUG)
 #define ruri_log(format, ...)                                                                                                         \
-	{                                                                                                                             \
+	do {                                                                                                                          \
 		struct timeval tv;                                                                                                    \
 		gettimeofday(&tv, NULL);                                                                                              \
 		cfprintf(stderr, "{green}[%ld.%06ld] in %s() in %s line %d:\n", tv.tv_sec, tv.tv_usec, __func__, __FILE__, __LINE__); \
 		cfprintf(stderr, format, ##__VA_ARGS__);                                                                              \
-	}
+	} while (0)
 #else
 #define ruri_log(format, ...)
 #endif
