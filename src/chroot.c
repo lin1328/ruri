@@ -467,7 +467,7 @@ static void drop_caps(const struct RURI_CONTAINER *_Nonnull container)
 		// so that we can avoid unnecessary warnings.
 		if (CAP_IS_SUPPORTED(container->drop_caplist[i])) {
 			// Drop CapBnd.
-			if (cap_drop_bound(container->drop_caplist[i]) != 0) {
+			if (cap_drop_bound(container->drop_caplist[i]) != 0 && geteuid() == 0) {
 				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to drop cap `%s`\n", cap_to_name(container->drop_caplist[i]));
 				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}error reason: %s{clear}\n", strerror(errno));
 			}
