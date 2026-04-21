@@ -434,9 +434,10 @@ int ruri_try_cgroup_kill(const struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
 	 * Kill all processes in corresponding cgroup v2 structure.
-	 * FIXME I don't think this will be useful if we can't determine
-	 *	that the container is attached beforehand.
 	 */
+	if (!is_cgroup_v2_mounted()) {
+		return 1;
+	}
 	usleep(200);
 	char cgroup_kill_path[PATH_MAX] = "";
 	sprintf(cgroup_kill_path, "/sys/fs/cgroup/ruri/%d/cgroup.kill", container->container_id);
@@ -444,10 +445,17 @@ int ruri_try_cgroup_kill(const struct RURI_CONTAINER *_Nonnull container)
 	if (open_and_write(cgroup_kill_path, "1\n")) {
 		goto fail;
 	}
+	char cgroup_systemd_path[PATH_MAX] = "";
+	sprintf(cgroup_systemd_path, "/sys/fs/cgroup/ruri/%d/ruri-%d", container->container_id, container->container_id);
+	rmdir(cgroup_systemd_path);
+	usleep(2000);
+	char cgroup_path[PATH_MAX] = "";
+	sprintf(cgroup_path, "/sys/fs/cgroup/ruri/%d", container->container_id);
+	rmdir(cgroup_path);
 	return 0;
 fail:
 	if (!container->no_warnings) {
-		ruri_log("{base}trying to kill container with cgroup v2 failed\n");
+		ruri_warning("{yellow}trying to kill container with cgroup v2 failed\n");
 	}
 	return 1;
 }

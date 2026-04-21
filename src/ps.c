@@ -251,6 +251,10 @@ static bool is_container_process(pid_t pid, const char *_Nonnull container_dir)
 	/*
 	 * Check if the process is in the container.
 	 */
+	if (container_dir == NULL) {
+		ruri_log("{base}Container directory is NULL, WHY??\n");
+		return false;
+	}
 	char path[PATH_MAX];
 	snprintf(path, sizeof(path), "%s%d%s", "/proc/", pid, "/root");
 	char buf[PATH_MAX];
@@ -264,7 +268,7 @@ static bool is_container_process(pid_t pid, const char *_Nonnull container_dir)
 	}
 	return false;
 }
-void ruri_kill_container(const char *_Nonnull container_dir)
+void ruri_kill_container(struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
 	 *
@@ -273,6 +277,11 @@ void ruri_kill_container(const char *_Nonnull container_dir)
 	 * We check for /proc/pid/root to determine if the process is in the container.
 	 * This function is called by ruri_umount_container().
 	 */
+	if (container->ns_pid > 0) {
+		if (ruri_try_cgroup_kill(container) == 0) {
+			ruri_log("{base}Killed container processes with cgroup v2\n");
+		}
+	}
 	DIR *proc_dir = opendir("/proc");
 	struct dirent *file = NULL;
 	int len = 0;
@@ -298,7 +307,7 @@ void ruri_kill_container(const char *_Nonnull container_dir)
 	for (int j = 0; j < len; j++) {
 		if (pids[j] != RURI_INIT_VALUE) {
 			ruri_log("{base}Checking pid: {cyan}%d\n", pids[j]);
-			if (is_container_process(pids[j], container_dir)) {
+			if (is_container_process(pids[j], container->container_dir)) {
 				ruri_log("{base}Killing pid: {cyan}%d\n", pids[j]);
 				kill(pids[j], SIGKILL);
 			}

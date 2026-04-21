@@ -332,8 +332,10 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		// For ruri_container_ps() and ruri_umount_container().
 		if (is_ruri_pid(k2v_get_key(int, "ns_pid", buf))) {
 			container->ns_pid = k2v_get_key(int, "ns_pid", buf);
+			container->container_id = k2v_get_key(int, "container_id", buf);
 		} else {
 			container->ns_pid = RURI_INIT_VALUE;
+			container->container_id = RURI_INIT_VALUE;
 		}
 		// Get rootless.
 		container->rootless = k2v_get_key(bool, "rootless", buf);

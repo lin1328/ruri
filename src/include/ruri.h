@@ -323,7 +323,7 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 void ruri_set_limit(const struct RURI_CONTAINER *_Nonnull container);
 struct RURI_ID_MAP ruri_get_idmap(uid_t uid, gid_t gid);
 void ruri_container_ps(char *_Nonnull container_dir);
-void ruri_kill_container(const char *_Nonnull container_dir);
+void ruri_kill_container(struct RURI_CONTAINER *_Nonnull container);
 bool ruri_user_exist(const char *_Nonnull username);
 uid_t ruri_get_user_uid(const char *_Nonnull username);
 gid_t ruri_get_user_gid(const char *_Nonnull username);
@@ -334,6 +334,7 @@ int ruri(int argc, char **argv);
 void ruri_init_config(struct RURI_CONTAINER *_Nonnull container);
 int ruri_mkdirs(const char *_Nonnull dir, mode_t mode);
 int ruri_get_groups(uid_t uid, gid_t groups[]);
+int ruri_try_cgroup_kill(const struct RURI_CONTAINER *_Nonnull container);
 #ifndef DISABLE_LIBCAP
 int ruri_cap_from_name(const char *str, cap_value_t *cap);
 #endif

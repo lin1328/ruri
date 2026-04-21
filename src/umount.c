@@ -142,6 +142,7 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 	}
 	free(test);
 	struct RURI_CONTAINER *container = ruri_read_info(NULL, container_dir);
+	container->container_dir = strdup(container_dir);
 	ruri_log("{base}Umounting container...\n");
 	char infofile[PATH_MAX] = { '\0' };
 	if (snprintf(infofile, sizeof(infofile), "%s/.rurienv", container_dir) >= (int)sizeof(infofile)) {
@@ -235,17 +236,18 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 		umount2(container_dir, MNT_DETACH | MNT_FORCE);
 		usleep(2000);
 	}
-	// Kill ns_pid.
-	if (container->ns_pid > 0) {
-		ruri_log("Kill ns pid: %d\n", container->ns_pid);
-		kill(container->ns_pid, SIGKILL);
-	}
 	// Kill all processes in container.
 	// For container with PID ns enabled, when ns_pid is killed,
 	// all process will die, but without PID ns, we still need to
 	// find & kill other process.
-	ruri_kill_container(container_dir);
+	ruri_kill_container(container);
+	// Kill ns_pid.
+	if (container->ns_pid > 0) {
+		ruri_log("{base}Kill ns pid: {blue}%d\n", container->ns_pid);
+		kill(container->ns_pid, SIGKILL);
+	}
 	// Make Asan happy.
+	free(container->container_dir);
 	free(container);
 	// Use info in /proc/mounts to umount container.
 	// This is a double check.
