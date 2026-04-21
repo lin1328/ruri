@@ -203,7 +203,7 @@ static void set_cgroup_v1(const struct RURI_CONTAINER *_Nonnull container, const
 		// Set cpuset limit.
 		char cpuset_cgroup_mems_path[PATH_MAX] = "";
 		sprintf(cpuset_cgroup_mems_path, "/sys/fs/cgroup/cpuset/ruri/%d/cpuset.mems", container->container_id);
-		if (open_and_write(cpuset_cgroup_mems_path, "all\n")) {
+		if (open_and_write(cpuset_cgroup_mems_path, "0\n")) {
 			goto fail;
 		}
 		char cpuset_cgroup_cpus_path[PATH_MAX] = "";
@@ -362,7 +362,7 @@ static void set_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container, const
 		// Set cpuset limit.
 		char cgroup_mems_path[PATH_MAX] = "";
 		sprintf(cgroup_mems_path, "/sys/fs/cgroup/ruri/%d/cpuset.mems", container->container_id);
-		if (open_and_write(cgroup_mems_path, "all\n")) {
+		if (open_and_write(cgroup_mems_path, "0\n")) {
 			goto fail;
 		}
 		char cgroup_cpuset_path[PATH_MAX] = "";
