@@ -56,10 +56,8 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	ruri_warn_on_error(unshare_ret, 0, !container->no_warnings, "{yellow}Warning: seems that ipc namespace is not supported on this device QwQ{clear}\n");
 	unshare_ret = unshare(CLONE_NEWPID);
 	ruri_warn_on_error(unshare_ret, 0, !container->no_warnings, "{yellow}Warning: seems that pid namespace is not supported on this device QwQ{clear}\n");
-	if (!container->systemd_mode) {
-		unshare_ret = unshare(CLONE_NEWCGROUP);
-		ruri_warn_on_error(unshare_ret, 0, !container->no_warnings, "{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
-	}
+	unshare_ret = unshare(CLONE_NEWCGROUP);
+	ruri_warn_on_error(unshare_ret, 0, !container->no_warnings, "{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
 	if (unshare(CLONE_NEWTIME) == -1) {
 		if (container->timens_realtime_offset != 0 || container->timens_monotonic_offset != 0) {
 			ruri_error("{red}Failed to unshare time namespace, --timens-offset cannot be enabled QwQ\n");
@@ -196,17 +194,15 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 		}
 		close(ns_fd);
 	}
-	if (!container->systemd_mode) {
-		ns_fd = open(cgroup_ns_file, O_RDONLY | O_CLOEXEC);
-		if (ns_fd < 0) {
-			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
-		} else {
-			usleep(1000);
-			if (setns(ns_fd, CLONE_NEWCGROUP) == -1) {
-				ruri_error("{red}Failed to setns cgroup namespace QwQ\n");
-			}
-			close(ns_fd);
+	ns_fd = open(cgroup_ns_file, O_RDONLY | O_CLOEXEC);
+	if (ns_fd < 0) {
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
+	} else {
+		usleep(1000);
+		if (setns(ns_fd, CLONE_NEWCGROUP) == -1) {
+			ruri_error("{red}Failed to setns cgroup namespace QwQ\n");
 		}
+		close(ns_fd);
 	}
 	ns_fd = open(ipc_ns_file, O_RDONLY | O_CLOEXEC);
 	if (ns_fd < 0) {
@@ -272,6 +268,32 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	}
 	return unshare_pid;
 }
+void setup_cgroup2(int container_id)
+{
+	mkdir("/sys/fs/cgroup/ruri", 0755);
+	char cgroup_dir[PATH_MAX] = { '\0' };
+	sprintf(cgroup_dir, "/sys/fs/cgroup/ruri/%d", container_id);
+	if (mkdir(cgroup_dir, 0755) == -1) {
+		ruri_error("{red}Failed to create cgroup directory QwQ\n");
+	}
+	FILE *cgroup_procs = fopen(strcat(cgroup_dir, "/cgroup.procs"), "w");
+	if (!cgroup_procs) {
+		ruri_error("{red}Failed to open cgroup.procs QwQ\n");
+	}
+	fprintf(cgroup_procs, "%d", getpid());
+	fclose(cgroup_procs);
+}
+void join_cgroup2(int container_id)
+{
+	char cgroup_dir[PATH_MAX] = { '\0' };
+	sprintf(cgroup_dir, "/sys/fs/cgroup/ruri/%d/cgroup.procs", container_id);
+	FILE *cgroup_procs = fopen(cgroup_dir, "w");
+	if (!cgroup_procs) {
+		ruri_error("{red}Failed to open cgroup.procs QwQ\n");
+	}
+	fprintf(cgroup_procs, "%d", getpid());
+	fclose(cgroup_procs);
+}
 // Run unshare container.
 void ruri_run_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 {
@@ -288,12 +310,16 @@ void ruri_run_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	if (container->ns_pid < 0) {
 		if (!container->systemd_mode) {
 			ruri_set_limit(container);
+		} else {
+			setup_cgroup2(container->container_id);
 		}
 		unshare_pid = init_unshare_container(container);
 	} else {
 		container->first_init = false;
 		if (!container->systemd_mode) {
 			ruri_set_limit(container);
+		} else {
+			join_cgroup2(container->container_id);
 		}
 		unshare_pid = join_ns(container);
 	}

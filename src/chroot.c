@@ -981,23 +981,14 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		 * subtree_control or cgroup layout from ruri.
 		 */
 		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
+		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
+		umount2("/sys/fs/cgroup", MNT_DETACH | MNT_FORCE);
 		mkdir("/sys/fs/cgroup", 0755);
 		int cgroup_mount_flags = MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_RELATIME;
 		int mount_ret = mount("cgroup2", "/sys/fs/cgroup", "cgroup2", cgroup_mount_flags, NULL);
 		if (mount_ret < 0) {
 			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to mount cgroup2: %s\n", strerror(errno));
 		} else {
-			ruri_log("{base}Mounted clean cgroup v2 hierarchy for systemd mode\n");
-			int subtree_fd = open("/sys/fs/cgroup/cgroup.subtree_control", O_WRONLY | O_CLOEXEC);
-			if (subtree_fd >= 0) {
-				write(subtree_fd, "+memory\n", strlen("+memory\n"));
-				write(subtree_fd, "+cpu\n", strlen("+cpu\n"));
-				write(subtree_fd, "+cpuset\n", strlen("+cpuset\n"));
-				write(subtree_fd, "+io\n", strlen("+io\n"));
-				write(subtree_fd, "+pids\n", strlen("+pids\n"));
-				close(subtree_fd);
-				ruri_log("{base}Enabled cgroup controllers for systemd\n");
-			}
 			prepare_systemd_cgroup_scope(container);
 		}
 	}
