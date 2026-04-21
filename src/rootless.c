@@ -271,11 +271,26 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	// parent process will call unshare(2) to be the owner of a new user ns,
 	// then, we can use the child process to call `newuidmap` and `newgidmap`,
 	// to change the parent process's id map.
+	int sync_pipe[2] = { -1, -1 };
+	if (container->ns_pid < 0) {
+		if (pipe2(sync_pipe, O_CLOEXEC) == -1) {
+			ruri_error("{red}Failed to create sync pipe for userns setup\n");
+		}
+	}
+
 	pid_t pid_1 = fork();
 	if (pid_1 > 0) {
 		if (container->ns_pid < 0) {
+			close(sync_pipe[0]);
 			// Enable user namespace.
 			try_unshare(CLONE_NEWUSER);
+
+			if (write(sync_pipe[1], "1", 1) != 1) {
+				close(sync_pipe[1]);
+				ruri_error("{red}Failed to signal child for idmap setup\n");
+			}
+			close(sync_pipe[1]);
+
 			int stat = 0;
 			waitpid(pid_1, &stat, 0);
 			if (WEXITSTATUS(stat) == 0) {
@@ -293,15 +308,22 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			}
 			set_id_map_succeed = true;
 		}
-	} else {
+	} else if (pid_1 == 0) {
 		if (container->ns_pid < 0) {
-			// To ensure that unshare(2) finished in parent process.
-			usleep(1000);
+			close(sync_pipe[1]);
+			char ready = '\0';
+			ssize_t n = read(sync_pipe[0], &ready, 1);
+			close(sync_pipe[0]);
+			if (n != 1) {
+				exit(1);
+			}
 			int stat = try_setup_idmap(ppid, uid, gid);
 			exit(stat);
 		} else {
 			exit(0);
 		}
+	} else {
+		ruri_error("{red}Fork error QwQ?\n");
 	}
 	if (container->ns_pid > 0 && set_id_map_succeed) {
 		char mnt_ns[PATH_MAX] = { '\0' };
