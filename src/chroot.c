@@ -368,7 +368,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
 {
 	if (chdir("/dev") == -1) {
-		if (container->char_devs[0] == NULL || container->no_warnings) {
+		if (container->char_devs[0] == NULL) {
 			return;
 		}
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to chdir(2) to /dev, will not create char devices.\n");
