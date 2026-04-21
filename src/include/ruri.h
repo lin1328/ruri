@@ -56,6 +56,8 @@
 #include <linux/sched.h>
 #include <linux/securebits.h>
 #include <linux/version.h>
+#include <linux/magic.h>
+#include <sys/statfs.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdio.h>
@@ -93,6 +95,14 @@ typedef int cap_value_t;
 // Fix definition of LOGIN_NAME_MAX
 #ifndef LOGIN_NAME_MAX
 #define LOGIN_NAME_MAX 256
+#endif
+// Fix definition of CGROUP2_SUPER_MAGIC
+#ifndef CGROUP2_SUPER_MAGIC
+#define CGROUP2_SUPER_MAGIC 0x63677270
+#endif
+// Fix definition of TMPFS_MAGIC
+#ifndef TMPFS_MAGIC
+#define TMPFS_MAGIC 0x01021994
 #endif
 // Nullability attributes.
 #ifndef _Nullable

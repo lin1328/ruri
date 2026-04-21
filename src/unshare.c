@@ -44,26 +44,6 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	 *
 	 * NOTE: Network namespace is not supported.
 	 */
-	// Move self to a new cgroup.
-	if (access("/sys/fs/cgroup/cgroup.type", F_OK) == 0) {
-		char cgroup_path[PATH_MAX] = { '\0' };
-		sprintf(cgroup_path, "/sys/fs/cgroup/ruri_%d", container->container_id);
-		mkdir(cgroup_path, S_IRUSR | S_IWUSR);
-		usleep(200);
-		// Write self pid to cgroup.procs.
-		char cgroup_procs_path[PATH_MAX] = { '\0' };
-		sprintf(cgroup_procs_path, "/sys/fs/cgroup/ruri_%d/cgroup.procs", container->container_id);
-		int fd = open(cgroup_procs_path, O_RDWR | O_CLOEXEC);
-		if (fd < 0) {
-			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Set cgroup.procs failed{clear}\n");
-		}
-		char buf[128] = { '\0' };
-		sprintf(buf, "%d\n", getpid());
-		if (write(fd, buf, strlen(buf)) < 0) {
-			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Set cgroup.procs failed{clear}\n");
-		}
-		close(fd);
-	}
 	// unshare_pid in forked process is 0.
 	pid_t unshare_pid = RURI_INIT_VALUE;
 	// Create namespaces.
@@ -306,10 +286,16 @@ void ruri_run_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		container = ruri_read_info(container, container->container_dir);
 	}
 	if (container->ns_pid < 0) {
+		if (!container->systemd_mode) {
+			ruri_set_limit(container);
+		}
 		unshare_pid = init_unshare_container(container);
 	} else {
-		unshare_pid = join_ns(container);
 		container->first_init = false;
+		if (!container->systemd_mode) {
+			ruri_set_limit(container);
+		}
+		unshare_pid = join_ns(container);
 	}
 	ruri_log("{base}ns pid: %d\n", container->ns_pid);
 	// Check if we have joined the container's namespaces.

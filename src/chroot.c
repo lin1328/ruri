@@ -926,6 +926,10 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	// Check binary used.
 	check_binary(container);
+	// Set up cgroup limit on host.
+	if (!container->enable_unshare) {
+		ruri_set_limit(container);
+	}
 	// chroot(2) into container, or use pivot_root(2) if `-u` is set.
 	if (!container->enable_unshare) {
 		if (chdir(container->container_dir) != 0) {
@@ -970,11 +974,6 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	// Umount binfmt_misc apifs.
 	umount2("/proc/sys/fs/binfmt_misc", MNT_DETACH | MNT_FORCE);
-	// Set up cgroup limit.
-	// In systemd mode, let systemd manage the delegated cgroup hierarchy itself.
-	if (!container->just_chroot && !container->systemd_mode) {
-		ruri_set_limit(container);
-	}
 	if (container->enable_unshare && container->first_init && container->systemd_mode) {
 		/*
 		 * Setup a clean cgroup v2 mount for systemd.
