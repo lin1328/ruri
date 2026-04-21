@@ -119,11 +119,12 @@ static void check_binary(const struct RURI_CONTAINER *_Nonnull container)
 /*
  * Generate a unique machine-id for systemd.
  */
-static void generate_machine_id()
+static void generate_machine_id(int container_id)
 {
 	ruri_log("{blue}Generating unique machine-id for systemd.\n");
 	char new_machine_id[33];
 	const char *hex_chars = "0123456789abcdef";
+	srand((unsigned int)container_id);
 	for (int i = 0; i < 32; i++) {
 		new_machine_id[i] = hex_chars[rand() % 16];
 	}
@@ -210,7 +211,7 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 	}
 
 	// Setup /etc/machine-id
-	generate_machine_id();
+	generate_machine_id(container->container_id);
 }
 
 // Run after chroot(2), called by ruri_run_chroot_container().
