@@ -117,20 +117,30 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 			ruri_error("{red}Failed to unshare network namespace, --no-network cannot be enabled QwQ\n");
 		}
 	}
+	// before fork()
+	int sync_pipe[2] = { -1, -1 };
+	if (pipe2(sync_pipe, O_CLOEXEC) < 0) {
+		ruri_error("{red}pipe2 sync failed, QwQ?\n");
+	}
 	// Fork itself into namespace.
 	// This can fix `can't fork: out of memory` issue.
 	unshare_pid = fork();
 	if (unshare_pid > 0) {
+		// parent: close write end, wait for child sync signal first
+		close(sync_pipe[1]);
+		char ready = 0;
+		ssize_t n = read(sync_pipe[0], &ready, 1);
+		close(sync_pipe[0]);
+		if (n < 0) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}sync pipe read failed{clear}\n");
+		}
 		// Store container info.
 		if (container->use_rurienv) {
 			container->ns_pid = unshare_pid;
 			ruri_store_info(container);
-		} else {
-			if (!container->no_warnings) {
-				ruri_warning("{base}NS PID:{green} %d\n", unshare_pid);
-			}
+		} else if (!container->no_warnings) {
+			ruri_warning("{base}NS PID:{green} %d\n", unshare_pid);
 		}
-		// Fix `can't access tty` issue.
 		int stat = 0;
 		waitpid(unshare_pid, &stat, 0);
 		if (WIFEXITED(stat)) {
@@ -140,7 +150,16 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 			exit(128 + WTERMSIG(stat));
 		}
 		exit(EXIT_FAILURE);
-	} else if (unshare_pid < 0) {
+	} else if (unshare_pid == 0) {
+		// child: close read end and notify parent we reached child path
+		close(sync_pipe[0]);
+		char ready = 1;
+		(void)write(sync_pipe[1], &ready, 1);
+		close(sync_pipe[1]);
+	} else {
+		// fork failed
+		close(sync_pipe[0]);
+		close(sync_pipe[1]);
 		ruri_error("{red}Fork error, QwQ?\n");
 	}
 	return unshare_pid;

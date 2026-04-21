@@ -1020,8 +1020,6 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	drop_caps(container);
 	// Set envs.
 	set_envs(container);
-	// Fix a bug that the terminal is frozen.
-	usleep(2000);
 	// Set NO_NEW_PRIVS Flag.
 	// It requires Linux3.5 or later.
 	// It will make sudo unavailable in container.
