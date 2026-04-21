@@ -463,3 +463,25 @@ This option allows you to enable SIGTTIN and SIGTTOU signals in the container.
 
 This option allows you to skip the setgroups() call when changing the user in the container. This is for the cases that you don't trust the /etc/group file in the container.       
 **Behavior note:** When this option is enabled, ruri will only allow using UID for `-E/--user` option, and /etc/passwd & /etc/group will be ignored.       
+
+---
+| Option | Description |
+|--------|-------------|
+| `-y`, `--systemd` | Enable systemd support in container |
+| `--even-unstable` | Enable even unstable |
+
+
+This option allows you to run systemd as init in the container. It will set up some necessary things for systemd to run properly.
+
+**Behavior note:* This option will automatically enable unshare and some seccomp rules for better compatibility with systemd, cgroup limit will be ignored, and some behavior will be changed to better support systemd. For example, ruri will automatically mount /run and /tmp as tmpfs.
+
+**Note:** This option is experimental and may not work as expected. You should enable `--even-unstable` option to use this feature, and report issues if you find any bugs.
+
+**Note:** Some services like `getty` and `systemd-resolved` might not work in containers, you should mask them. Also, services like `systemd-firstboot` should be disabled.      
+
+---
+| Option | Description |
+|--------|-------------|
+| `--strict` | Enable strict mode |
+
+This option will enable strict mode, ruri will treat most important warning as error, and panic immediately when any setup is failed.
