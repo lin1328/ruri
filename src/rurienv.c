@@ -352,12 +352,12 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		int fd = open(file, O_RDONLY | O_CLOEXEC);
 		if (fd < 0 && !container->no_warnings) {
 			ruri_warning("{yellow}Open .rurienv failed{clear}\n");
+			return container;
 		}
 		int attr = 0;
 		ioctl(fd, FS_IOC_GETFLAGS, &attr);
 		attr &= ~FS_IMMUTABLE_FL;
 		ioctl(fd, FS_IOC_SETFLAGS, &attr);
-		remove(file);
 		close(fd);
 		remove(file);
 		return container;
