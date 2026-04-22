@@ -349,7 +349,7 @@ static void set_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container, const
  *  | || | | | ||  __/ |  |  _| (_| | (_|  __/
  * |___|_| |_|\__\___|_|  |_|  \__,_|\___\___|
  */
-void ruri_attach_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container)
+static void ruri_attach_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
 	 * Attach process to cgroup v2.
@@ -359,7 +359,7 @@ void ruri_attach_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container)
 	// Add pid to container_id cgroup.
 	set_cgroup_v2(container, "attach");
 }
-void ruri_cgroup_attach(const struct RURI_CONTAINER *_Nonnull container)
+static void ruri_cgroup_attach(const struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
 	 * Attach process to cgroup.

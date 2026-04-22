@@ -268,7 +268,7 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	}
 	return unshare_pid;
 }
-void setup_cgroup2(int container_id)
+static void setup_cgroup2(int container_id)
 {
 	mkdir("/sys/fs/cgroup/ruri", 0755);
 	char cgroup_dir[PATH_MAX] = { '\0' };
@@ -283,7 +283,7 @@ void setup_cgroup2(int container_id)
 	fprintf(cgroup_procs, "%d", getpid());
 	fclose(cgroup_procs);
 }
-void join_cgroup2(int container_id)
+static void join_cgroup2(int container_id)
 {
 	char cgroup_dir[PATH_MAX] = { '\0' };
 	sprintf(cgroup_dir, "/sys/fs/cgroup/ruri/%d/cgroup.procs", container_id);
