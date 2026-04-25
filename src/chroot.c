@@ -1006,8 +1006,6 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	// Drop specified capabilities.
 	drop_caps(container);
-	// Change user.
-	change_user(container);
 	// Set envs.
 	set_envs(container);
 	// Set NO_NEW_PRIVS Flag.
@@ -1020,6 +1018,8 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
 		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
 	}
+	// Change user.
+	change_user(container);
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	// NOTE: this might cause unknown issues.
@@ -1117,8 +1117,6 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	}
 	// Drop caps.
 	drop_caps(container);
-	// Change user.
-	change_user(container);
 	// Set envs.
 	set_envs(container);
 	// Fix a bug that the terminal is frozen.
@@ -1133,6 +1131,8 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 		// Disallow raising ambient capabilities via the prctl(2) PR_CAP_AMBIENT_RAISE operation.
 		prctl(PR_SET_SECUREBITS, SECBIT_NO_CAP_AMBIENT_RAISE);
 	}
+	// Change user.
+	change_user(container);
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	for (int i = 3; i <= 10; i++) {
