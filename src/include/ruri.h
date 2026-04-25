@@ -104,6 +104,10 @@ typedef int cap_value_t;
 #ifndef TMPFS_MAGIC
 #define TMPFS_MAGIC 0x01021994
 #endif
+// Fix definition of PROC_SUPER_MAGIC
+#ifndef PROC_SUPER_MAGIC
+#define PROC_SUPER_MAGIC 0x9fa0
+#endif
 // Nullability attributes.
 #ifndef _Nullable
 #define _Nullable

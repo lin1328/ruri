@@ -222,11 +222,13 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 	 * The device list and permissions are based on common docker containers.
 	 * If -A is not set, we will mask some dirs in /sys and /proc to avoid security issues.
 	 */
-	// If /proc/1/exe exists, that means container is already initialized.
-	// I used to check /sys/class/input, but in WSL1, /sys/class/input is not exist.
-	// But /proc/1/exe is exist in all Linux systems, because it's the init process.
-	char *test = realpath("/proc/1/exe", NULL);
-	if (test == NULL) {
+	bool proc_mounted = false;
+	// Use statfs() to ensure /proc is procfs.
+	struct statfs proc_statfs;
+	if (statfs("/proc", &proc_statfs) == 0 && proc_statfs.f_type == PROC_SUPER_MAGIC) {
+		proc_mounted = true;
+	}
+	if (!proc_mounted) {
 		container->first_init = true;
 		ruri_log("{blue}Container is not initialized, initializing...\n");
 		int res = 0;
@@ -360,7 +362,6 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			ruri_warn_on_error((res1 == 0 || res2 == 0), true, !container->no_warnings, "{yellow}Warning: Failed to mask %s as read-only.\n", container->masked_path[i]);
 		}
 	} else {
-		free(test);
 		container->first_init = false;
 		ruri_log("{blue}Container is already initialized, skipping initialization.\n");
 	}
