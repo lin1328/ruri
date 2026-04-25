@@ -265,6 +265,7 @@ static void set_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container, const
 		}
 		char buf[256] = "";
 		sprintf(buf, "+%s\n", controller);
+		open_and_write("/sys/fs/cgroup/cgroup.subtree_control", buf);
 		if (open_and_write("/sys/fs/cgroup/ruri/cgroup.subtree_control", buf)) {
 			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to enable controller %s\n", controller);
 		}
