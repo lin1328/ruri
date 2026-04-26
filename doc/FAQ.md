@@ -9,7 +9,7 @@ Try:
 rm /etc/resolv.conf
 echo nameserver 1.1.1.1 > /etc/resolv.conf
 ```
-Or, for Android, run https://github.com/Moe-hacker/daijin/raw/refs/heads/main/src/share/fixup.sh in container.      
+Or, for Android, run https://github.com/rurioss/daijin/raw/refs/heads/main/src/share/fixup.sh in container.      
 # About systemd:
 Systemd need CAP_SYS_ADMIN to work, and need PID namespace support to make itself to be PID 1.      
 On my device, with `sudo ./ruri -u -k cap_sys_admin ../ubuntu /sbin/init &` and then `sudo ./ruri ../ubuntu /bin/bash` to enter container, although it shows `State: degraded`, systemd seems works.     
@@ -21,7 +21,7 @@ ruri will set capability to the same as docker common container by default, you 
 For example, use `-d cap_sys_admin` to drop CAP_SYS_ADMIN.      
 In fulture, maybe new caps will be added to the kernel, and their name might cannot be recognized if you are using old builds. You can use the value of cap (use `capsh  --explain=[cap]` to get the value) to drop it, for example, use `-d 114` to drop the cap 114 (I don't know what the cap should be, mabe can make superuser to be a homo).
 # About config:
-Since v3.0, ruri can use [k2v](https://github.com/Moe-hacker/libk2v), a new simple config format, to store the config of a container.          
+Since v3.0, ruri can use [k2v](https://github.com/rurioss/libk2v), a new simple config format, to store the config of a container.          
 # About rurienv:
 Since v3.0, ruri removed the daemon, it use a new way to store the info of a running container.         
 ruri will creat `/.rurienv` file into the container, to store runtime info of container.          

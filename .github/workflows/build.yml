@@ -65,7 +65,7 @@ jobs:
       - name: Build ruri for containers
         run: |
           mkdir -p build && cd build
-          git clone --depth 1 https://github.com/moe-hacker/ruri.git
+          git clone --depth 1 https://github.com/rurioss/ruri.git
           cd ruri
           cc -Wl,--gc-sections -static src/*.c src/easteregg/*.c -o ruri -lcap -lseccomp -lpthread
           cp ./ruri ../../

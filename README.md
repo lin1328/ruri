@@ -37,7 +37,7 @@ For vulnerability reporting, please refer to [SECURITY.md](SECURITY.md).
 
 # The enhanced version
 
-[rurima](https://github.com/Moe-hacker/rurima) was planned to be the ruri manager, but since it now has a full integration of ruri, you can use it as an enhanced version of ruri.      
+[rurima](https://github.com/RuriOSS/rurima) was planned to be the ruri manager, but since it now has a full integration of ruri, you can use it as an enhanced version of ruri.      
 
 # Highlights
 
@@ -63,7 +63,7 @@ For vulnerability reporting, please refer to [SECURITY.md](SECURITY.md).
   - Can replace `chroot` directly; easy to use without learning every option.
 
   <p align="center">
-  <img src="https://github.com/Moe-hacker/ruri/raw/main/logo/rurifetch.png" alt="" style="width:75%;align: center;">
+  <img src="https://github.com/RuriOSS/ruri/raw/main/logo/rurifetch.png" alt="" style="width:75%;align: center;">
   </p>
 
 # Terms of Use:
@@ -81,7 +81,7 @@ In newest code, ruri will also do setgroups() for root user in container to avoi
 
 # Bug reporting
 
-If you think something does not work as expected, please [open a new isssue](https://github.com/rurioss/ruri/issues)
+If you think something does not work as expected, please [open a new isssue](https://github.com/RuriOSS/ruri/issues)
 
 
 # Asking LLM:
@@ -89,7 +89,7 @@ See [Asking LLM](doc/askllm.md) for how to ask LLM about ruri.
 
 # Get ruri
 
-You can get ruri binary (statically linked) for arm64, armv7, armhf, riscv64, i386, loong64, s390x, ppc64le and x86_64 devices in [Release](https://github.com/Moe-hacker/ruri/releases/).
+You can get ruri binary (statically linked) for arm64, armv7, armhf, riscv64, i386, loong64, s390x, ppc64le and x86_64 devices in [Release](https://github.com/RuriOSS/ruri/releases/).
 Or you can run the following command to download ruri automatically
 
 ```sh
@@ -114,7 +114,7 @@ Ruri provides statically linked binary, but if you want to build it yourself, se
 
 ruri is ready to integrate into other projects, with the MIT License, it is compatiblte to be redistribute with almost all license, or commercial/closed source.
 An example is ruri's own build action , it runs containers for 9 different architectures to build itself, that shows its broad application prospects.
-Another example is [rurima](https://github.com/Moe-hacker/rurima), I made ruri built-in for it, so it can be run as a subcommand.
+Another example is [rurima](https://github.com/RuriOSS/rurima), I made ruri built-in for it, so it can be run as a subcommand.
 See [Integration](doc/Integration.md) for a guide to integrate ruri into your projects.
 
 # Behavior of rurienv

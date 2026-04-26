@@ -9,7 +9,7 @@ To use it, just `cc build.c` and `./a.out`.
 for help, see `./a.out -h`.          
 # Build using autoconf(recommended)
 ```
-git clone https://github.com/Moe-hacker/ruri
+git clone https://github.com/rurioss/ruri
 cd ruri
 autoreconf -fi
 ./configure --enable-static
@@ -33,7 +33,7 @@ Note: `--enable-coreonly` will auto enable `--disable-libseccomp --disable-libca
 # Build using CMake(for downstream)
 (if you'd prefer to use CMake)      
 ```
-git clone https://github.com/Moe-hacker/ruri
+git clone https://github.com/rurioss/ruri
 cd ruri
 cmake .
 make

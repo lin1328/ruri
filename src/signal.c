@@ -69,7 +69,7 @@ static void panic(int sig)
 	// but I'm more afraid that no one will report them.
 	cfprintf(stderr, "{base}\nThis message might caused by an internal error.\n");
 	cfprintf(stderr, "{base}If you think something is wrong, please report at:\n");
-	cfprintf(stderr, "\033[4m{base}%s{clear}\n\n", "https://github.com/Moe-hacker/ruri/issues");
+	cfprintf(stderr, "\033[4m{base}%s{clear}\n\n", "https://github.com/rurioss/ruri/issues");
 	exit(114);
 }
 // Catch coredump signal.
