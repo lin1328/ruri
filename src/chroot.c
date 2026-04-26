@@ -525,14 +525,11 @@ static void setup_binfmt_misc(const struct RURI_CONTAINER *_Nonnull container)
 	struct RURI_ELF_MAGIC *magic = ruri_get_magic(container->cross_arch);
 	// Umount container if we get an error.
 	if (magic == NULL) {
-		ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Error: unknown architecture or same architecture as host: %s\n\nSupported architectures: aarch64, alpha, arm, armeb, cris, hexagon, hppa, i386, loongarch64, m68k, microblaze, mips, mips64, mips64el, mipsel, mipsn32, mipsn32el, ppc, ppc64, ppc64le, riscv32, riscv64, s390x, sh4, sh4eb, sparc, sparc32plus, sparc64, x86_64, xtensa, xtensaeb{clear}\n", container->cross_arch);
-		ruri_umount_container(container->container_dir);
-		ruri_error(" ");
+		ruri_error("{red}Error: unknown architecture or same architecture as host: %s\n\nSupported architectures: aarch64, alpha, arm, armeb, cris, hexagon, hppa, i386, loongarch64, m68k, microblaze, mips, mips64, mips64el, mipsel, mipsn32, mipsn32el, ppc, ppc64, ppc64le, riscv32, riscv64, s390x, sh4, sh4eb, sparc, sparc32plus, sparc64, x86_64, xtensa, xtensaeb{clear}\n", container->cross_arch);
 	}
 	char buf[1024] = { '\0' };
 	// Format: ":name:type:offset:magic:mask:interpreter:flags".
 	if (snprintf(buf, sizeof(buf), ":%s%d:M:0:%s:%s:%s:PCF", "ruri-", container->container_id, magic->magic, magic->mask, container->qemu_path) >= (int)sizeof(buf)) {
-		ruri_umount_container(container->container_dir);
 		ruri_error("{red}Error: binfmt_misc registration string is too long QwQ\n");
 	}
 	// Just to make clang-tidy happy.
