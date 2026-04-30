@@ -84,6 +84,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT)) {
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(acct), 0);
 		}
+		// Disallow AF_ALG.
+		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(add_key), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(bpf), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
@@ -160,7 +162,6 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT)) {
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(chroot), 0);
 		}
-	}
 #else
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(acct), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(add_key), 0);
@@ -221,8 +222,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(chroot), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
-	}
 #endif
+	}
 	if (container->systemd_mode) {
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(kexec_load), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(1), SCMP_SYS(open_by_handle_at), 0);
