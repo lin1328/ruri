@@ -264,7 +264,7 @@ static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull containe
 		}
 		char memory_cgroup_oom_path[PATH_MAX] = "";
 		sprintf(memory_cgroup_oom_path, "%s%d/memory.oom_control", cg_env->memory.prefix, container->container_id);
-		if (open_and_write(memory_cgroup_oom_path, "1\n")) {
+		if (open_and_write(memory_cgroup_oom_path, "0\n")) {
 			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to set cgroup v1 memory limit for %s\n", memory_cgroup_oom_path);
 			return;
 		}
