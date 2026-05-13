@@ -109,7 +109,7 @@ void ruri_del_from_caplist(cap_value_t *_Nonnull list, cap_value_t cap)
 	 */
 	for (int i = 0; true; i++) {
 		if (list[i] == cap) {
-			while (i <= RURI_CAP_LAST_CAP) {
+			while (i < RURI_CAP_LAST_CAP && list[i] != RURI_INIT_VALUE) {
 				list[i] = list[i + 1];
 				i++;
 			}

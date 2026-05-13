@@ -149,13 +149,14 @@ static char *losetup(const char *_Nonnull img)
 		loopctlfd = open("/dev/block/loop-control", O_RDWR | O_CLOEXEC);
 		if (loopctlfd < 0) {
 			ruri_log("{red}Error: {base}Cannot open /dev/loop-control or /dev/block/loop-control.\n");
-			return "1145141919810";
+			return NULL;
 		}
 	}
 	// It takes the same effect as `losetup -f`.
 	int devnr = ioctl(loopctlfd, LOOP_CTL_GET_FREE);
 	close(loopctlfd);
-	static char loopfile[PATH_MAX] = { '\0' };
+	char *loopfile = malloc(PATH_MAX);
+	memset(loopfile, 0, PATH_MAX);
 	sprintf(loopfile, "/dev/loop%d", devnr);
 	usleep(200);
 	int loopfd = open(loopfile, O_RDWR | O_CLOEXEC);
@@ -165,10 +166,8 @@ static char *losetup(const char *_Nonnull img)
 		sprintf(loopfile, "/dev/block/loop%d", devnr);
 		loopfd = open(loopfile, O_RDWR | O_CLOEXEC);
 		if (loopfd < 0) {
-			// Never mind, it works.
-			// We know that 1145141919810 is hardly to be exist as a directory.
-			// So use this string will cause mount(2) to fail, and then we just go ahead.
-			return "1145141919810";
+			free(loopfile);
+			return NULL;
 		}
 	}
 	// It takes the same efferct as `losetup` command.
@@ -251,7 +250,9 @@ static int mount_as_filesystem(const char *_Nonnull source, const char *_Nonnull
 		if (loopfile == NULL) {
 			return -1;
 		}
-		source = loopfile;
+		int ret = mount(loopfile, target, fstype, mountflags, NULL);
+		free(loopfile);
+		return ret;
 	}
 	return mount(source, target, fstype, mountflags, NULL);
 }
@@ -531,7 +532,12 @@ int ruri_trymount(const char *_Nonnull source, const char *_Nonnull target, unsi
 			return -1;
 		}
 		ruri_log("{base}Mounting as image file {cyan}%s{base} to {cyan}%s{base}\n", source, target);
-		ret = mount_device(losetup(source), target, mountflags_new);
+		char *loopfile = losetup(source);
+		if (!loopfile) {
+			return -1;
+		}
+		ret = mount_device(loopfile, target, mountflags_new);
+		free(loopfile);
 		// Common file.
 		if (ret != 0) {
 			if (touch_mountpoint_file(target) != 0) {

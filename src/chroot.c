@@ -256,10 +256,10 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devpts, will continue.\n");
 		char *devshm_options = NULL;
 		if (container->memory == NULL) {
-			devshm_options = strdup("mode=1777");
+			devshm_options = strdup("size=65536k,mode=1777");
 		} else {
 			devshm_options = malloc(strlen(container->memory) + strlen("mode=1777") + 114);
-			sprintf(devshm_options, "size=65536k,mode=1777");
+			sprintf(devshm_options, "size=%s,mode=1777", container->memory);
 		}
 		res = mkdir("/dev/shm", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/shm, will continue.\n");
@@ -637,12 +637,16 @@ static void copy_qemu_binary(struct RURI_CONTAINER *container)
 			ruri_error("{red}Error: failed to create qemu binary in container QwQ\nIf your / is mounted read-only, please copy qemu to /path/to/container/qemu-ruri and use -q /qemu-ruri to start!\n");
 		}
 		struct stat stat_buf;
-		fstat(sourcefd, &stat_buf);
+		if (fstat(sourcefd, &stat_buf) != 0) {
+			ruri_error("{red}Error: failed to get qemu binary info QwQ\n");
+		}
 		off_t offset = 0;
 		// In linux, I think it's more safe to use sendfile(2) to copy files,
 		// because it does not need a buffer.
 		// !NOTE: Linux version under 2.6.33 does not support sendfile(2) for copying files.
-		sendfile(targetfd, sourcefd, &offset, (size_t)stat_buf.st_size);
+		if (sendfile(targetfd, sourcefd, &offset, (size_t)stat_buf.st_size) == -1) {
+			ruri_error("{red}Error: failed to copy qemu binary QwQ\n");
+		}
 		close(sourcefd);
 		fchmod(targetfd, S_IRGRP | S_IXGRP | S_IRUSR | S_IXUSR | S_IROTH | S_IXOTH);
 		close(targetfd);

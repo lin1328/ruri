@@ -50,6 +50,7 @@ void ruri_clear_env(char *const *_Nonnull argv)
 		// This is to prevent ruri binary from being modified by the container.
 		int fd = memfd_create("ruri_bin", MFD_CLOEXEC | MFD_ALLOW_SEALING);
 		if (fd < 0) {
+			ruri_warn_on_error(0, 1, true, "Failed to create memfd for ruri binary\n");
 			execve("/proc/self/exe", argv, envp);
 		}
 		// Set the file as executable.
