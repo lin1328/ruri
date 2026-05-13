@@ -36,6 +36,7 @@
  * And for that with pid ns, just kill pid 1 of the ns,
  * and all processes will be destroyed.
  */
+static bool is_container_process(pid_t pid, const char *_Nonnull container_dir, int container_id);
 static char *getpid_name(pid_t pid)
 {
 	/*
@@ -122,32 +123,22 @@ static char *getpid_stat(pid_t pid)
 	char *pid_status = strdup(stat_buf);
 	return pid_status;
 }
-static void test_and_print_pid(pid_t pid, char *_Nonnull container_dir, bool in_pid_ns)
+static void test_and_print_pid(pid_t pid, char *_Nonnull container_dir, int container_id)
 {
 	/*
-	 * If /proc/pid/root is container_dir, print the pid.
+	 * If pid is in the container, print it.
 	 */
-	char path[PATH_MAX];
-	snprintf(path, sizeof(path), "%s%d%s", "/proc/", pid, "/root");
-	char buf[PATH_MAX];
-	realpath(path, buf);
-	ruri_log("{base}Pid: {cyan}%d\n", pid);
-	ruri_log("{base}Root: {cyan}%s\n", buf);
-	if (strcmp(buf, container_dir) == 0) {
+	if (is_container_process(pid, container_dir, container_id)) {
 		char *name = getpid_name(pid);
 		char *pid_status = getpid_stat(pid);
 		if (name != NULL && pid_status != NULL) {
-			if (in_pid_ns) {
-				printf("--> %d %s %s\n", pid, name, pid_status);
-			} else {
-				printf("%d %s %s\n", pid, name, pid_status);
-			}
+			printf("%d %s %s\n", pid, name, pid_status);
 		}
 		free(name);
 		free(pid_status);
 	}
 }
-static void container_ps__(char *_Nonnull container_dir, bool in_pid_ns)
+static void container_ps__(char *_Nonnull container_dir, int container_id)
 {
 	/*
 	 * Show the processes in the container.
@@ -178,41 +169,12 @@ static void container_ps__(char *_Nonnull container_dir, bool in_pid_ns)
 	for (int j = 0; j < len; j++) {
 		if (pids[j] != RURI_INIT_VALUE) {
 			ruri_log("{base}Checking pid: {cyan}%d\n", pids[j]);
-			test_and_print_pid(pids[j], container_dir, in_pid_ns);
+			test_and_print_pid(pids[j], container_dir, container_id);
 		} else {
 			break;
 		}
 	}
 	closedir(proc_dir);
-}
-static int join_ns(pid_t ns_pid)
-{
-	/*
-	 * Try to join the pid and mount namespace of the container.
-	 * If failed, return -1.
-	 */
-	if (geteuid() != 0) {
-		ruri_error("{red}Error: Please run `ruri -P` with sudo.\n");
-	}
-	char path[PATH_MAX];
-	snprintf(path, sizeof(path), "%s%d%s", "/proc/", ns_pid, "/ns/pid");
-	int fd = open(path, O_RDONLY | O_CLOEXEC);
-	if (fd < 0) {
-		return -1;
-	}
-	setns(fd, 0);
-	close(fd);
-	ruri_log("{base}Joined pid namespace\n");
-	snprintf(path, sizeof(path), "%s%d%s", "/proc/", ns_pid, "/ns/mnt");
-	fd = open(path, O_RDONLY | O_CLOEXEC);
-	if (fd < 0) {
-		return -1;
-	}
-	setns(fd, 0);
-	close(fd);
-	chdir("/");
-	ruri_log("{base}Joined mount namespace\n");
-	return 0;
 }
 void ruri_container_ps(char *_Nonnull container_dir)
 {
@@ -232,17 +194,10 @@ void ruri_container_ps(char *_Nonnull container_dir)
 		// We need to get the info of ns_pid before joining the namespace.
 		char *name = getpid_name(container->ns_pid);
 		char *pid_status = getpid_stat(container->ns_pid);
-		if (join_ns(container->ns_pid) == 0) {
-			printf("%d %s %s\n", container->ns_pid, name, pid_status);
-			in_pid_ns = true;
-			// If we successfully joined the namespace,
-			// The root of the process is now "/".
-			container_dir = "/";
-		}
 		free(name);
 		free(pid_status);
 	}
-	container_ps__(container_dir, in_pid_ns);
+	container_ps__(container_dir, container->container_id);
 	free(container);
 	exit(EXIT_SUCCESS);
 }
@@ -255,6 +210,7 @@ static bool is_container_process(pid_t pid, const char *_Nonnull container_dir, 
 		ruri_log("{base}Container directory is NULL, WHY??\n");
 		return false;
 	}
+	ruri_log("{base}Checking if pid {cyan}%d{base} is in container with id {cyan}%d{base}\n", pid, container_id);
 	if (ruri_pid_in_cgroup(pid, container_id)) {
 		return true;
 	}
