@@ -396,8 +396,12 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		char net_ns_file[PATH_MAX] = { '\0' };
 		sprintf(net_ns_file, "%s%d%s", "/proc/", container->ns_pid, "/ns/net");
 		int net_ns_fd = open(net_ns_file, O_RDONLY | O_CLOEXEC);
-		if (setns(net_ns_fd, CLONE_NEWNET) == -1) {
+		if (net_ns_fd < 0) {
 			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+		} else {
+			if (setns(net_ns_fd, CLONE_NEWNET) == -1) {
+				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+			}
 		}
 	} else {
 		// We need to own mount namespace.

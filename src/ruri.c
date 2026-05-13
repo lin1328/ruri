@@ -123,7 +123,7 @@ static void parse_cgroup_settings(const char *_Nonnull str, struct RURI_CONTAINE
 	char buf[16] = { '\0' };
 	char *limit = NULL;
 	// Get limit type.
-	for (size_t i = 0; i < 16; i++) {
+	for (size_t i = 0; i < 15; i++) {
 		// Avoid overflow.
 		if (i >= strlen(str)) {
 			break;

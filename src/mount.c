@@ -41,7 +41,7 @@ int ruri_mkdirs(const char *_Nonnull dir, mode_t mode)
 	 * A very simple implementation of mkdir -p.
 	 * I don't know why it seems that there isn't an existing function to do this...
 	 */
-	char buf[PATH_MAX];
+	char buf[PATH_MAX + 1] = { '\0' };
 	int ret = 0;
 	/* If dir is path/to/mkdir
 	 * We do:
@@ -172,7 +172,16 @@ static char *losetup(const char *_Nonnull img)
 	}
 	// It takes the same efferct as `losetup` command.
 	int imgfd = open(img, O_RDWR | O_CLOEXEC);
-	ioctl(loopfd, LOOP_SET_FD, imgfd);
+	if (imgfd < 0) {
+		free(loopfile);
+		return NULL;
+	}
+	if (ioctl(loopfd, LOOP_SET_FD, imgfd) == -1) {
+		free(loopfile);
+		close(loopfd);
+		close(imgfd);
+		return NULL;
+	}
 	close(loopfd);
 	close(imgfd);
 	ruri_log("{base}losetup {cyan}%s{base} ==> {cyan}%s{base}\n", img, loopfile);
