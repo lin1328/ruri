@@ -246,7 +246,7 @@ void ruri_container_ps(char *_Nonnull container_dir)
 	free(container);
 	exit(EXIT_SUCCESS);
 }
-static bool is_container_process(pid_t pid, const char *_Nonnull container_dir)
+static bool is_container_process(pid_t pid, const char *_Nonnull container_dir, int container_id)
 {
 	/*
 	 * Check if the process is in the container.
@@ -254,6 +254,9 @@ static bool is_container_process(pid_t pid, const char *_Nonnull container_dir)
 	if (container_dir == NULL) {
 		ruri_log("{base}Container directory is NULL, WHY??\n");
 		return false;
+	}
+	if (ruri_pid_in_cgroup(pid, container_id)) {
+		return true;
 	}
 	char path[PATH_MAX];
 	snprintf(path, sizeof(path), "%s%d%s", "/proc/", pid, "/root");
@@ -307,7 +310,7 @@ void ruri_kill_container(struct RURI_CONTAINER *_Nonnull container)
 	for (int j = 0; j < len; j++) {
 		if (pids[j] != RURI_INIT_VALUE) {
 			ruri_log("{base}Checking pid: {cyan}%d\n", pids[j]);
-			if (is_container_process(pids[j], container->container_dir)) {
+			if (is_container_process(pids[j], container->container_dir, container->container_id)) {
 				ruri_log("{base}Killing pid: {cyan}%d\n", pids[j]);
 				kill(pids[j], SIGKILL);
 			}

@@ -343,6 +343,7 @@ int ruri_try_cgroup_kill(const struct RURI_CONTAINER *_Nonnull container);
 int ruri_cap_from_name(const char *str, cap_value_t *cap);
 #endif
 void ruri_clear_env(char *const *_Nonnull argv);
+bool ruri_pid_in_cgroup(pid_t pid, int container_id);
 // Bionic does not have memfd_create()
 #ifdef __ANDROID__
 #define memfd_create(...) syscall(SYS_memfd_create, __VA_ARGS__)

@@ -447,7 +447,41 @@ fail:
 	}
 	return 1;
 }
-void container_ps_with_cgroup_v2(const struct RURI_CONTAINER *_Nonnull container)
+bool ruri_pid_in_cgroup(pid_t pid, int container_id)
 {
-	; // TODO
+	/*
+	 * Check if the process is in the container by cgroup.
+	 * Return true if the process is in the container.
+	 */
+	struct RURI_CGROUP_ENV cg_env;
+	ruri_detect_cgroup_env(&cg_env);
+	char cgroup_procs_path[PATH_MAX] = "";
+	if (cg_env.memory.type == RURI_CGROUP_V2) {
+		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.memory.prefix, container_id);
+	} else if (cg_env.memory.type == RURI_CGROUP_V1) {
+		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.memory.prefix, container_id);
+	} else if (cg_env.cpuset.type == RURI_CGROUP_V2) {
+		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.cpuset.prefix, container_id);
+	} else if (cg_env.cpuset.type == RURI_CGROUP_V1) {
+		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.cpuset.prefix, container_id);
+	} else if (cg_env.cpupercent.type == RURI_CGROUP_V2) {
+		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.cpupercent.prefix, container_id);
+	} else if (cg_env.cpupercent.type == RURI_CGROUP_V1) {
+		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.cpupercent.prefix, container_id);
+	} else {
+		return false;
+	}
+	FILE *f = fopen(cgroup_procs_path, "r");
+	if (f == NULL) {
+		return false;
+	}
+	char line[256];
+	while (fgets(line, sizeof(line), f)) {
+		if (atoi(line) == pid) {
+			fclose(f);
+			return true;
+		}
+	}
+	fclose(f);
+	return false;
 }

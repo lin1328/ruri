@@ -2,7 +2,7 @@
   * Skip setgroups() when user is root and cannot parse /etc/group and /etc/passwd.
   * Auto detect device major and minor number when major is set to 0 in `--char-dev` option.
   * Auto add `cap_` prefix for capability name in `--cap-drop` and `--cap-add` option.
-  * Setup cgroup limit outside of container.
+  * Use host cgroup path for cgroup setup.
   * Use cgroup v2 killer for unshare container if available.
   * Experimentally support `--systemd` with `--even-unstable` option, but it may not work as expected.
   * Add `--strict-mode` option to make ruri exit immediately when any error.
