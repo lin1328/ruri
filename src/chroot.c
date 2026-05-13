@@ -796,7 +796,7 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 		}
 		getgroups(ngroups, groups);
 		for (int i = 0; i < ngroups; i++) {
-			ruri_log("{base}%d \n", groups[i]);
+			ruri_log("{base}Supplementary group: %d \n", groups[i]);
 		}
 		free(groups);
 	}
