@@ -800,6 +800,7 @@ int main(int argc, char **argv)
 	}
 	build();
 	remove_test_dot_c();
+	printf("\n\nThis program has Super Neko Powers! >w<\n");
 	return 0;
 }
 
