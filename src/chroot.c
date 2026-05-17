@@ -406,31 +406,31 @@ static void mount_host_runtime(const struct RURI_CONTAINER *_Nonnull container)
 	// Mount /dev.
 	memset(buf, '\0', sizeof(buf));
 	if (snprintf(buf, sizeof(buf), "%s/dev", container->container_dir) >= (int)sizeof(buf)) {
-		return;
+		ruri_error("QwQ? Why we are here?");
 	}
 	mount("/dev", buf, NULL, MS_BIND, NULL);
 	// mount /proc.
 	memset(buf, '\0', sizeof(buf));
 	if (snprintf(buf, sizeof(buf), "%s/proc", container->container_dir) >= (int)sizeof(buf)) {
-		return;
+		ruri_error("QwQ? Why we are here?");
 	}
 	mount("/proc", buf, NULL, MS_BIND, NULL);
 	// Mount /sys.
 	memset(buf, '\0', sizeof(buf));
 	if (snprintf(buf, sizeof(buf), "%s/sys", container->container_dir) >= (int)sizeof(buf)) {
-		return;
+		ruri_error("QwQ? Why we are here?");
 	}
 	mount("/sys", buf, NULL, MS_BIND, NULL);
 	// Mount binfmt_misc.
 	memset(buf, '\0', sizeof(buf));
 	if (snprintf(buf, sizeof(buf), "%s/proc/sys/fs/binfmt_misc", container->container_dir) >= (int)sizeof(buf)) {
-		return;
+		ruri_error("QwQ? Why we are here?");
 	}
 	mount("binfmt_misc", buf, "binfmt_misc", 0, NULL);
 	// Mount devpts.
 	memset(buf, '\0', sizeof(buf));
 	if (snprintf(buf, sizeof(buf), "%s/dev/pts", container->container_dir) >= (int)sizeof(buf)) {
-		return;
+		ruri_error("QwQ? Why we are here?");
 	}
 	mkdir(buf, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("/dev/pts", buf, "none", MS_BIND, NULL);
@@ -445,7 +445,7 @@ static void mount_host_runtime(const struct RURI_CONTAINER *_Nonnull container)
 	memset(buf, '\0', sizeof(buf));
 	if (snprintf(buf, sizeof(buf), "%s/dev/shm", container->container_dir) >= (int)sizeof(buf)) {
 		free(devshm_options);
-		return;
+		ruri_error("QwQ? Why we are here?");
 	}
 	mkdir(buf, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("tmpfs", buf, "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);

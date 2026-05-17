@@ -153,9 +153,9 @@ static void container_ps__(char *_Nonnull container_dir, int container_id)
 		}
 	}
 	seekdir(proc_dir, 0);
-	int pids[len + 11];
+	int *pids = malloc((len + 11) * sizeof(int));
 	// For passing clang-tidy.
-	memset(pids, 0, sizeof(pids));
+	memset(pids, 0, (len + 11) * sizeof(int));
 	int i = 0;
 	while ((file = readdir(proc_dir)) != NULL) {
 		if (file->d_type == DT_DIR) {
@@ -174,6 +174,7 @@ static void container_ps__(char *_Nonnull container_dir, int container_id)
 			break;
 		}
 	}
+	free(pids);
 	closedir(proc_dir);
 }
 void ruri_container_ps(char *_Nonnull container_dir)
@@ -250,9 +251,9 @@ void ruri_kill_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 	}
 	seekdir(proc_dir, 0);
-	int pids[len + 11];
+	int *pids = malloc((len + 11) * sizeof(int));
 	// For passing clang-tidy.
-	memset(pids, 0, sizeof(pids));
+	memset(pids, 0, (len + 11) * sizeof(int));
 	int i = 0;
 	while ((file = readdir(proc_dir)) != NULL) {
 		if (file->d_type == DT_DIR) {
@@ -274,5 +275,6 @@ void ruri_kill_container(struct RURI_CONTAINER *_Nonnull container)
 			break;
 		}
 	}
+	free(pids);
 	closedir(proc_dir);
 }

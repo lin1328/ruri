@@ -92,8 +92,8 @@ static int mount_device(const char *_Nonnull source, const char *_Nonnull target
 		return -1;
 	}
 	close(fssfd);
-	char type[128] = { '\0' };
-	char label[128] = { '\0' };
+	char type[4096] = { '\0' };
+	char label[4096] = { '\0' };
 	char *out = label;
 	int i = 0;
 	bool nodev = false;
