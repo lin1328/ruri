@@ -85,7 +85,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(acct), 0);
 		}
 		// Disallow AF_ALG.
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+		// Disallow IORING_REGISTER_BUFFERS.
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(add_key), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(bpf), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
