@@ -34,44 +34,6 @@
  * TODO:
  * Maybe we should use info in /proc/mounts first?
  */
-static char *proc_mounts(void)
-{
-	/*
-	 * Read /proc/mounts
-	 * Warning: free() after use.
-	 */
-	// As procfs does not support stat(),
-	// that means we can not know the size of /proc/mounts,
-	// so we have to use a buffer to read it.
-	int fd = open("/proc/mounts", O_RDONLY | O_CLOEXEC);
-	if (fd < 0) {
-		return NULL;
-	}
-	char buf[1024 + 1];
-	size_t bufsize = 1024;
-	ssize_t bytes_read = 0;
-	char *ret = malloc(bufsize);
-	ret[0] = '\0';
-	while ((bytes_read = read(fd, buf, 1024)) > 0) {
-		bufsize += 1024;
-		ret = realloc(ret, bufsize);
-		buf[bytes_read] = '\0';
-		strcat(ret, buf);
-	}
-	close(fd);
-	return ret;
-}
-static char *goto_next_line(const char *_Nonnull buf)
-{
-	/*
-	 * Goto next line, without any check.
-	 * We assume all input is legal.
-	 */
-	if (strchr(buf, '\n') == NULL) {
-		return NULL;
-	}
-	return strchr(buf, '\n') + 1;
-}
 static void umount_subdir(const char *_Nonnull dir)
 {
 	/*
@@ -79,46 +41,34 @@ static void umount_subdir(const char *_Nonnull dir)
 	 * This is another implementation of umount_container,
 	 * we use it as a double-check.
 	 */
-
-	/*
-	 * /proc/mounts format:
-	 * device mount_point filesystem_type options dump fsck_order
-	 * We just use strstr to find `dir` in /proc/mounts,
-	 * and umount it.
-	 * This is okey in most scenarios.
-	 */
-	char *mount_info = proc_mounts();
-	if (mount_info == NULL) {
+	FILE *fp = setmntent("/proc/mounts", "r");
+	if (fp == NULL) {
 		return;
+	}
+	char dir_new[PATH_MAX];
+	if (dir[strlen(dir)] == '/') {
+		snprintf(dir_new, sizeof(dir_new), "%s", dir);
+		dir_new[strlen(dir_new)] = '\0';
+		dir = dir_new;
 	}
 	// A simple way to check if container is umounted.
-	if (strstr(mount_info, dir) != NULL) {
-		ruri_log("{base}There's still umounted dirs, using info in /proc/mounts to umount them\n");
-	} else {
-		// Make ASAN happy.
-		free(mount_info);
-		return;
-	}
-	char *umount_point = NULL;
-	char *p = mount_info;
-	while ((p = strstr(p, dir)) != NULL) {
-		if (p == NULL) {
-			break;
+	struct mntent *entry;
+	while ((entry = getmntent(fp)) != NULL) {
+		if (strncmp(entry->mnt_dir, dir, strlen(dir)) == 0) {
+			// Check if end for `/` or `\0`.
+			if (entry->mnt_dir[strlen(dir)] == '/' || entry->mnt_dir[strlen(dir)] == '\0') {
+				ruri_log("{base}Found subdirectory %s\n", entry->mnt_dir);
+				// Check for fuse(.*), we will not MNT_FORCE for it.
+				if (strncmp(entry->mnt_type, "fuse", 4) == 0) {
+					umount2(entry->mnt_dir, MNT_DETACH);
+				} else {
+					umount2(entry->mnt_dir, MNT_DETACH | MNT_FORCE);
+				}
+			}
 		}
-		// To avoid that we have dir=/foo but strstr find /foobar.
-		if (p[strlen(dir)] != '/' && p[strlen(dir) - 1] != '/' && p[strlen(dir)] != ' ') {
-			p = goto_next_line(p);
-			continue;
-		}
-		umount_point = strdup(p);
-		*strchr(umount_point, ' ') = '\0';
-		ruri_log("{base}Umounting %s{green}\n", umount_point);
-		umount2(umount_point, MNT_DETACH | MNT_FORCE);
-		free(umount_point);
-		p = goto_next_line(p);
 	}
-	// Make ASAN happy.
-	free(mount_info);
+	endmntent(fp);
+	return;
 }
 // Umount container.
 void ruri_umount_container(const char *_Nonnull container_dir)
@@ -233,7 +183,7 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 		usleep(2000);
 		umount2(proc_dir, MNT_DETACH | MNT_FORCE);
 		usleep(2000);
-		umount2(container_dir, MNT_DETACH | MNT_FORCE);
+		umount2(container_dir, MNT_DETACH);
 		usleep(2000);
 	}
 	// Kill all processes in container.
