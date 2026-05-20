@@ -218,14 +218,15 @@ static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull containe
 		return;
 	}
 	if (cg_env->memory.type == RURI_CGROUP_V2) {
-		char cgroup_memlimit_path[PATH_MAX] = "";
-		sprintf(cgroup_memlimit_path, "%s%d/memory.high", cg_env->memory.prefix, container->container_id);
 		char buf[256] = "";
-		sprintf(buf, "%s\n", container->memory);
-		if (open_and_write(cgroup_memlimit_path, buf)) {
-			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to set cgroup v2 memory limit for %s\n", cgroup_memlimit_path);
-			return;
+		ssize_t memory = humansize_to_bytes(container->memory);
+		switch (memory) {
+		case -1:
+			ruri_error("Memory format error, only ^[1-9]+[kKmMgG]$ is supported\n");
+		case -2:
+			ruri_error("Memory value too big to current platform\n");
 		}
+		sprintf(buf, "%zd\n", memory);
 		// set memory.max
 		char cgroup_memory_max_path[PATH_MAX] = "";
 		sprintf(cgroup_memory_max_path, "%s%d/memory.max", cg_env->memory.prefix, container->container_id);
@@ -246,15 +247,9 @@ static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull containe
 		ssize_t memory = humansize_to_bytes(container->memory);
 		switch (memory) {
 		case -1:
-			if (!container->no_warnings) {
-				ruri_error("Memory format error, only ^[1-9]+[kKmMgG]$ is supported\n");
-			}
-			return;
+			ruri_error("Memory format error, only ^[1-9]+[kKmMgG]$ is supported\n");
 		case -2:
-			if (!container->no_warnings) {
-				ruri_error("Memory value too big to current platform\n");
-			}
-			return;
+			ruri_error("Memory value too big to current platform\n");
 		}
 		char buf[256] = "";
 		sprintf(buf, "%zd\n", memory);
