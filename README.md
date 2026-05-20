@@ -31,6 +31,12 @@
 &emsp;ruri is pronounced as `lyoli`, or you can call it `[瑠璃/琉璃]` ~~(るり)~~ in Chinese or Japanese as well.    
 &emsp;ruri is acronym to Lightweight, User-friendly Linux-container Implementation.    
 &emsp;ruri is a powerful container implementation that runs on almost any Linux device, even with incomplete kernel configurations or minimal storage space.    
+# Full usage:
+See [USAGE](doc/USAGE.md) to explore all features of ruri.
+
+# Seccomp profile:
+After DirtyFrag and CopyFail, seccomp is more and more important for container security. But, our seccomp profile is still in early stage, as seccomp might also make normal applications fail to run. There's still a lot of work to do before we enforce some seccomp rules by default.      
+If you have any issues or suggestions about our seccomp profile, feel free to report or even submit a PR.
 
 # Security Reporting:
 For vulnerability reporting, please refer to [SECURITY.md](SECURITY.md).
@@ -97,10 +103,6 @@ Or you can run the following command to download ruri automatically
 ```
 
 This will automatically download ruri binary to `./ruri`.
-
-# Full usage:
-
-See [USAGE](doc/USAGE.md) to explore all features of ruri.
 
 # Container Security
 
