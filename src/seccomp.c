@@ -99,11 +99,20 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(acct), 0);
 		}
 		// Disallow AF_ALG.
+		// See Copy-Fail.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
 		// Disallow AF_RDS.
+		// See pintheft.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
 		// Disallow AF_RXRPC.
+		// See DirtyFrag.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+		// Disallow NETLINK_XFRM for AF_NETLINK.
+		// See DirtyFrag.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
+		//
+		// Anyway, go ahead and disallow these unused socket families.
+		//
 		// Disallow AF_AX25.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
 		// Disallow AF_IPX.
@@ -148,7 +157,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(bpf), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) || not_root_user) {
 			// Fix `TIODSTI should be a privileged operation`.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(lookup_dcookie), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
@@ -271,7 +280,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(add_key), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(bpf), 0);
 		// Fix `TIODSTI should be a privileged operation`.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(lookup_dcookie), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);

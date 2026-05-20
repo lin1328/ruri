@@ -80,6 +80,7 @@
 #include <unistd.h>
 #include <mntent.h>
 #include <linux/io_uring.h>
+#include <linux/netlink.h>
 #ifndef DISABLE_LIBSECCOMP
 // This program need to be linked with `-lseccomp`.
 #include <seccomp.h>
