@@ -118,27 +118,29 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
 		// Disallow AF_KEY.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+		// Disallow AF_PACKET.
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
 		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
-		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
-		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
 		// Fully ban io_uring
 		// seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
 		// seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
 		// seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
 		//
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(add_key), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(add_key), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(bpf), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
 			// Fix `TIODSTI should be a privileged operation`.
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(lookup_dcookie), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(mount), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(quotactl), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(setns), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(swapon), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(swapoff), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(umount), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(umount2), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
 			// clone(2) can have the same effect as unshare(2), we deny it.
 			unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
@@ -150,10 +152,10 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
 		}
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_TIME)) {
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(clock_adjtime), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(clock_settime), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(settimeofday), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(stime), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
 		}
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_MODULE)) {
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
@@ -163,9 +165,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		}
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE)) {
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(get_mempolicy), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(mbind), 0);
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(set_mempolicy), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
 		}
@@ -177,30 +179,31 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kcmp), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_readv), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_writev), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
 		}
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_BOOT)) {
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
 		}
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(keyctl), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(move_pages), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(keyctl), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH)) {
 			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
 		}
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(perf_event_open), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(request_key), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(request_key), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(sysfs), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(_sysctl), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(userfaultfd), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(ustat), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT)) {
-			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(chroot), 0);
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
 		}
 #else
 		// Disallow AF_ALG.
@@ -237,22 +240,24 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
 		// Disallow AF_KEY.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+		// Disallow AF_PACKET.
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
 		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
-		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
-		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(acct), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(add_key), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(add_key), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(bpf), 0);
 		// Fix `TIODSTI should be a privileged operation`.
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(lookup_dcookie), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(mount), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(quotactl), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(setns), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(swapon), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(swapoff), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(umount), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(umount2), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
 		// clone(2) can have the same effect as unshare(2), we deny it.
 		unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
@@ -261,18 +266,18 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		}
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(clock_adjtime), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(clock_settime), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(settimeofday), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(stime), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(get_mempolicy), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(mbind), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(set_mempolicy), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
@@ -280,24 +285,25 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kcmp), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_readv), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_writev), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(keyctl), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(move_pages), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(keyctl), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(perf_event_open), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(request_key), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(request_key), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(sysfs), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(_sysctl), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(userfaultfd), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
-		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(chroot), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(ustat), 0);
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
 #endif
 	}
