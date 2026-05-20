@@ -85,10 +85,17 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, syscall_nr, 0);
 		}
 	}
+	// For non-root user, pass capability checks.
+	bool not_root_user = false;
+	if (container->user != NULL) {
+		if (strcmp(container->user, "root") != 0 && strcmp(container->user, "0") != 0) {
+			not_root_user = true;
+		}
+	}
 	// Default rules.
 	if (container->enable_default_seccomp) {
 #ifndef DISABLE_LIBCAP
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(acct), 0);
 		}
 		// Disallow AF_ALG.
@@ -126,7 +133,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Disallow AF_KEY.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
 		// Disallow AF_PACKET.
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_NET_RAW)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_NET_RAW) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
 		}
 		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
@@ -139,7 +146,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		//
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(add_key), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(bpf), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) || not_root_user) {
 			// Fix `TIODSTI should be a privileged operation`.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(lookup_dcookie), 0);
@@ -165,37 +172,37 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
 		}
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_TIME)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_TIME) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
 		}
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_MODULE)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_MODULE) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
 		}
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
 		}
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_RAWIO)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_RAWIO) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
 		}
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PTRACE)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PTRACE) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kcmp), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_readv), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_writev), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
 		}
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_BOOT)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_BOOT) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
@@ -203,7 +210,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(keyctl), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
 		}
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
@@ -217,7 +224,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(ustat), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT)) {
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT) || not_root_user) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
 		}
 #else
