@@ -119,6 +119,10 @@ typedef int cap_value_t;
 #ifndef AF_IB
 #define AF_IB 27
 #endif
+// Fix definition of AF_MPLS
+#ifndef AF_MPLS
+#define AF_MPLS 28
+#endif
 // Nullability attributes.
 #ifndef _Nullable
 #define _Nullable
