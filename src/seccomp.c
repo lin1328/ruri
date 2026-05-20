@@ -88,8 +88,11 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
 		// Disallow AF_RDS.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
-		// Disallow IORING_REGISTER_BUFFERS.
+		// Disallow AF_RXRPC.
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(add_key), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(bpf), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
@@ -171,8 +174,11 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
 		// Disallow AF_RDS.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
-		// Disallow IORING_REGISTER_BUFFERS.
+		// Disallow AF_RXRPC.
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
+		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(acct), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(add_key), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(bpf), 0);
