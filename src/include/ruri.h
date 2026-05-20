@@ -115,6 +115,10 @@ typedef int cap_value_t;
 #ifndef IORING_REGISTER_CLONE_BUFFERS
 #define IORING_REGISTER_CLONE_BUFFERS 30
 #endif
+// Fix definition of AF_IB
+#ifndef AF_IB
+#define AF_IB 27
+#endif
 // Nullability attributes.
 #ifndef _Nullable
 #define _Nullable
