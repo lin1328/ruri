@@ -162,7 +162,7 @@ static char *losetup(const char *_Nonnull img)
 	int loopfd = open(loopfile, O_RDWR | O_CLOEXEC);
 	if (loopfd < 0) {
 		// On Android, loopfile is in /dev/block.
-		memset(loopfile, 0, sizeof(loopfile));
+		memset(loopfile, 0, PATH_MAX);
 		sprintf(loopfile, "/dev/block/loop%d", devnr);
 		loopfd = open(loopfile, O_RDWR | O_CLOEXEC);
 		if (loopfd < 0) {

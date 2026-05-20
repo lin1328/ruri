@@ -287,17 +287,25 @@ static void get_uid_map(char *_Nonnull user, struct RURI_ID_MAP *_Nonnull id_map
 	char *str_to_find = malloc(strlen(user) + 4);
 	strcpy(str_to_find, user);
 	strcat(str_to_find, ":");
-	char *map = strstr(buf, str_to_find);
-	free(str_to_find);
-	if (map == NULL) {
-		// If username is not in /etc/subuid.
-		id_map->uid_lower = 0;
-		id_map->uid_count = 0;
-		return;
+	char *map = NULL;
+	while (map = strstr(buf, str_to_find)) {
+		// Check if the found username is valid.
+		if (map == buf || map[-1] == '\n') {
+			id_map->uid_lower = line_get_uid_lower(map);
+			id_map->uid_count = line_get_uid_count(map);
+			free(str_to_find);
+			free(buf);
+			return;
+		}
+		buf = strstr(buf, "\n");
+		if (buf == NULL) {
+			break;
+		}
+		buf = buf + 1;
 	}
-	// Get uid_lower and uid_count.
-	id_map->uid_lower = line_get_uid_lower(map);
-	id_map->uid_count = line_get_uid_count(map);
+	free(str_to_find);
+	id_map->uid_lower = 0;
+	id_map->uid_count = 0;
 	free(buf);
 }
 static gid_t line_get_gid_lower(const char *_Nonnull p)
@@ -391,16 +399,25 @@ static void get_gid_map(const char *_Nonnull user, struct RURI_ID_MAP *_Nonnull 
 	char *str_to_find = malloc(strlen(user) + 4);
 	strcpy(str_to_find, user);
 	strcat(str_to_find, ":");
-	char *map = strstr(buf, str_to_find);
-	free(str_to_find);
-	if (map == NULL) {
-		id_map->gid_lower = 0;
-		id_map->gid_count = 0;
-		return;
+	char *map = NULL;
+	while (map = strstr(buf, str_to_find)) {
+		// Check if the found username is valid.
+		if (map == buf || map[-1] == '\n') {
+			id_map->gid_lower = line_get_gid_lower(map);
+			id_map->gid_count = line_get_gid_count(map);
+			free(str_to_find);
+			free(buf);
+			return;
+		}
+		buf = strstr(buf, "\n");
+		if (buf == NULL) {
+			break;
+		}
+		buf = buf + 1;
 	}
-	// Get gid_lower and uid_count.
-	id_map->gid_lower = line_get_gid_lower(map);
-	id_map->gid_count = line_get_gid_count(map);
+	id_map->gid_lower = 0;
+	id_map->gid_count = 0;
+	free(str_to_find);
 	free(buf);
 }
 struct RURI_ID_MAP ruri_get_idmap(uid_t uid, gid_t gid)
