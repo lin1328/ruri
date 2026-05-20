@@ -119,7 +119,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Disallow AF_KEY.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
 		// Disallow AF_PACKET.
-		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_NET_RAW)) {
+			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
+		}
 		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
@@ -145,7 +147,12 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			// clone(2) can have the same effect as unshare(2), we deny it.
 			unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
 			for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
-				seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(2, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+				// For s390, they use arg1, not arg0.
+				if (seccomp_arch_native() == SCMP_ARCH_S390) {
+					seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+				} else {
+					seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+				}
 			}
 			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
 			seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
@@ -193,6 +200,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
 		}
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+		// TODO: wine/box86 needs personality syscall.
 		seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
@@ -262,7 +270,12 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// clone(2) can have the same effect as unshare(2), we deny it.
 		unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
 		for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
-			seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(2, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+			// For s390, they use arg1, not arg0.
+			if (seccomp_arch_native() == SCMP_ARCH_S390) {
+				seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+			} else {
+				seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+			}
 		}
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 		seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
