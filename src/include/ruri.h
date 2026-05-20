@@ -110,6 +110,10 @@ typedef int cap_value_t;
 #ifndef PROC_SUPER_MAGIC
 #define PROC_SUPER_MAGIC 0x9fa0
 #endif
+// Fix definition of IORING_REGISTER_CLONE_BUFFERS
+#ifndef IORING_REGISTER_CLONE_BUFFERS
+#define IORING_REGISTER_CLONE_BUFFERS 30
+#endif
 // Nullability attributes.
 #ifndef _Nullable
 #define _Nullable
