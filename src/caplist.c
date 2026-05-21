@@ -32,11 +32,46 @@
  * This file provides functions to manage capability list.
  * But drop_caps() is in chroot.c, not here.
  * As that time I didn't learnd C well,
- * I didn't use a struct with length and capacities,
- * but used the RURI_INIT_VALUE to mark the end of the list.
- * And now I know that RURI_INIT_VALUE is a sentinel in fact.
+ * I didn't use a struct with length and capacities.
+ * I used RURI_INIT_VALUE to mark the end of the list.
+ * So this sentinel has been kept.
  */
 #ifndef DISABLE_LIBCAP
+static int get_last_cap(void)
+{
+	/*
+	 * Try to read the last capability from /proc/sys/kernel/cap_last_cap first,
+	 * if failed, we will try to get it by cap_get_bound() one by one.
+	 * And we will cache the result in thread local variable ret, to avoid reading file or
+	 * calling cap_get_bound() again and again.
+	 * Fallback to CAP_LAST_CAP if we cannot get the last capability.
+	 */
+	static thread_local int ret = -1;
+	if (ret != -1) {
+		return ret;
+	}
+	FILE *fp = fopen("/proc/sys/kernel/cap_last_cap", "r");
+	if (fp != NULL) {
+		if (fscanf(fp, "%d", &ret) == 1) {
+			fclose(fp);
+			if (ret >= RURI_CAP_LAST_CAP) {
+				ret = CAP_LAST_CAP;
+			}
+			return ret;
+		}
+		fclose(fp);
+	}
+	for (int i = 0; i < RURI_CAP_LAST_CAP; i++) {
+		if (cap_get_bound(i) < 0 && errno == EINVAL) {
+			ret = i - 1;
+			break;
+		}
+	}
+	if (ret == -1) {
+		ret = CAP_LAST_CAP;
+	}
+	return ret;
+}
 // cap_from_name() that supports both upper and lower case.
 int ruri_cap_from_name(const char *str, cap_value_t *cap)
 {
@@ -66,12 +101,12 @@ void ruri_add_to_caplist(cap_value_t *_Nonnull list, cap_value_t cap)
  */
 #ifndef DISABLE_LIBCAP
 	// We do not add non-supported capabilities to caplist.
-	if (!CAP_IS_SUPPORTED(cap)) {
+	if (cap > get_last_cap()) {
 		return;
 	}
 	// Add cap to caplist.
 	if (!ruri_is_in_caplist(list, cap)) {
-		for (int k = 0; true; k++) {
+		for (int k = 0; k < RURI_CAP_LAST_CAP; k++) {
 			if (list[k] == RURI_INIT_VALUE) {
 				list[k] = cap;
 				list[k + 1] = RURI_INIT_VALUE;
@@ -89,7 +124,7 @@ bool ruri_is_in_caplist(const cap_value_t *_Nonnull list, cap_value_t cap)
 	 * else, return false.
 	 * RURI_INIT_VALUE is the end of the list.
 	 */
-	for (int i = 0; true; i++) {
+	for (int i = 0; i < RURI_CAP_LAST_CAP; i++) {
 		if (list[i] == cap) {
 			return true;
 			break;
@@ -107,7 +142,7 @@ void ruri_del_from_caplist(cap_value_t *_Nonnull list, cap_value_t cap)
 	 * If the cap is not in list, just do nothing and quit.
 	 * Or we will delete it from the list.
 	 */
-	for (int i = 0; true; i++) {
+	for (int i = 0; i < RURI_CAP_LAST_CAP; i++) {
 		if (list[i] == cap) {
 			while (i < RURI_CAP_LAST_CAP && list[i] != RURI_INIT_VALUE) {
 				list[i] = list[i + 1];
@@ -144,12 +179,12 @@ void ruri_build_caplist(cap_value_t caplist[], bool privileged, cap_value_t drop
 	caplist[0] = RURI_INIT_VALUE;
 	if (!privileged) {
 		// Add all capabilities to caplist.
-		for (int i = 0; CAP_IS_SUPPORTED(i); i++) {
+		for (int i = 0; i <= get_last_cap(); i++) {
 			caplist[i] = i;
 			caplist[i + 1] = RURI_INIT_VALUE;
 		}
 		// Del keep_caplist_common[] from caplist.
-		for (int i = 0; true; i++) {
+		for (int i = 0; i < RURI_CAP_LAST_CAP; i++) {
 			if (keep_caplist_common[i] == RURI_INIT_VALUE) {
 				break;
 			}
@@ -158,7 +193,7 @@ void ruri_build_caplist(cap_value_t caplist[], bool privileged, cap_value_t drop
 	}
 	// Add drop_caplist_extra[] to caplist.
 	if (drop_caplist_extra[0] != RURI_INIT_VALUE) {
-		for (int i = 0; true; i++) {
+		for (int i = 0; i < RURI_CAP_LAST_CAP; i++) {
 			if (drop_caplist_extra[i] == RURI_INIT_VALUE) {
 				break;
 			}
@@ -167,7 +202,7 @@ void ruri_build_caplist(cap_value_t caplist[], bool privileged, cap_value_t drop
 	}
 	// Del keep_caplist_extra[] from caplist.
 	if (keep_caplist_extra[0] != RURI_INIT_VALUE) {
-		for (int i = 0; true; i++) {
+		for (int i = 0; i < RURI_CAP_LAST_CAP; i++) {
 			if (keep_caplist_extra[i] == RURI_INIT_VALUE) {
 				break;
 			}
