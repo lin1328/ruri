@@ -209,6 +209,16 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 			ruri_AwA();
 			exit(EXIT_SUCCESS);
 		}
+		// Meow~
+		if (strcmp(argv[index], "meow") == 0) {
+			char *meows[] = { "(=￣ω￣=)", "(=^‥^=)", "≽^•⩊•^≼", "^•ω•^=", "₍^ >ヮ<^₎", "~(=^‥^)", "/ᐠ｡ꞈ｡ᐟ\\", "/ᐠ .ᆺ. ᐟ\\ﾉ", "₍^. .^₎⟆", "ᓚ₍⑅^..^₎♡", "/ᐠ - ˕ -マ", "^. .^₎Ⳋ", "/ᐠ ¬`‸´¬ マ", "⚞ • ⚟", "/ᐠ ˵> ˕ <˵マ", "ᗜ⩊ᗜ", "(˵◝ ⩊  ◜˵マ", "(•˕ •マ.ᐟ", NULL };
+			// Get a random meow
+			srand(time(NULL));
+			int random_index = rand() % (sizeof(meows) / sizeof(meows[0]) - 1);
+			cprintf("\n{base}  %s{clear}\n", meows[random_index]);
+			cprintf("{base}How do you meow?{clear}\n");
+			exit(EXIT_SUCCESS);
+		}
 		// Show version info.
 		if (strcmp(argv[index], "-v") == 0 || strcmp(argv[index], "--version") == 0) {
 			ruri_show_version_info();

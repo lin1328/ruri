@@ -273,9 +273,9 @@ struct RURI_ID_MAP {
 		cfprintf(stderr, format, ##__VA_ARGS__);                                                                                             \
 		cfprintf(stderr, "{base}%s{clear}\n", "\n  .^.   .^.");                                                                              \
 		cfprintf(stderr, "{base}%s{clear}\n", "  /⋀\\_ﾉ_/⋀\\");                                                                              \
-		cfprintf(stderr, "{base}%s{clear}\n", " /ﾉｿﾉ\\ﾉｿ丶)|");                                                                              \
+		cfprintf(stderr, "{base}%s{clear}\n", " /ﾉｿﾉ\\ﾉｿ丶メ");                                                                              \
 		cfprintf(stderr, "{base}%s{clear}\n", " ﾙﾘﾘ >  x )ﾘ");                                                                               \
-		cfprintf(stderr, "{base}%s{clear}\n", "ﾉノ㇏  ^  ﾉ|ﾉ");                                                                              \
+		cfprintf(stderr, "{base}%s{clear}\n", "ﾉノ㇏  ^  ﾉﾉ");                                                                               \
 		cfprintf(stderr, "{base}%s{clear}\n", "      ⠁⠁");                                                                                   \
 		cfprintf(stderr, "{base}%s{clear}\n", "RURI ERROR MESSAGE");                                                                         \
 		cfprintf(stderr, "{base}%s{clear}\n", "Note: for some configs, you might need to run `-U` to umount container before changing it."); \
