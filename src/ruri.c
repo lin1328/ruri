@@ -1416,7 +1416,7 @@ int ruri(int argc, char **argv)
 	char *info = ruri_container_info_to_k2v(container);
 	ruri_log("{base}Container config:{cyan}\n%s", info);
 	free(info);
-	ruri_profile_log("diff time: %lld\n", ruri_diff_time());
+	ruri_profile_log("ruri() to run_container(): %lldns\n", ruri_diff_time());
 	// Run container.
 	if ((container->enable_unshare) && !(container->rootless)) {
 		// Unshare container.

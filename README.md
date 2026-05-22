@@ -188,14 +188,16 @@ For command line examples, please see `ruri -H`.
 ```
 # Performance
 
-On AMD Ryzen 5 5500U, Windows 11, Ubuntu 22.04.5 WSL 2
+On Macbook Air M4, orbstack, ubuntu 25.04:
 
 ```
-# uname -m
-x86_64
-# /usr/bin/time -f "Time: %E\nMax memory: %M KB" ./ruri ../t /bin/true
+moehacker@studio:~/ruri$ sudo /usr/bin/time -f "Time: %E\nMax memory: %M KB" ./ruri -u ../ubuntu /bin/true
+In ruri() at /home/moehacker/ruri/src/ruri.c line 1419:
+ruri() to run_container(): 250460ns
+In ruri_run_chroot_container() at /home/moehacker/ruri/src/chroot.c line 1041:
+run_container() to exec(): 7798583ns
 Time: 0:00.01
-Max memory: 860 KB
+Max memory: 1944 KB
 ```
 
 ## Binary size(amd64)
