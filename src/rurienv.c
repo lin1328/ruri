@@ -85,7 +85,7 @@ pid_t ruri_get_ns_pid(const char *_Nonnull container_dir)
 	 */
 	char file[PATH_MAX] = { '\0' };
 	if (snprintf(file, sizeof(file), "%s/.rurienv", container_dir) >= (int)sizeof(file)) {
-		return RURI_INIT_VALUE;
+		ruri_error("{red}QwQ? Why we are here?\n");
 	}
 	// If .rurienv file does not exist.
 	if (access(file, F_OK) != 0) {
@@ -292,11 +292,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	 */
 	char file[PATH_MAX] = { '\0' };
 	if (snprintf(file, sizeof(file), "%s/.rurienv", container_dir) >= (int)sizeof(file)) {
-		if (container == NULL) {
-			container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
-			ruri_init_config(container);
-		}
-		return container;
+		ruri_error("{red}QwQ? Why we are here?\n");
 	}
 	// If .rurienv file does not exist.
 	if (access(file, F_OK) != 0) {

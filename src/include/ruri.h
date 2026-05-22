@@ -34,6 +34,7 @@
 #else
 #define _GNU_SOURCE
 #endif
+// For core-only build, disable libcap and libseccomp, and do not read .rurienv file.
 #ifdef RURI_CORE_ONLY
 #ifndef DISABLE_LIBSECCOMP
 #define DISABLE_LIBSECCOMP
@@ -45,6 +46,7 @@
 #define DISABLE_RURIENV
 #endif
 #endif
+// Just common headers.
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>

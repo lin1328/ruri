@@ -31,19 +31,17 @@
 /*
  * This file is the core of ruri.
  * It provides functions to run container as info in struct RURI_CONTAINER.
- * Bisic functions of ruri is implemented here.
  * Thanks docker and podman for the device list and mask/protect list.
  */
 static bool su_biany_exist(char *_Nonnull container_dir)
 {
 	/*
-	 * Check if /bin/su exists in container.
-	 * Because in some rootfs, /bin/su is not exist,
+	 * In some rootfs, /bin/su is not exist,
 	 * so we need to check it.
 	 */
 	char su_path[PATH_MAX] = { '\0' };
 	if (snprintf(su_path, sizeof(su_path), "%s/bin/su", container_dir) >= (int)sizeof(su_path)) {
-		return false;
+		ruri_error("{red}Why we are here? QwQ\n");
 	}
 	int fd = open(su_path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
@@ -65,10 +63,11 @@ static bool busybox_exists(char *_Nonnull container_dir)
 {
 	/*
 	 * Check if busybox exists in container.
+	 * This is used for alpine-based container.
 	 */
 	char busybox_path[PATH_MAX] = { '\0' };
 	if (snprintf(busybox_path, sizeof(busybox_path), "%s/bin/busybox", container_dir) >= (int)sizeof(busybox_path)) {
-		return false;
+		ruri_error("{red}Why we are here? QwQ\n");
 	}
 	int fd = open(busybox_path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
@@ -89,11 +88,8 @@ static bool busybox_exists(char *_Nonnull container_dir)
 static void check_binary(const struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
-	 * Check for binaries we need for starting the container.
-	 */
-	/*
 	 * Since ruri use execvp() instead of execv(),
-	 * we will not check for init binary here now.
+	 * we will not check for init binary now.
 	 * So, only check for qemu binary.
 	 */
 	// Check QEMU path.
@@ -116,14 +112,16 @@ static void check_binary(const struct RURI_CONTAINER *_Nonnull container)
 		}
 	}
 }
-/*
- * Generate a unique machine-id for systemd.
- */
 static void generate_machine_id(int container_id)
 {
+	/*
+	 * Generate a unique machine-id for systemd.
+	 */
 	ruri_log("{blue}Generating unique machine-id for systemd.\n");
 	char new_machine_id[33];
 	const char *hex_chars = "0123456789abcdef";
+	// Fuck U LLMs, container_id is computed based on the time when container started.
+	// This is true random, no shitting /dev/urandom.
 	srand((unsigned int)container_id);
 	for (int i = 0; i < 32; i++) {
 		new_machine_id[i] = hex_chars[rand() % 16];
@@ -131,6 +129,7 @@ static void generate_machine_id(int container_id)
 	new_machine_id[32] = '\0';
 	remove("/etc/machine-id");
 	unlink("/etc/machine-id");
+	// And Fuck U systemd, why U need so many setups?
 	int machine_id_fd = open("/etc/machine-id", O_WRONLY | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (machine_id_fd >= 0) {
 		write(machine_id_fd, new_machine_id, 32);
@@ -140,49 +139,43 @@ static void generate_machine_id(int container_id)
 	}
 }
 
-/*
- * Move PID 1 into a dedicated cgroup subtree before execing systemd.
- * This avoids inheriting an invalid parent cgroup such as /init.
- */
 static void prepare_systemd_cgroup_scope(const struct RURI_CONTAINER *_Nonnull container)
 {
+	/*
+	 * Move PID 1 into a dedicated cgroup subtree before execing systemd.
+	 * This avoids inheriting an invalid parent cgroup such as /init.
+	 */
 	char scope_dir[PATH_MAX] = { 0 };
 	char scope_procs[PATH_MAX] = { 0 };
 	char pid_buf[64] = { 0 };
-
 	snprintf(scope_dir, sizeof(scope_dir), "/sys/fs/cgroup/ruri-%d", container->container_id);
 	snprintf(scope_procs, sizeof(scope_procs), "%s/cgroup.procs", scope_dir);
-
 	if (mkdir(scope_dir, 0755) < 0 && errno != EEXIST) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to create systemd cgroup scope %s: %s\n", scope_dir, strerror(errno));
 		return;
 	}
-
 	int fd = open(scope_procs, O_WRONLY | O_CLOEXEC);
 	if (fd < 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to open %s: %s\n", scope_procs, strerror(errno));
 		return;
 	}
-
 	snprintf(pid_buf, sizeof(pid_buf), "%d\n", getpid());
 	if (write(fd, pid_buf, strlen(pid_buf)) < 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to move systemd pid into %s: %s\n", scope_dir, strerror(errno));
 	}
 	close(fd);
 }
-
-/*
- * Setup complete systemd runtime environment.
- * This includes all directories and files systemd needs to function.
- */
 static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 {
+	/*
+	 * Setup complete systemd runtime environment.
+	 * This includes all directories and files systemd needs to function.
+	 */
 	// Mount tmpfs for runtime directories.
 	mount("tmpfs", "/run", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 	mkdir("/run/lock", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	mount("tmpfs", "/run/lock", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
 	mount("tmpfs", "/tmp", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, "size=65536k,mode=755");
-
 	// Create systemd runtime directories.
 	mkdir("/run/systemd", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	mkdir("/run/systemd/system", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
@@ -200,20 +193,16 @@ static void setup_systemd_runtime(struct RURI_CONTAINER *_Nonnull container)
 	// Create journal runtime directory.
 	mkdir("/run/log", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	mkdir("/run/log/journal", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
-
 	// Create dbus runtime directory.
 	int res = mkdir("/run/dbus", S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 	ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /run/dbus, dbus service may not work.\n");
-
 	// Ensure /var/run points to /run for dbus compatibility.
 	if (access("/var/run", F_OK) != 0) {
 		symlink("/run", "/var/run");
 	}
-
 	// Setup /etc/machine-id
 	generate_machine_id(container->container_id);
 }
-
 // Run after chroot(2), called by ruri_run_chroot_container().
 static void init_container(struct RURI_CONTAINER *_Nonnull container)
 {
@@ -371,6 +360,10 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 }
 static void mk_char_devs(struct RURI_CONTAINER *_Nonnull container)
 {
+	/*
+	 * Create char devices specified in container->char_devs[].
+	 * It will be called after chroot(2).
+	 */
 	if (chdir("/dev") == -1) {
 		if (container->char_devs[0] == NULL) {
 			return;
@@ -404,6 +397,9 @@ static void mount_host_runtime(const struct RURI_CONTAINER *_Nonnull container)
 	 */
 	char buf[PATH_MAX] = { '\0' };
 	// Mount /dev.
+	// Bro will never know this might damage his whole device.
+	// Even hard brick his phone.
+	// But some bro want this, so here we are.
 	memset(buf, '\0', sizeof(buf));
 	if (snprintf(buf, sizeof(buf), "%s/dev", container->container_dir) >= (int)sizeof(buf)) {
 		ruri_error("QwQ? Why we are here?");
@@ -499,6 +495,7 @@ static void set_envs(const struct RURI_CONTAINER *_Nonnull container)
 	 * Set environment variables.
 	 * $PATH and $TMPDIR will also be set here.
 	 * And $SHELL will be set to sh, for compatibility.
+	 * User-specified envs in container->env[] will replace the default envs if they have the same name.
 	 */
 	// Set $PATH to the common value in GNU/Linux,
 	// because $PATH in termux is not correct for common GNU/Linux containers.
@@ -545,7 +542,7 @@ static void setup_binfmt_misc(const struct RURI_CONTAINER *_Nonnull container)
 	// Set binfmt_misc config.
 	write(register_fd, buf, strlen(buf));
 	close(register_fd);
-	// Umount the apifs.
+	// Umount the apifs, as we don't need it anymore and it can cause security issues.
 	umount2("/proc/sys/fs/binfmt_misc", MNT_DETACH | MNT_FORCE);
 }
 static void mount_rootfs(const struct RURI_CONTAINER *_Nonnull container)
@@ -554,6 +551,7 @@ static void mount_rootfs(const struct RURI_CONTAINER *_Nonnull container)
 	 * Mount rootfs of container.
 	 * It will be called before chroot(2).
 	 * Rootfs (/) is the first mountpoint.
+	 * Rootfs can also be block device or image file.
 	 */
 	// Mount rootfs.
 	if (container->rootfs_source != NULL) {
@@ -669,7 +667,7 @@ static bool pivot_root_succeed(const char *_Nonnull container_dir)
 		return true;
 	}
 	if (snprintf(dev_null, sizeof(dev_null), "%s/./dev/null", container_dir) >= (int)sizeof(dev_null)) {
-		return true;
+		ruri_error("{red}Error: container directory path is too long QwQ\n");
 	}
 	if (stat(dev_null, &dev_null_stat) != 0) {
 		return true;
@@ -882,16 +880,19 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		sigaddset(&sigs, SIGTTOU);
 		sigprocmask(SIG_BLOCK, &sigs, 0);
 	}
-	// Check if system runtime files are already created.
-	// container_dir should bind-mount before chroot(2),
-	// mount_host_runtime() and ruri_store_info() will be called here.
+	// Use statfs(2) to check if /proc is already mounted in container.
 	char buf[PATH_MAX] = { '\0' };
-	// I used to check /sys/class/input, but in WSL1, /sys/class/input is not exist.
-	if (snprintf(buf, sizeof(buf), "%s/proc/1", container->container_dir) >= (int)sizeof(buf)) {
+	if (snprintf(buf, sizeof(buf), "%s/proc", container->container_dir) >= (int)sizeof(buf)) {
 		ruri_error("{red}Error: container directory path is too long QwQ\n");
 	}
-	char *test = realpath(buf, NULL);
-	if (test == NULL) {
+	bool proc_mounted = false;
+	struct statfs statfs_buf;
+	if (statfs(buf, &statfs_buf) == 0) {
+		if (statfs_buf.f_type == PROC_SUPER_MAGIC) {
+			proc_mounted = true;
+		}
+	}
+	if (!proc_mounted) {
 		// Mount mountpoints.
 		mount_rootfs(container);
 		mount_mountpoints(container);
@@ -912,7 +913,6 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	// If container already mounted, sync the config.
 	else {
-		free(test);
 		// Read container info.
 		if (container->use_rurienv) {
 			ruri_read_info(container, container->container_dir);

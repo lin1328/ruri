@@ -36,13 +36,20 @@
  *
  * TODO:
  * Add more cgroups support.
+ * Maybe cgroup freezer and killer?
  */
+// For cgroup detection on host side.
 enum RURI_CGROUP_TYPE { RURI_CGROUP_V1, RURI_CGROUP_V2, RURI_CGROUP_ENOSYS };
 struct RURI_CGROUP_NODE {
+	// prefix is the path prefix for cgroup control files,
+	// e.g. "/sys/fs/cgroup/memory/ruri/" for memory cgroup v1.
 	char *prefix;
+	// RURI_CGROUP_V1 for cgroup v1, RURI_CGROUP_V2 for cgroup v2,
+	// RURI_CGROUP_ENOSYS for not supported.
 	enum RURI_CGROUP_TYPE type;
 };
 struct RURI_CGROUP_ENV {
+	// TODO: add more cgroup controllers if needed.
 	struct RURI_CGROUP_NODE memory;
 	struct RURI_CGROUP_NODE cpuset;
 	struct RURI_CGROUP_NODE cpupercent;
@@ -89,24 +96,32 @@ static int open_and_write(const char *file, const char *value)
 }
 static void detect_cgroup_unified(struct RURI_CGROUP_ENV *cg_env)
 {
+	// Detect cgroup v2 unified hierarchy, which is used by systemd and some modern distros.
 	if (access("/sys/fs/cgroup/unified/memory.high", F_OK) == 0 && cg_env->memory.type == RURI_CGROUP_ENOSYS) {
 		mkdir("/sys/fs/cgroup/unified/ruri", S_IRUSR | S_IWUSR);
+		open_and_write("/sys/fs/cgroup/unified/cgroup.subtree_control", "+memory\n");
+		open_and_write("/sys/fs/cgroup/unified/ruri/cgroup.subtree_control", "+memory\n");
 		cg_env->memory.prefix = "/sys/fs/cgroup/unified/ruri/";
 		cg_env->memory.type = RURI_CGROUP_V2;
 	}
 	if (access("/sys/fs/cgroup/unified/cpu.max", F_OK) == 0 && cg_env->cpupercent.type == RURI_CGROUP_ENOSYS) {
 		mkdir("/sys/fs/cgroup/unified/ruri", S_IRUSR | S_IWUSR);
+		open_and_write("/sys/fs/cgroup/unified/cgroup.subtree_control", "+cpu\n");
+		open_and_write("/sys/fs/cgroup/unified/ruri/cgroup.subtree_control", "+cpu\n");
 		cg_env->cpupercent.prefix = "/sys/fs/cgroup/unified/ruri/";
 		cg_env->cpupercent.type = RURI_CGROUP_V2;
 	}
 	if (access("/sys/fs/cgroup/unified/cpuset.cpus", F_OK) == 0 && cg_env->cpuset.type == RURI_CGROUP_ENOSYS) {
 		mkdir("/sys/fs/cgroup/unified/ruri", S_IRUSR | S_IWUSR);
+		open_and_write("/sys/fs/cgroup/unified/cgroup.subtree_control", "+cpuset\n");
+		open_and_write("/sys/fs/cgroup/unified/ruri/cgroup.subtree_control", "+cpuset\n");
 		cg_env->cpuset.prefix = "/sys/fs/cgroup/unified/ruri/";
 		cg_env->cpuset.type = RURI_CGROUP_V2;
 	}
 }
 static void detect_cgroup_v1_fallback(struct RURI_CGROUP_ENV *cg_env)
 {
+	// Detect cgroup v1 fallback, which is used by some old distros and non-systemd distros.
 	if (access("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", F_OK) == 0 && cg_env->cpupercent.type == RURI_CGROUP_ENOSYS) {
 		mkdir("/sys/fs/cgroup/cpu/ruri", S_IRUSR | S_IWUSR);
 		cg_env->cpupercent.prefix = "/sys/fs/cgroup/cpu/ruri/";
@@ -122,6 +137,7 @@ static void detect_cgroup_v1_fallback(struct RURI_CGROUP_ENV *cg_env)
 		cg_env->cpuset.prefix = "/sys/fs/cgroup/cpuset/ruri/";
 		cg_env->cpuset.type = RURI_CGROUP_V1;
 	}
+	// For some Android devices, they mount cgroup v1 controllers in /dev.
 	if (access("/dev/memcg/memory.limit_in_bytes", F_OK) == 0 && cg_env->memory.type == RURI_CGROUP_ENOSYS) {
 		mkdir("/dev/memcg/ruri", S_IRUSR | S_IWUSR);
 		cg_env->memory.prefix = "/dev/memcg/ruri/";
@@ -136,6 +152,8 @@ static void detect_cgroup_v1_fallback(struct RURI_CGROUP_ENV *cg_env)
 }
 static void detect_cgroup_v2(struct RURI_CGROUP_ENV *cg_env)
 {
+	// Detect cgroup v2, which is used by most modern distros.
+	// If every system supports cgroup v2, the world will be like heaven.
 	mkdir("/sys/fs/cgroup/ruri", S_IRUSR | S_IWUSR);
 	open_and_write("/sys/fs/cgroup/cgroup.subtree_control", "+memory\n");
 	open_and_write("/sys/fs/cgroup/cgroup.subtree_control", "+cpu\n");
@@ -155,6 +173,8 @@ static void detect_cgroup_v2(struct RURI_CGROUP_ENV *cg_env)
 }
 static void ruri_detect_cgroup_env(struct RURI_CGROUP_ENV *cg_env)
 {
+	// Detect cgroup environment, including cgroup version and available controllers.
+	// This function is called at host side.
 	cg_env->memory.prefix = NULL;
 	cg_env->memory.type = RURI_CGROUP_ENOSYS;
 	cg_env->cpuset.prefix = NULL;
@@ -167,6 +187,7 @@ static void ruri_detect_cgroup_env(struct RURI_CGROUP_ENV *cg_env)
 }
 static void ruri_dump_cg_env(struct RURI_CGROUP_ENV *cg_env)
 {
+	// Only for debugging.
 	ruri_log("{blue}Cgroup environment:\n");
 	if (cg_env->memory.type != RURI_CGROUP_ENOSYS) {
 		ruri_log("{base}  Memory controller: %s (type: %s)\n", cg_env->memory.prefix, cg_env->memory.type == RURI_CGROUP_V2 ? "v2" : "v1");
@@ -186,6 +207,10 @@ static void ruri_dump_cg_env(struct RURI_CGROUP_ENV *cg_env)
 }
 static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull container, const struct RURI_CGROUP_ENV *cg_env)
 {
+	// Set memory limit for the container.
+	//
+	// Join cgroup, this option will be enforced even if no memory limit is set.
+	// Because for the same container, we will only setup cgroup once.
 	if (cg_env->memory.type == RURI_CGROUP_V2) {
 		char cgroup_memory_path[PATH_MAX] = "";
 		sprintf(cgroup_memory_path, "%s%d/", cg_env->memory.prefix, container->container_id);
@@ -214,9 +239,11 @@ static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull containe
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{red}No memory cgroup support detected\n");
 		return;
 	}
+	// If memory limit is not set, just join the cgroup without setting memory limit.
 	if (container->memory == NULL) {
 		return;
 	}
+	// Set memory limit for our cgroup.
 	if (cg_env->memory.type == RURI_CGROUP_V2) {
 		char buf[256] = "";
 		ssize_t memory = humansize_to_bytes(container->memory);
@@ -269,6 +296,10 @@ static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull containe
 }
 static void ruri_set_cpuset(const struct RURI_CONTAINER *_Nonnull container, const struct RURI_CGROUP_ENV *cg_env)
 {
+	// Set cpuset for the container.
+	//
+	// Join cgroup, this option will be enforced even if no cpuset limit is set.
+	// Because for the same container, we will only setup cgroup once.
 	if (cg_env->cpuset.type == RURI_CGROUP_V2) {
 		char cgroup_cpuset_path[PATH_MAX] = "";
 		sprintf(cgroup_cpuset_path, "%s%d/", cg_env->cpuset.prefix, container->container_id);
@@ -298,9 +329,11 @@ static void ruri_set_cpuset(const struct RURI_CONTAINER *_Nonnull container, con
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{red}No cpuset cgroup support detected\n");
 		return;
 	}
+	// If cpuset is not set, just join the cgroup without setting cpuset.cpus.
 	if (container->cpuset == NULL) {
 		return;
 	}
+	// Set cpuset for our cgroup.
 	if (cg_env->cpuset.type == RURI_CGROUP_V2) {
 		char cgroup_cpuset_cpus_path[PATH_MAX] = "";
 		sprintf(cgroup_cpuset_cpus_path, "%s%d/cpuset.cpus", cg_env->cpuset.prefix, container->container_id);
@@ -326,6 +359,10 @@ static void ruri_set_cpuset(const struct RURI_CONTAINER *_Nonnull container, con
 }
 static void ruri_set_cpupercent(const struct RURI_CONTAINER *_Nonnull container, const struct RURI_CGROUP_ENV *cg_env)
 {
+	// Set cpu percent limit for the container.
+	//
+	// Join cgroup, this option will be enforced even if no cpu percent limit is set.
+	// Because for the same container, we will only setup cgroup once.
 	if (cg_env->cpupercent.type == RURI_CGROUP_V2) {
 		char cgroup_cpu_path[PATH_MAX] = "";
 		sprintf(cgroup_cpu_path, "%s%d/", cg_env->cpupercent.prefix, container->container_id);
@@ -354,9 +391,11 @@ static void ruri_set_cpupercent(const struct RURI_CONTAINER *_Nonnull container,
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{red}No cpu cgroup support detected\n");
 		return;
 	}
+	// If cpu percent limit is not set, just join the cgroup without setting cpu percent limit.
 	if (container->cpupercent <= 0) {
 		return;
 	}
+	// Set cpu percent limit for our cgroup.
 	if (cg_env->cpupercent.type == RURI_CGROUP_V2) {
 		char cgroup_cpu_path[PATH_MAX] = "";
 		sprintf(cgroup_cpu_path, "%s%d/cpu.max", cg_env->cpupercent.prefix, container->container_id);
@@ -451,6 +490,7 @@ bool ruri_pid_in_cgroup(pid_t pid, int container_id)
 	struct RURI_CGROUP_ENV cg_env;
 	ruri_detect_cgroup_env(&cg_env);
 	char cgroup_procs_path[PATH_MAX] = "";
+	// Any one of the cgroup controllers can be used.
 	if (cg_env.memory.type == RURI_CGROUP_V2) {
 		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.memory.prefix, container_id);
 	} else if (cg_env.memory.type == RURI_CGROUP_V1) {
