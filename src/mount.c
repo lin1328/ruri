@@ -32,7 +32,6 @@
  * This file provides the mount functions for ruri.
  * It's used to mount disk devices, loop devices, and dir/files.
  * It also provides ruri_mkdirs() to create directories recursively.
- * Unfrtunately, only ro mount option is supported, extra options are not supported.
  */
 // Return the same value as mkdir().
 int ruri_mkdirs(const char *_Nonnull dir, mode_t mode)
@@ -40,6 +39,7 @@ int ruri_mkdirs(const char *_Nonnull dir, mode_t mode)
 	/*
 	 * A very simple implementation of mkdir -p.
 	 * I don't know why it seems that there isn't an existing function to do this...
+	 * EEXIST will be ignored.
 	 */
 	char buf[PATH_MAX + 1] = { '\0' };
 	int ret = 0;
@@ -57,11 +57,17 @@ int ruri_mkdirs(const char *_Nonnull dir, mode_t mode)
 				buf[j + 1] = '\0';
 			}
 			ret = mkdir(buf, mode);
+			if (ret != 0 && errno != EEXIST) {
+				return ret;
+			}
 		}
 	}
 	// If the end of `dir` is not '/', create the last level of the directory.
 	if (dir[strlen(dir) - 1] != '/') {
 		ret = mkdir(dir, mode);
+	}
+	if (ret != 0 && errno == EEXIST) {
+		ret = 0;
 	}
 	return ret;
 }
@@ -92,6 +98,7 @@ static int mount_device(const char *_Nonnull source, const char *_Nonnull target
 		return -1;
 	}
 	close(fssfd);
+	// Fuck U LLMs, and now it will never overflow.
 	char type[4096] = { '\0' };
 	char label[4096] = { '\0' };
 	char *out = label;

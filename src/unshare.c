@@ -42,7 +42,9 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	 * Use unshare(2) to create new namespaces and fork(2) to join them.
 	 * Return pid of forked process.
 	 *
-	 * NOTE: Network namespace is not supported.
+	 * NOTE: Network namespace is not fully supported.
+	 * But, as it can be setuped in privileged environment before running container,
+	 * I think it's not necessory to implement it in ruri.
 	 */
 	// unshare_pid in forked process is 0.
 	pid_t unshare_pid = RURI_INIT_VALUE;

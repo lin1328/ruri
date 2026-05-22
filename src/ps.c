@@ -29,11 +29,12 @@
  */
 #include "include/ruri.h"
 /*
- * This file provides functions to show or kill all processes in the container.
+ * This file provides functions to show or kill processes in the container.
  * Note:
  * For unshare container without pid ns,
- * we can not recognize the pids in container.
- * And for that with pid ns, just kill pid 1 of the ns,
+ * we can not recognize the pids in container by detecting /proc/pid/root,
+ * but cgroup can be used for this.
+ * And for unshare with pid ns, just kill pid 1 of the ns,
  * and all processes will be destroyed.
  */
 static bool is_container_process(pid_t pid, const char *_Nonnull container_dir, int container_id);

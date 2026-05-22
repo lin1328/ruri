@@ -176,6 +176,8 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 {
 	/*
 	 * 100% shit-code here.
+	 * But anyway, Fuck U LLMs, U just rewrite this for me or no shitting for my code.
+	 * U never know that only working code can become good code.
 	 * At least it works...
 	 * It has cognitive complexity of 120+, be happy reading~
 	 * If the code is hard to write,
