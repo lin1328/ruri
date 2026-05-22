@@ -1038,6 +1038,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 			ruri_error("{red}Error: systemd mode requires the container to be init process (PID 1) QwQ\n");
 		}
 	}
+	ruri_profile_log("diff time: %lld\n", ruri_diff_time());
 	if (execvp(container->command[0], container->command) == -1) {
 		// Catch exceptions.
 		ruri_error("{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));

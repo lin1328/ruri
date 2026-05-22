@@ -36,6 +36,29 @@
  */
 // Force panic bit.
 bool ruri_force_panic = false;
+// For profiling.
+#ifdef RURI_PROFILING
+long long ruri_diff_time(void)
+{
+	static thread_local long long last_nsec = 0;
+	long long ret = 0;
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	if (last_nsec > 0) {
+		ret = now.tv_nsec - last_nsec;
+		last_nsec = now.tv_nsec;
+		return ret;
+	} else {
+		last_nsec = now.tv_nsec;
+		return 0;
+	}
+}
+#else
+long long ruri_diff_time(void)
+{
+	return 0;
+}
+#endif
 // Clear environment variables.
 void ruri_clear_env(char *const *_Nonnull argv)
 {
@@ -1354,6 +1377,7 @@ static void detect_suid_or_capability(void)
 // The real main() function.
 int ruri(int argc, char **argv)
 {
+	ruri_diff_time();
 	// Detect SUID or capability.
 	detect_suid_or_capability();
 	// Exit when we get error reading configs.
@@ -1392,6 +1416,7 @@ int ruri(int argc, char **argv)
 	char *info = ruri_container_info_to_k2v(container);
 	ruri_log("{base}Container config:{cyan}\n%s", info);
 	free(info);
+	ruri_profile_log("diff time: %lld\n", ruri_diff_time());
 	// Run container.
 	if ((container->enable_unshare) && !(container->rootless)) {
 		// Unshare container.

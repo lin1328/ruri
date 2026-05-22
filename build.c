@@ -157,7 +157,7 @@ int fork_exec(char **argv)
 	// Or return same as exec()ed program.
 	struct cth_result *result = cth_exec(argv, NULL, true, false);
 	int ret = -1;
-	ret=result ? result->exit_code : -1;
+	ret = result ? result->exit_code : -1;
 	cth_free_result(&result);
 	return ret;
 }
@@ -754,6 +754,7 @@ int main(int argc, char **argv)
 	init_env();
 	bool cflags_configured = false;
 	bool core_only = false;
+	bool profiling = false;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--dev") == 0 || strcmp(argv[i], "-d") == 0) {
 			dev_cflags();
@@ -769,6 +770,8 @@ int main(int argc, char **argv)
 			check_and_add_cflag("-static", true);
 		} else if (strcmp(argv[i], "--core-only") == 0 || strcmp(argv[i], "-c") == 0) {
 			core_only = true;
+		} else if (strcmp(argv[i], "--profiling") == 0 || strcmp(argv[i], "-p") == 0) {
+			profiling = true;
 		} else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
 			show_help();
 			exit(0);
@@ -798,13 +801,14 @@ int main(int argc, char **argv)
 		check_and_add_cflag("-DDISABLE_SECCOMP", true);
 		check_and_add_cflag("-DDISABLE_RURIENV", true);
 	}
+	if(profiling) {
+		check_and_add_cflag("-DRURI_PROFILING", true);
+	}
 	build();
 	remove_test_dot_c();
 	printf("\n\nThis program has Super Neko Powers! >w<\n");
 	return 0;
 }
-
-
 
 /////////////////////
 ///////catsh.c///////

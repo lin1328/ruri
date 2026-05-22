@@ -317,6 +317,16 @@ extern bool ruri_force_panic;
 #else
 #define ruri_log(format, ...)
 #endif
+// Profiling log system.
+#if defined(RURI_PROFILING)
+#define ruri_profile_log(format, ...)                                                              \
+	do {                                                                                       \
+		cfprintf(stderr, "{green}In %s() at %s line %d:\n", __func__, __FILE__, __LINE__); \
+		fprintf(stderr, format, ##__VA_ARGS__);                                            \
+	} while (0)
+#else
+#define ruri_profile_log(format, ...)
+#endif
 extern int RURI_PWD_ERRNO;
 // Shared functions.
 void ruri_register_signal(void);
@@ -361,6 +371,7 @@ int ruri_cap_from_name(const char *str, cap_value_t *cap);
 #endif
 void ruri_clear_env(char *const *_Nonnull argv);
 bool ruri_pid_in_cgroup(pid_t pid, int container_id);
+long long ruri_diff_time(void);
 // Bionic does not have memfd_create()
 #ifdef __ANDROID__
 #define memfd_create(...) syscall(SYS_memfd_create, __VA_ARGS__)
