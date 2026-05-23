@@ -33,15 +33,19 @@
  * It provides functions to run container as info in struct RURI_CONTAINER.
  * Thanks docker and podman for the device list and mask/protect list.
  */
-static bool su_biany_exist(char *_Nonnull container_dir)
+static bool su_biany_exist(char *_Nonnull container_dir, bool in_container)
 {
 	/*
 	 * In some rootfs, /bin/su is not exist,
 	 * so we need to check it.
 	 */
 	char su_path[PATH_MAX] = { '\0' };
-	if (snprintf(su_path, sizeof(su_path), "%s/bin/su", container_dir) >= (int)sizeof(su_path)) {
-		ruri_error("{red}Why we are here? QwQ\n");
+	if (in_container) {
+		strcat(su_path, "/bin/su");
+	} else {
+		if (snprintf(su_path, sizeof(su_path), "%s/bin/su", container_dir) >= (int)sizeof(su_path)) {
+			ruri_error("{red}Why we are here? QwQ\n");
+		}
 	}
 	int fd = open(su_path, O_RDONLY | O_CLOEXEC);
 	if (fd < 0) {
@@ -920,7 +924,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	// Set default command for exec().
 	if (container->command[0] == NULL) {
-		if (su_biany_exist(container->container_dir) && container->user == NULL) {
+		if (su_biany_exist(container->container_dir, container->enable_unshare && !container->first_init) && container->user == NULL) {
 			container->command[0] = "/bin/su";
 			container->command[1] = "-";
 			container->command[2] = NULL;
@@ -1072,7 +1076,7 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	}
 	// Set default command for exec().
 	if (container->command[0] == NULL) {
-		if (su_biany_exist(container->container_dir) && container->user == NULL) {
+		if (su_biany_exist(container->container_dir, container->enable_unshare && !container->first_init) && container->user == NULL) {
 			container->command[0] = "/bin/su";
 			container->command[1] = "-";
 			container->command[2] = NULL;
