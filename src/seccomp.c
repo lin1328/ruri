@@ -295,6 +295,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
 		// Fix `TIODSTI should be a privileged operation`.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+		// Also, TIOCLINUX.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) || not_root_user) {
 			// lookup_dcookie(2) is used to look up the path of a file descriptor.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
@@ -331,6 +333,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			// Why you run 8086 vm in container? Weird.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+			// syslog(2) can be used to read kernel logs, which may contain sensitive information.
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
 		}
 		// memfd_secret() can be used for rootkits, we return ENOSYS.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
@@ -381,6 +385,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH) || not_root_user) {
 			// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(open_by_handle_at), 0);
+			// also, name_to_handle_at(2).
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(name_to_handle_at), 0);
 		}
 		// wine/box86 needs personality syscall.
 		// deny ADDR_NO_RANDOMIZE.
@@ -413,8 +419,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
-		// userfaultfd(2) can be used for UAF, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(userfaultfd), 0);
+		// userfaultfd(2) can be used for UAF.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT) || not_root_user) {
@@ -491,6 +497,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
 		// Fix `TIODSTI should be a privileged operation`.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+		// Also, TIOCLINUX.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
 		// lookup_dcookie(2) is used to look up the path of a file descriptor.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
 		// mount(2), as we all know.
@@ -526,6 +534,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Why you run 8086 vm in container? Weird.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+		// syslog(2) can be used to read kernel logs, which may contain sensitive information.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
 		// memfd_secret() can be used for rootkits, we return ENOSYS.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
 		// It's anyway so weird to change system time in container.
@@ -570,6 +580,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
 		// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(open_by_handle_at), 0);
+		// also, name_to_handle_at(2).
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(name_to_handle_at), 0);
 		// wine/box86 needs personality syscall.
 		// deny ADDR_NO_RANDOMIZE.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_NO_RANDOMIZE, ADDR_NO_RANDOMIZE));
@@ -601,8 +613,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
-		// userfaultfd(2) can be used for UAF, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(userfaultfd), 0);
+		// userfaultfd(2) can be used for UAF.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
 		// You don't need chroot(2) in container.
