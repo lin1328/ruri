@@ -279,8 +279,10 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			// Disallow SOCKET_PACKET.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
 		}
-		// Ban socketcall(2) for old kernels.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		// Ban socketcall(2) for 64bit devices.
+		if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		}
 		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
 		// ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
 		// ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
@@ -483,8 +485,10 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
 		// Disallow SOCKET_PACKET.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
-		// Ban socketcall(2) for old kernels.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		// Ban socketcall(2) for 64bit devices.
+		if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		}
 		// Disallow IORING_REGISTER_BUFFERS and IORING_REGISTER_CLONE_BUFFERS.
 		// ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_BUFFERS));
 		// ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 1, SCMP_CMP(1, SCMP_CMP_EQ, IORING_REGISTER_CLONE_BUFFERS));
