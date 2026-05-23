@@ -296,6 +296,10 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
 		// Ban eBPF, it should be used outside of container, not inside.
+		if (ruri_is_in_caplist(container->drop_caplist, CAP_BPF) || not_root_user) {
+			// bpf(2) can be used to load eBPF programs, which can be very dangerous.
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+		}
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
 		// Fix `TIODSTI should be a privileged operation`.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
@@ -378,6 +382,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
 			// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+			// Disable process_mrelease(2).
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
 		}
 		// Why you need to load kernel in container? Anyway, no.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
@@ -579,6 +585,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
 		// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+		// Disable process_mrelease(2).
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
 		// Why you need to load kernel in container? Anyway, no.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
