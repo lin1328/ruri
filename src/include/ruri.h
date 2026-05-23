@@ -84,6 +84,7 @@
 #include <linux/io_uring.h>
 #include <linux/netlink.h>
 #include <linux/personality.h>
+#include <linux/net.h>
 #ifndef DISABLE_LIBSECCOMP
 // This program need to be linked with `-lseccomp`.
 #include <seccomp.h>
@@ -125,6 +126,10 @@ typedef int cap_value_t;
 // Fix definition of AF_MPLS
 #ifndef AF_MPLS
 #define AF_MPLS 28
+#endif
+// Fix definition of SOCK_TYPE_MASK
+#ifndef SOCK_TYPE_MASK
+#define SOCK_TYPE_MASK 0xff
 #endif
 // Nullability attributes.
 #ifndef _Nullable
