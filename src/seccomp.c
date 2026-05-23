@@ -199,6 +199,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 #ifndef DISABLE_LIBSECCOMP
 	/*
 	 * Based on docker's default seccomp profile.
+	 * Also thanks Gemini, ChatGPT and DeepSeek.
 	 * This is a blacklist profile.
 	 * NOTE: This profile is not fully tested.
 	 */
