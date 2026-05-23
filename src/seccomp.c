@@ -376,16 +376,16 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, READ_IMPLIES_EXEC, READ_IMPLIES_EXEC));
 		// deny MMAP_PAGE_ZERO.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, MMAP_PAGE_ZERO, MMAP_PAGE_ZERO));
-		// deny PER_SVR4.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_SVR4, PER_SVR4));
-		// deny PER_UW7.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_UW7, PER_UW7));
 		// deny ADDR_COMPAT_LAYOUT.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_COMPAT_LAYOUT, ADDR_COMPAT_LAYOUT));
 		// deny ADDR_LIMIT_32BIT.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_LIMIT_32BIT, ADDR_LIMIT_32BIT));
 		// deny ADDR_LIMIT_3GB.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_LIMIT_3GB, ADDR_LIMIT_3GB));
+		// deny PER_SVR4.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_SVR4));
+		// deny PER_UW7.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_UW7));
 		// I think I just called pivot_root() for you bro.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
 		// Deprecated syscall, we kill it directly.
