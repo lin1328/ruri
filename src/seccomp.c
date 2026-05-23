@@ -338,7 +338,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 					ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
 				}
 			}
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+			if (!container->systemd_mode) {
+				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+			}
 			// Why you run 8086 vm in container? Weird.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
@@ -389,8 +391,12 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Why you need to load kernel in container? Anyway, no.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
-		// Meow????? Do not. It should be used outside of container, not inside.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		// As systemd eats everything, let it cook.
+		if (!container->systemd_mode) {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		} else {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+		}
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH) || not_root_user) {
@@ -545,7 +551,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
 			}
 		}
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+		if (!container->systemd_mode) {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+		}
 		// Why you run 8086 vm in container? Weird.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
@@ -591,8 +599,12 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Why you need to load kernel in container? Anyway, no.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
-		// Meow????? Do not. It should be used outside of container, not inside.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		// As systemd eats everything, let it cook.
+		if (!container->systemd_mode) {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		} else {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+		}
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
 		// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
@@ -649,7 +661,6 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_file_load), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 1, SCMP_CMP(5, SCMP_CMP_MASKED_EQ, MNT_FORCE, MNT_FORCE));
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
