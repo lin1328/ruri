@@ -95,72 +95,11 @@
 #else
 typedef int cap_value_t;
 #endif
-// Fix definition of HOST_NAME_MAX
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 64
-#endif
-// Fix definition of LOGIN_NAME_MAX
-#ifndef LOGIN_NAME_MAX
-#define LOGIN_NAME_MAX 256
-#endif
-// Fix definition of CGROUP2_SUPER_MAGIC
-#ifndef CGROUP2_SUPER_MAGIC
-#define CGROUP2_SUPER_MAGIC 0x63677270
-#endif
-// Fix definition of TMPFS_MAGIC
-#ifndef TMPFS_MAGIC
-#define TMPFS_MAGIC 0x01021994
-#endif
-// Fix definition of PROC_SUPER_MAGIC
-#ifndef PROC_SUPER_MAGIC
-#define PROC_SUPER_MAGIC 0x9fa0
-#endif
-// Fix definition of IORING_REGISTER_CLONE_BUFFERS
-#ifndef IORING_REGISTER_CLONE_BUFFERS
-#define IORING_REGISTER_CLONE_BUFFERS 30
-#endif
-// Fix definition of AF_IB
-#ifndef AF_IB
-#define AF_IB 27
-#endif
-// Fix definition of AF_MPLS
-#ifndef AF_MPLS
-#define AF_MPLS 28
-#endif
-// Fix definition of SOCK_TYPE_MASK
-#ifndef SOCK_TYPE_MASK
-#define SOCK_TYPE_MASK 0xff
-#endif
-// Fix definition of SCMP_ARCH_LOONGARCH64
-#ifndef AUDIT_ARCH_LOONGARCH64
-#ifndef EM_LOONGARCH
-#define EM_LOONGARCH 258
-#endif /* EM_LOONGARCH */
-#define AUDIT_ARCH_LOONGARCH64 (EM_LOONGARCH | __AUDIT_ARCH_64BIT | __AUDIT_ARCH_LE)
-#endif /* AUDIT_ARCH_LOONGARCH64 */
-#ifndef SCMP_ARCH_LOONGARCH64
-#define SCMP_ARCH_LOONGARCH64 AUDIT_ARCH_LOONGARCH64
-#endif /* SCMP_ARCH_LOONGARCH64 */
-// Nullability attributes.
-#ifndef _Nullable
-#define _Nullable
-#endif
-#ifndef _Nonnull
-#define _Nonnull
-#endif
 // We define RURI_CAP_LAST_CAP to 114,
-// because for kernel in the fulture, there may be more capabilities than today.
+// because for kernel in the future, there may be more capabilities than today.
 #define RURI_CAP_LAST_CAP 114
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)
 #warning "This program has not been tested on Linux 3.x or earlier."
-#endif
-// Bool!!!
-#if __STDC_VERSION__ < 202000L
-#ifndef bool
-#define bool _Bool
-#define true ((_Bool) + 1u)
-#define false ((_Bool) + 0u)
-#endif
 #endif
 // For initializing some variables.
 #define RURI_INIT_VALUE (-114)
@@ -170,12 +109,14 @@ typedef int cap_value_t;
 #define RURI_MAX_MOUNTPOINTS (512 * 2)
 #define RURI_MAX_CHAR_DEVS (128 * 3)
 #define RURI_MAX_SECCOMP_DENIED_SYSCALL (2048)
+// Force use glibc definition, as this value is too small in musl.
 #undef NGROUPS_MAX
 #define NGROUPS_MAX 65536
 // Include other headers.
 #include "cprintf.h"
 #include "k2v.h"
 #include "version.h"
+#include "compact.h"
 #undef cprintf
 #undef cfprintf
 #define cprintf(format, ...) scprintf(format, ##__VA_ARGS__)
@@ -388,10 +329,6 @@ int ruri_cap_from_name(const char *str, cap_value_t *cap);
 void ruri_clear_env(char *const *_Nonnull argv);
 bool ruri_pid_in_cgroup(pid_t pid, int container_id);
 long long ruri_diff_time(void);
-// Bionic does not have memfd_create()
-#ifdef __ANDROID__
-#define memfd_create(...) syscall(SYS_memfd_create, __VA_ARGS__)
-#endif
 //   ██╗ ██╗  ███████╗   ████╗   ███████╗
 //  ████████╗ ██╔════╝ ██╔═══██╗ ██╔════╝
 //  ╚██╔═██╔╝ █████╗   ██║   ██║ █████╗

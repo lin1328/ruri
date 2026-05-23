@@ -1,5 +1,6 @@
 /*
- * This header contains no copyrightable information.
+ * This file is part of ruri.
+ * This file contains no copyrightable information.
  */
 #if defined(__aarch64__)
 #define RURI_HOST_ARCH "aarch64"
