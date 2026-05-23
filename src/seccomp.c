@@ -321,6 +321,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
 		}
+		// memfd_secret() can be used for rootkits, we return ENOSYS.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
 		// It's anyway so weird to change system time in container.
 		// Maybe in time ns it's okey?
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
@@ -350,10 +352,10 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			// kcmp(2) can be used for side channel attacks, we deny it for non-root users.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
 			// process_vm_readv(2) and process_vm_writev(2) can be used to read/write another process's memory, which is very dangerous.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_readv), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_writev), 0);
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
 			// ptrace(2) can be used to trace another process, which is very dangerous.
-			// But, as strace and gdb need ptrace, we just deny it for non-root users, and allow it for root users.
+			// But strace and gdb need ptrace.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
 			// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
@@ -498,6 +500,8 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Why you run 8086 vm in container? Weird.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+		// memfd_secret() can be used for rootkits, we return ENOSYS.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
 		// It's anyway so weird to change system time in container.
 		// Maybe in time ns it's okey?
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
@@ -524,10 +528,10 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// kcmp(2) can be used for side channel attacks, we deny it for non-root users.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
 		// process_vm_readv(2) and process_vm_writev(2) can be used to read/write another process's memory, which is very dangerous.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_readv), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(process_vm_writev), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
 		// ptrace(2) can be used to trace another process, which is very dangerous.
-		// But, as strace and gdb need ptrace, we just deny it for non-root users, and allow it for root users.
+		// But strace and gdb need ptrace.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
 		// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
