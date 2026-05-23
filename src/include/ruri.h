@@ -131,6 +131,16 @@ typedef int cap_value_t;
 #ifndef SOCK_TYPE_MASK
 #define SOCK_TYPE_MASK 0xff
 #endif
+// Fix definition of SCMP_ARCH_LOONGARCH64
+#ifndef AUDIT_ARCH_LOONGARCH64
+#ifndef EM_LOONGARCH
+#define EM_LOONGARCH 258
+#endif /* EM_LOONGARCH */
+#define AUDIT_ARCH_LOONGARCH64 (EM_LOONGARCH | __AUDIT_ARCH_64BIT | __AUDIT_ARCH_LE)
+#endif /* AUDIT_ARCH_LOONGARCH64 */
+#ifndef SCMP_ARCH_LOONGARCH64
+#define SCMP_ARCH_LOONGARCH64 AUDIT_ARCH_LOONGARCH64
+#endif /* SCMP_ARCH_LOONGARCH64 */
 // Nullability attributes.
 #ifndef _Nullable
 #define _Nullable
