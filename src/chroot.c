@@ -884,42 +884,42 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		sigaddset(&sigs, SIGTTOU);
 		sigprocmask(SIG_BLOCK, &sigs, 0);
 	}
-	// Use statfs(2) to check if /proc is already mounted in container.
-	char buf[PATH_MAX] = { '\0' };
-	if (snprintf(buf, sizeof(buf), "%s/proc", container->container_dir) >= (int)sizeof(buf)) {
-		ruri_error("{red}Error: container directory path is too long QwQ\n");
-	}
-	bool proc_mounted = false;
-	struct statfs statfs_buf;
-	if (statfs(buf, &statfs_buf) == 0) {
-		if (statfs_buf.f_type == PROC_SUPER_MAGIC) {
-			proc_mounted = true;
+	if (!container->enable_unshare || container->first_init) {
+		// Use statfs(2) to check if /proc is already mounted in container.
+		char buf[PATH_MAX] = { '\0' };
+		if (snprintf(buf, sizeof(buf), "%s/proc", container->container_dir) >= (int)sizeof(buf)) {
+			ruri_error("{red}Error: container directory path is too long QwQ\n");
 		}
-	}
-	if (!proc_mounted) {
-		// Mount mountpoints.
-		mount_rootfs(container);
-		mount_mountpoints(container);
-		// Copy qemu binary into container.
-		copy_qemu_binary(container);
-		// Store container info.
-		if (!container->enable_unshare && !container->just_chroot && container->use_rurienv) {
-			ruri_store_info(container);
+		bool proc_mounted = false;
+		struct statfs statfs_buf;
+		if (statfs(buf, &statfs_buf) == 0) {
+			if (statfs_buf.f_type == PROC_SUPER_MAGIC) {
+				proc_mounted = true;
+			}
 		}
-		// If `-S` option is set, bind-mount /dev/, /sys/ and /proc/ from host.
-		if (container->mount_host_runtime && !container->just_chroot) {
-			mount_host_runtime(container);
-		}
-		// If `-R` option is set, make / read-only.
-		if (container->ro_root) {
-			mount(container->container_dir, container->container_dir, NULL, MS_BIND | MS_REMOUNT | MS_RDONLY, NULL);
-		}
-	}
-	// If container already mounted, sync the config.
-	else {
-		// Read container info.
-		if (container->use_rurienv) {
-			ruri_read_info(container, container->container_dir);
+		if (!proc_mounted) {
+			// Mount mountpoints.
+			mount_rootfs(container);
+			mount_mountpoints(container);
+			// Copy qemu binary into container.
+			copy_qemu_binary(container);
+			// Store container info.
+			if (!container->enable_unshare && !container->just_chroot && container->use_rurienv) {
+				ruri_store_info(container);
+			}
+			// If `-S` option is set, bind-mount /dev/, /sys/ and /proc/ from host.
+			if (container->mount_host_runtime && !container->just_chroot) {
+				mount_host_runtime(container);
+			}
+			// If `-R` option is set, make / read-only.
+			if (container->ro_root) {
+				mount(container->container_dir, container->container_dir, NULL, MS_BIND | MS_REMOUNT | MS_RDONLY, NULL);
+			}
+		} else {
+			// If container already mounted, sync the config.
+			if (container->use_rurienv) {
+				ruri_read_info(container, container->container_dir);
+			}
 		}
 	}
 	// Set default command for exec().
