@@ -659,28 +659,6 @@ static void copy_qemu_binary(struct RURI_CONTAINER *container)
 		usleep(2000);
 	}
 }
-static bool pivot_root_succeed(const char *_Nonnull container_dir)
-{
-	/*
-	 * Check if pivot_root(2) succeed.
-	 */
-	// Check if ${container_dir}/dev/null is a character device.
-	struct stat dev_null_stat;
-	char dev_null[PATH_MAX] = { '\0' };
-	if (chdir(container_dir) != 0) {
-		return true;
-	}
-	if (snprintf(dev_null, sizeof(dev_null), "%s/./dev/null", container_dir) >= (int)sizeof(dev_null)) {
-		ruri_error("{red}Error: container directory path is too long QwQ\n");
-	}
-	if (stat(dev_null, &dev_null_stat) != 0) {
-		return true;
-	}
-	if (S_ISCHR(dev_null_stat.st_mode)) {
-		return false;
-	}
-	return true;
-}
 // Try to use pivot_root(2).
 static int try_pivot_root(const struct RURI_CONTAINER *_Nonnull container)
 {
@@ -689,7 +667,7 @@ static int try_pivot_root(const struct RURI_CONTAINER *_Nonnull container)
 	 * If pivot_root(2) is not available, return -1.
 	 */
 	ruri_log("{base}ns pid: %d\n", container->ns_pid);
-	if (container->ns_pid > 0 && pivot_root_succeed(container->container_dir)) {
+	if (container->ns_pid > 0) {
 		ruri_log("{base}Using setns(2) to change root directory.\n");
 		chdir("/");
 		return 0;
@@ -698,10 +676,8 @@ static int try_pivot_root(const struct RURI_CONTAINER *_Nonnull container)
 	mount("none", "/", NULL, MS_REC | MS_PRIVATE, NULL);
 	usleep(2000);
 	chdir(container->container_dir);
-	if (syscall(SYS_pivot_root, ".", ".") == -1) {
-		ruri_log("{base}pivot_root(2) failed, using chroot(2) instead.\n");
-		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: pivot_root(2) failed, using chroot(2) instead QwQ\n");
-		return -1;
+	if (syscall(SYS_pivot_root, ".", ".") != 0) {
+		ruri_error("pivot_root() failed, unshare container will not work.");
 	}
 	chdir("/");
 	umount2(".", MNT_DETACH);
