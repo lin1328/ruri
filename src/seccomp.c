@@ -34,12 +34,12 @@
  */
 // Reslove prefix for errno.
 #ifndef DISABLE_LIBSECCOMP
-#define ruri_seccomp_rule_add(container, ...)                                                                               \
-	do {                                                                                                                \
-		int ret__ = seccomp_rule_add(__VA_ARGS__);                                                                  \
-		if (ret__ < 0 && ret__ != -EEXIST) {                                                                        \
-			ruri_warn_on_error(1, 0, !container->no_warnings, "seccomp rule add failed: %s", strerror(-ret__)); \
-		}                                                                                                           \
+#define ruri_seccomp_rule_add(container, ...)                                                                                 \
+	do {                                                                                                                  \
+		int ret__ = seccomp_rule_add(__VA_ARGS__);                                                                    \
+		if (ret__ < 0 && ret__ != -EEXIST) {                                                                          \
+			ruri_warn_on_error(1, 0, !container->no_warnings, "seccomp rule add failed: %s\n", strerror(-ret__)); \
+		}                                                                                                             \
 	} while (0)
 static int ruri_resolve_seccomp_errno(const char *_Nonnull syscall, scmp_filter_ctx *_Nonnull ctx)
 {
@@ -276,7 +276,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			// Disallow AF_PACKET.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
 			// Disallow SOCKET_RAW.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+			if (!container->systemd_mode) {
+				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+			}
 			// Disallow SOCKET_PACKET.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
 		}
@@ -400,32 +402,15 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
 		if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH) || not_root_user) {
-			// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
-			// also, name_to_handle_at(2).
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+			if (!container->systemd_mode) {
+				// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
+				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+				// also, name_to_handle_at(2).
+				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+			}
 		}
-		// wine/box86 needs personality syscall.
-		// deny ADDR_NO_RANDOMIZE.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_NO_RANDOMIZE, ADDR_NO_RANDOMIZE));
-		// deny READ_IMPLIES_EXEC.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, READ_IMPLIES_EXEC, READ_IMPLIES_EXEC));
-		// deny MMAP_PAGE_ZERO.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, MMAP_PAGE_ZERO, MMAP_PAGE_ZERO));
-		// deny ADDR_COMPAT_LAYOUT.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_COMPAT_LAYOUT, ADDR_COMPAT_LAYOUT));
-		// deny ADDR_LIMIT_32BIT.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_LIMIT_32BIT, ADDR_LIMIT_32BIT));
-		// deny ADDR_LIMIT_3GB.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_LIMIT_3GB, ADDR_LIMIT_3GB));
-		// deny PER_SVR3.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_SVR3));
-		// deny PER_SVR4.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_SVR4));
-		// deny PER_UW7.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_UW7));
-		// deny PER_XENIX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_XENIX));
+		// TODO: But wine/box86 needs personality syscall.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
 		// I think I just called pivot_root() for you bro.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
 		// Deprecated syscall, we kill it directly.
@@ -495,7 +480,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		// Disallow AF_PACKET.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
 		// Disallow SOCKET_RAW.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+		if (!container->systemd_mode) {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+		}
 		// Disallow SOCKET_PACKET.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
 		// Ban socketcall(2) for 64bit devices.
@@ -607,31 +594,15 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		}
 		// Deprecated syscall, we kill it directly.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
-		// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
-		// also, name_to_handle_at(2).
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+		if (!container->systemd_mode) {
+			// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+			// also, name_to_handle_at(2).
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+		}
 		// wine/box86 needs personality syscall.
-		// deny ADDR_NO_RANDOMIZE.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_NO_RANDOMIZE, ADDR_NO_RANDOMIZE));
-		// deny READ_IMPLIES_EXEC.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, READ_IMPLIES_EXEC, READ_IMPLIES_EXEC));
-		// deny MMAP_PAGE_ZERO.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, MMAP_PAGE_ZERO, MMAP_PAGE_ZERO));
-		// deny ADDR_COMPAT_LAYOUT.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_COMPAT_LAYOUT, ADDR_COMPAT_LAYOUT));
-		// deny ADDR_LIMIT_32BIT.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_LIMIT_32BIT, ADDR_LIMIT_32BIT));
-		// deny ADDR_LIMIT_3GB.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, ADDR_LIMIT_3GB, ADDR_LIMIT_3GB));
-		// deny PER_SVR3.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_SVR3));
-		// deny PER_SVR4.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_SVR4));
-		// deny PER_UW7.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_UW7));
-		// deny PER_XENIX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, PER_MASK, PER_XENIX));
+		// TODO: But wine/box86 needs personality syscall.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
 		// I think I just called pivot_root() for you bro.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
 		// Deprecated syscall, we kill it directly.
