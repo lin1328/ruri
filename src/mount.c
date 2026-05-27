@@ -165,7 +165,6 @@ static char *losetup(const char *_Nonnull img)
 	char *loopfile = malloc(PATH_MAX);
 	memset(loopfile, 0, PATH_MAX);
 	sprintf(loopfile, "/dev/loop%d", devnr);
-	usleep(200);
 	int loopfd = open(loopfile, O_RDWR | O_CLOEXEC);
 	if (loopfd < 0) {
 		// On Android, loopfile is in /dev/block.

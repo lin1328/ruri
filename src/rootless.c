@@ -49,6 +49,9 @@ static int try_execvp(char *_Nonnull argv[])
 	}
 	int status = 0;
 	waitpid(pid, &status, 0);
+	if (!WIFEXITED(status)) {
+		return -1;
+	}
 	return WEXITSTATUS(status);
 }
 static int try_setup_idmap(pid_t ppid, uid_t uid, gid_t gid)
@@ -160,11 +163,10 @@ static void init_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		devshm_options = strdup("mode=1777");
 	} else {
 		devshm_options = malloc(strlen(container->memory) + strlen("mode=1777") + 114);
-		sprintf(devshm_options, "size=65536k,mode=1777");
+		sprintf(devshm_options, "size=%s,mode=1777", container->memory);
 	}
 	mkdir("./dev/shm", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("tmpfs", "./dev/shm", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);
-	usleep(100000);
 	free(devshm_options);
 	mount("binfmt_misc", "./proc/sys/fs/binfmt_misc", "binfmt_misc", 0, NULL);
 	if (!container->unmask_dirs) {
@@ -226,7 +228,7 @@ static void set_id_map(uid_t uid, gid_t gid)
 		ruri_warn_on_error(1, 0, true, "{red}Failed to open /proc/self/setgroups, maybe you need to install uidmap package and configure /etc/subuid and /etc/subgid?\n");
 		ruri_error("{red}Failed to open /proc/self/setgroups\n");
 	}
-	write(setgroups_fd, "deny", 5);
+	write(setgroups_fd, "deny\n", 5);
 	close(setgroups_fd);
 	char gid_map[32] = { "\0" };
 	sprintf(gid_map, "0 %d 1\n", gid);
@@ -278,7 +280,6 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			ruri_error("{red}Failed to create sync pipe for userns setup\n");
 		}
 	}
-
 	pid_t pid_1 = fork();
 	if (pid_1 > 0) {
 		if (container->ns_pid < 0) {
@@ -308,6 +309,7 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 				ruri_error("{red}Failed to setns(2) to %s\n", user_ns);
 			}
 			set_id_map_succeed = true;
+			waitpid(pid_1, NULL, 0);
 		}
 	} else if (pid_1 == 0) {
 		if (container->ns_pid < 0) {
@@ -426,7 +428,6 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			}
 		}
 		if (container->timens_monotonic_offset != 0) {
-			usleep(1000);
 			int fd = open("/proc/self/timens_offsets", O_WRONLY | O_CLOEXEC);
 			char buf[1024] = { '\0' };
 			sprintf(buf, _Generic((time_t)0, long: "monotonic %ld 0", long long: "monotonic %lld 0", default: "monotonic %ld 0"), container->timens_monotonic_offset);
@@ -482,7 +483,6 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		if (!container->just_chroot) {
 			init_rootless_container(container);
 		}
-		usleep(1000);
 		ruri_run_rootless_chroot_container(container);
 	}
 }

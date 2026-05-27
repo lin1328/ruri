@@ -67,7 +67,6 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that time namespace is not supported on this device QwQ{clear}\n");
 	}
 	if (container->timens_monotonic_offset != 0) {
-		usleep(1000);
 		int fd = open("/proc/self/timens_offsets", O_WRONLY | O_CLOEXEC);
 		if (fd < 0) {
 			ruri_error("{red}Error: failed to open /proc/self/timens_offsets QwQ\n");
@@ -170,7 +169,6 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	if (ns_fd < 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that pid namespace is not supported on this device QwQ{clear}\n");
 	} else {
-		usleep(1000);
 		if (setns(ns_fd, CLONE_NEWPID) == -1) {
 			ruri_error("{red}Failed to setns pid namespace QwQ\n");
 		}
@@ -180,7 +178,6 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	if (ns_fd < 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that time namespace is not supported on this device QwQ{clear}\n");
 	} else {
-		usleep(1000);
 		if (setns(ns_fd, CLONE_NEWTIME) == -1) {
 			ruri_error("{red}Failed to setns time namespace QwQ\n");
 		}
@@ -190,7 +187,6 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	if (ns_fd < 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that uts namespace is not supported on this device QwQ{clear}\n");
 	} else {
-		usleep(1000);
 		if (setns(ns_fd, CLONE_NEWUTS) == -1) {
 			ruri_error("{red}Failed to setns uts namespace QwQ\n");
 		}
@@ -200,7 +196,6 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	if (ns_fd < 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that cgroup namespace is not supported on this device QwQ{clear}\n");
 	} else {
-		usleep(1000);
 		if (setns(ns_fd, CLONE_NEWCGROUP) == -1) {
 			ruri_error("{red}Failed to setns cgroup namespace QwQ\n");
 		}
@@ -210,7 +205,6 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	if (ns_fd < 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that ipc namespace is not supported on this device QwQ{clear}\n");
 	} else {
-		usleep(1000);
 		if (setns(ns_fd, CLONE_NEWIPC) == -1) {
 			ruri_error("{red}Failed to setns ipc namespace QwQ\n");
 		}
@@ -239,7 +233,6 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	if (ns_fd < 0) {
 		ruri_error("{red}Unshare container need at least mount ns support QwQ\n");
 	} else {
-		usleep(1000);
 		if (setns(ns_fd, CLONE_NEWNS) == -1) {
 			ruri_error("{red}Failed to setns mount namespace QwQ\n");
 		}

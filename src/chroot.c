@@ -258,7 +258,6 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/shm, will continue.\n");
 		res = mount("tmpfs", "/dev/shm", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount /dev/shm, will continue.\n");
-		usleep(1000);
 		free(devshm_options);
 		// Mount binfmt_misc.
 		res = mount("binfmt_misc", "/proc/sys/fs/binfmt_misc", "binfmt_misc", 0, NULL);
@@ -449,7 +448,6 @@ static void mount_host_runtime(const struct RURI_CONTAINER *_Nonnull container)
 	}
 	mkdir(buf, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 	mount("tmpfs", buf, "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV, devshm_options);
-	usleep(1000);
 	free(devshm_options);
 }
 // Drop capabilities.
@@ -658,7 +656,6 @@ static void copy_qemu_binary(struct RURI_CONTAINER *container)
 		// Correct the qemu-path.
 		free(container->qemu_path);
 		container->qemu_path = strdup("/qemu-ruri");
-		usleep(2000);
 	}
 }
 // Try to use pivot_root(2).
@@ -678,7 +675,6 @@ static int try_pivot_root(const struct RURI_CONTAINER *_Nonnull container)
 	}
 	chdir(container->container_dir);
 	mount("none", "/", NULL, MS_REC | MS_PRIVATE, NULL);
-	usleep(2000);
 	chdir(container->container_dir);
 	if (syscall(SYS_pivot_root, ".", ".") != 0) {
 		ruri_error("pivot_root() failed, unshare container will not work.");
@@ -733,7 +729,6 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			res = setgroups(1, groups);
 			ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 		}
-		usleep(1000);
 		free(groups);
 		res = setgid((gid_t)atoi(user));
 		ruri_panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
@@ -763,7 +758,6 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 				res = setgroups(1, groups);
 				ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
 			}
-			usleep(1000);
 			free(groups);
 			res = setgid(user_gid);
 			ruri_panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
@@ -813,7 +807,6 @@ static void hidepid(int stat)
 	if (stat <= 0) {
 		return;
 	}
-	usleep(1000);
 	if (stat == 1) {
 		mount("none", "/proc", "proc", MS_REMOUNT, "hidepid=1");
 	} else if (stat == 2) {
@@ -1109,8 +1102,6 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	drop_caps(container);
 	// Set envs.
 	set_envs(container);
-	// Fix a bug that the terminal is frozen.
-	usleep(2000);
 	// Set NO_NEW_PRIVS Flag.
 	// It requires Linux3.5 or later.
 	// It will make sudo unavailable in container.
