@@ -39,6 +39,10 @@ Depending on the type of source, different mount strategies are applied:
       Mounts a tmpfs at the target with the given size (e.g., `TMPFS:size=100M`).  
       Note: The size can be specified in bytes, kilobytes (K), megabytes (M), or gigabytes (G).  
       `TMPFS:` without size defaults to kernel behavior.  
+      For example:
+      ```
+      -m NOSUID:NODEV:NOEXEC:TMPFS:size=100M /tmp
+      ```
 
     - **overlayfs**  
       Specify with format:  
@@ -88,6 +92,7 @@ This mounts `/dev/sdb1` at `/mnt/disk` as read-only and with the `noexec` flag e
 |-------------|---------------------------------------------|
 | RDONLY      | Mount read-only (same as `-M`)              |
 | NOSUID      | Do not allow set-user-ID or set-group-ID    |
+| NODEV       | Do not interpret character or block devices |
 | NOEXEC      | Do not allow execution of binaries          |
 | NODIRATIME  | Do not update directory access times        |
 | NOATIME     | Do not update access times                  |
@@ -107,3 +112,9 @@ This mounts `/dev/sdb1` at `/mnt/disk` as read-only and with the `noexec` flag e
 - Prefixes are order-insensitive but must be placed before the source path.
 - If the source does not exist or cannot be recognized, the mount will fail.
 - To ensure container isolation and prevent security risks, custom mounting of special filesystems such as `proc`, `sysfs`, `debugfs`, or similar filesystems is not permitted. If required, you can manually modify the implementation of `mount_other_type()` in `src/mount.c`.
+# Prefix order:
+- Mount flags (e.g., `RDONLY`, `NOEXEC`, etc.)
+- Filesystem type (e.g., `EXT4`, `FAT32`, etc.)
+- Source path (e.g., `/dev/sdb1`, `image.img`, etc.)
+
+The order should be: `[FLAGS]:[FSTYPE:][SOURCE]`, cannot be mixed. For example, `RDONLY:EXT4:/dev/sdb1` is valid, but `EXT4:RDONLY:/dev/sdb1` is not.

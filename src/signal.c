@@ -31,7 +31,14 @@
 /*
  * This file is used to catch segfault,
  * So that we can show some extra info when segfault.
- * I hope my program will never panic() QwQ.
+ *
+ *   .^.   .^.
+ *   /⋀\_ﾉ_/⋀\
+ *  /ﾉｿﾉ\ﾉｿ丶メ    This is Ruri Hakozaki.
+ *  ﾙﾘﾘ >  x )ﾘ   If you see her, blame your cmdline and the author.
+ * ﾉノ㇏  ^  ﾉﾉ
+ *       ⠁⠁
+ *  "I don't know what's happening, but I got killed in the game..."
  */
 // Show some extra info when segfault.
 static void panic(int sig)

@@ -586,7 +586,9 @@ static void mount_mountpoints(const struct RURI_CONTAINER *_Nonnull container)
 		mountpoint_dir = (char *)malloc(strlen(container->extra_mountpoint[i + 1]) + strlen(container->container_dir) + 2);
 		strcpy(mountpoint_dir, container->container_dir);
 		strcat(mountpoint_dir, container->extra_mountpoint[i + 1]);
-		ruri_trymount(container->extra_mountpoint[i], mountpoint_dir, 0);
+		if (ruri_trymount(container->extra_mountpoint[i], mountpoint_dir, 0) != 0) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to mount %s to %s, will continue.\n", container->extra_mountpoint[i], mountpoint_dir);
+		}
 		free(mountpoint_dir);
 	}
 	// Mount extra_ro_mountpoint as read-only.
@@ -598,7 +600,9 @@ static void mount_mountpoints(const struct RURI_CONTAINER *_Nonnull container)
 		mountpoint_dir = (char *)malloc(strlen(container->extra_ro_mountpoint[i + 1]) + strlen(container->container_dir) + 2);
 		strcpy(mountpoint_dir, container->container_dir);
 		strcat(mountpoint_dir, container->extra_ro_mountpoint[i + 1]);
-		ruri_trymount(container->extra_ro_mountpoint[i], mountpoint_dir, MS_RDONLY);
+		if (ruri_trymount(container->extra_ro_mountpoint[i], mountpoint_dir, MS_RDONLY) != 0) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: Failed to mount %s to %s, will continue.\n", container->extra_ro_mountpoint[i], mountpoint_dir);
+		}
 		free(mountpoint_dir);
 	}
 	// If rootfs_source is not empty, we bind mount it now.
@@ -643,8 +647,6 @@ static void copy_qemu_binary(struct RURI_CONTAINER *container)
 			ruri_error("{red}Error: failed to get qemu binary info QwQ\n");
 		}
 		off_t offset = 0;
-		// In linux, I think it's more safe to use sendfile(2) to copy files,
-		// because it does not need a buffer.
 		// !NOTE: Linux version under 2.6.33 does not support sendfile(2) for copying files.
 		if (sendfile(targetfd, sourcefd, &offset, (size_t)stat_buf.st_size) == -1) {
 			ruri_error("{red}Error: failed to copy qemu binary QwQ\n");
@@ -664,7 +666,9 @@ static int try_pivot_root(const struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
 	 * Try to use pivot_root(2) to change the root directory.
-	 * If pivot_root(2) is not available, return -1.
+	 * If container already inited, just chdir() to root directory, and return.
+	 * No fallback method, that's unsafe,
+	 * without even mount ns, you should not enable unshare for container.
 	 */
 	ruri_log("{base}ns pid: %d\n", container->ns_pid);
 	if (container->ns_pid > 0) {

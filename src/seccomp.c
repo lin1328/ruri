@@ -31,6 +31,12 @@
 /*
  * This file provides the built-in seccomp filter rules for ruri.
  * Thanks docker for denied syscall list.
+ *    ,-----,,
+ *   /########\    This is Cheems.
+ *   ●//● #####|   He will ban unsafe syscalls for you.
+ *   ,●=ノ____,=≤   What the dog doin?
+ *  /|\  /|\
+ *  "Oh, bad process, I'll kill it......."
  */
 // Reslove prefix for errno.
 #ifndef DISABLE_LIBSECCOMP
@@ -486,6 +492,7 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
 		// Ban socketcall(2) for 64bit devices.
 		if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
+			// What the dog doin? There's actually no socketcall in 64bit kernel.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
 		}
 		// Fully ban io_uring

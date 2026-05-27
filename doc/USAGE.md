@@ -285,14 +285,14 @@ This will make the whole container rootfs read-only.
 
 | Option | Description |
 |--------|-------------|
-| `-l`, `--limit [cpuset=cpu/memory=mem]` | Set cpuset/memory limit |
+| `-l`, `--limit [cpuset=cpu/memory=mem/cpupercent=percent]` | Set cpuset/memory/cpupercent limit |
 
-ruri currently supports cpuset and memory cgroups.  
-Each `-l` option can only set one of the cpuset/memory limits.  
+ruri currently supports cpuset, memory, and cpupercent cgroups.  
+Each `-l` option can only set one of the cpuset/memory/cpupercent limits.  
 For example:
 
 ```sh
-ruri -l memory=1M -l cpuset=1 /test
+ruri -l memory=1M -l cpuset=1 -l cpupercent=60 /test
 ```
 
 Note: This option needs kernel support for the specified cgroup.  

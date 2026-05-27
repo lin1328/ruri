@@ -421,6 +421,7 @@ static const char *parse_mount_flags(const char *source, unsigned int *mountflag
 	 * Recognized prefixes and their corresponding flags:
 	 *   "RDONLY:"      -> MS_RDONLY
 	 *   "NOSUID:"      -> MS_NOSUID
+	 *   "NODEV:"       -> MS_NODEV
 	 *   "NOEXEC:"      -> MS_NOEXEC
 	 *   "NODIRATIME:"  -> MS_NODIRATIME
 	 *   "NOATIME:"     -> MS_NOATIME
@@ -446,6 +447,9 @@ static const char *parse_mount_flags(const char *source, unsigned int *mountflag
 		} else if (strncmp(source, "NOSUID:", strlen("NOSUID:")) == 0) {
 			*mountflag |= MS_NOSUID;
 			source += strlen("NOSUID:");
+		} else if (strncmp(source, "NODEV:", strlen("NODEV:")) == 0) {
+			*mountflag |= MS_NODEV;
+			source += strlen("NODEV:");
 		} else if (strncmp(source, "NOEXEC:", strlen("NOEXEC:")) == 0) {
 			*mountflag |= MS_NOEXEC;
 			source += strlen("NOEXEC:");
