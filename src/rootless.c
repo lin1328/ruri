@@ -287,13 +287,12 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			close(sync_pipe[0]);
 			// Enable user namespace.
 			try_unshare(CLONE_NEWUSER);
-
+			prctl(PR_SET_DUMPABLE, 1);
 			if (write(sync_pipe[1], "1", 1) != 1) {
 				close(sync_pipe[1]);
 				ruri_error("{red}Failed to signal child for idmap setup\n");
 			}
 			close(sync_pipe[1]);
-
 			int stat = 0;
 			waitpid(pid_1, &stat, 0);
 			if (WEXITSTATUS(stat) == 0) {
