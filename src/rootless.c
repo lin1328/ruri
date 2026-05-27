@@ -259,6 +259,7 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	/*
 	 * Setup namespaces and run rootless container.
 	 */
+	prctl(PR_SET_DUMPABLE, 1);
 	if (container->use_rurienv) {
 		ruri_read_info(container, container->container_dir);
 	}
@@ -314,8 +315,8 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	} else if (pid_1 == 0) {
 		if (container->ns_pid < 0) {
 			close(sync_pipe[1]);
-			char ready = '\0';
-			ssize_t n = read(sync_pipe[0], &ready, 1);
+			char ready[2] = { '\0' };
+			ssize_t n = read(sync_pipe[0], ready, 1);
 			close(sync_pipe[0]);
 			if (n != 1) {
 				exit(1);
@@ -483,6 +484,7 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		if (!container->just_chroot) {
 			init_rootless_container(container);
 		}
+		prctl(PR_SET_DUMPABLE, 0);
 		ruri_run_rootless_chroot_container(container);
 	}
 }
