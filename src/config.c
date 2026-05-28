@@ -416,7 +416,7 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	char *buf = k2v_open_file(path, (size_t)size + 4);
+	char *buf = k2v_open_file(path, size + 4);
 	if (buf == NULL) {
 		ruri_error("{red}Failed to read config file:%s\n{clear}", path);
 	}
@@ -561,7 +561,7 @@ void ruri_correct_config(const char *_Nonnull path)
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
-	char *buf = k2v_open_file(path, (size_t)size + 4);
+	char *buf = k2v_open_file(path, size + 4);
 	if (buf == NULL) {
 		ruri_error("{red}Failed to read config file:%s\n{clear}", path);
 	}

@@ -61,12 +61,22 @@ static ssize_t humansize_to_bytes(const char *_Nonnull human)
 	char *endptr = NULL;
 	errno = 0;
 	long long ret = strtoll(human, &endptr, 10);
-	// these become too long after formatted
-	// clang-format off
-	if (errno == ERANGE) return -2;
-	if (endptr == human || ret < 0) return -1; // no number or negative
-	if (!*endptr) { if (ret > SSIZE_MAX) return -2;
+
+	if (errno == ERANGE) {
+		return -2;
+	}
+	// no number or negative
+	if (endptr == human || ret < 0) {
+		return -1;
+	}
+	if (!*endptr) {
+		if (ret > SSIZE_MAX) {
+			return -2;
+		}
 	} else {
+		// these become too long after formatted
+		// clang-format off
+		// NOLINTBEGIN
 		if (*(endptr + 1)) return -1; // invalid unit
 		switch (*endptr) {
 		case 'k': case 'K': if (ret > SSIZE_MAX / 1024) return -2; ret *= 1024; break;
@@ -74,6 +84,7 @@ static ssize_t humansize_to_bytes(const char *_Nonnull human)
 		case 'g': case 'G': if (ret > SSIZE_MAX / 1024 / 1024 / 1024) return -2; ret *= 1024 * 1024 * 1024; break;
 		default: return -1; // invalid unit
 		}
+		// NOLINTEND
 	}
 	// clang-format on
 	return ret;
@@ -188,6 +199,7 @@ static void ruri_detect_cgroup_env(struct RURI_CGROUP_ENV *cg_env)
 static void ruri_dump_cg_env(struct RURI_CGROUP_ENV *cg_env)
 {
 	// Only for debugging.
+	// NOLINTBEGIN
 	ruri_log("{blue}Cgroup environment:\n");
 	if (cg_env->memory.type != RURI_CGROUP_ENOSYS) {
 		ruri_log("{base}  Memory controller: %s (type: %s)\n", cg_env->memory.prefix, cg_env->memory.type == RURI_CGROUP_V2 ? "v2" : "v1");
@@ -204,6 +216,7 @@ static void ruri_dump_cg_env(struct RURI_CGROUP_ENV *cg_env)
 	} else {
 		ruri_log("{base}  Cpuset controller: not supported\n");
 	}
+	// NOLINTEND
 }
 static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull container, const struct RURI_CGROUP_ENV *cg_env)
 {
@@ -247,12 +260,14 @@ static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull containe
 	if (cg_env->memory.type == RURI_CGROUP_V2) {
 		char buf[256] = "";
 		ssize_t memory = humansize_to_bytes(container->memory);
+		// NOLINTBEGIN
 		switch (memory) {
 		case -1:
 			ruri_error("Memory format error, only ^[1-9]+[kKmMgG]$ is supported\n");
 		case -2:
 			ruri_error("Memory value too big to current platform\n");
 		}
+		// NOLINTEND
 		sprintf(buf, "%zd\n", memory);
 		// set memory.max
 		char cgroup_memory_max_path[PATH_MAX] = "";
@@ -272,12 +287,14 @@ static void ruri_set_memory_limit(const struct RURI_CONTAINER *_Nonnull containe
 		char memory_cgroup_limit_path[PATH_MAX] = "";
 		sprintf(memory_cgroup_limit_path, "%s%d/memory.limit_in_bytes", cg_env->memory.prefix, container->container_id);
 		ssize_t memory = humansize_to_bytes(container->memory);
+		// NOLINTBEGIN
 		switch (memory) {
 		case -1:
 			ruri_error("Memory format error, only ^[1-9]+[kKmMgG]$ is supported\n");
 		case -2:
 			ruri_error("Memory value too big to current platform\n");
 		}
+		// NOLINTEND
 		char buf[256] = "";
 		sprintf(buf, "%zd\n", memory);
 		if (open_and_write(memory_cgroup_limit_path, buf)) {
@@ -488,6 +505,7 @@ bool ruri_pid_in_cgroup(pid_t pid, int container_id)
 	struct RURI_CGROUP_ENV cg_env;
 	ruri_detect_cgroup_env(&cg_env);
 	char cgroup_procs_path[PATH_MAX] = "";
+	// NOLINTBEGIN
 	// Any one of the cgroup controllers can be used.
 	if (cg_env.memory.type == RURI_CGROUP_V2) {
 		sprintf(cgroup_procs_path, "%s%d/cgroup.procs", cg_env.memory.prefix, container_id);
@@ -504,7 +522,8 @@ bool ruri_pid_in_cgroup(pid_t pid, int container_id)
 	} else {
 		return false;
 	}
-	FILE *f = fopen(cgroup_procs_path, "r");
+	// NOLINTEND
+	FILE *f = fopen(cgroup_procs_path, "re");
 	if (f == NULL) {
 		return false;
 	}

@@ -146,6 +146,9 @@ static void container_ps__(char *_Nonnull container_dir, int container_id)
 	 * This is the core function of ruri_container_ps().
 	 */
 	DIR *proc_dir = opendir("/proc");
+	if (proc_dir == NULL) {
+		ruri_error("{red}Failed to open /proc QwQ\n");
+	}
 	struct dirent *file = NULL;
 	int len = 0;
 	while ((file = readdir(proc_dir)) != NULL) {
@@ -244,6 +247,9 @@ void ruri_kill_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 	}
 	DIR *proc_dir = opendir("/proc");
+	if (proc_dir == NULL) {
+		ruri_error("{red}Failed to open /proc QwQ\n");
+	}
 	struct dirent *file = NULL;
 	int len = 0;
 	while ((file = readdir(proc_dir)) != NULL) {

@@ -51,7 +51,7 @@ static void umount_subdir(const char *_Nonnull dir)
 		dir = dir_new;
 	}
 	// A simple way to check if container is umounted.
-	struct mntent *entry;
+	struct mntent *entry = NULL;
 	while ((entry = getmntent(fp)) != NULL) {
 		if (strncmp(entry->mnt_dir, dir, strlen(dir)) == 0) {
 			// Check if end for `/` or `\0`.
@@ -67,7 +67,6 @@ static void umount_subdir(const char *_Nonnull dir)
 		}
 	}
 	endmntent(fp);
-	return;
 }
 // Umount container.
 void ruri_umount_container(const char *_Nonnull container_dir)

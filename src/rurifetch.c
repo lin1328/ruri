@@ -78,7 +78,7 @@ void ruri_fetch(void)
 	char version_info[128] = { '\0' };
 	sprintf(version_info, "{91;207;250}Version{white}: %s", RURI_VERSION);
 	ruri_info[4] = version_info;
-#if !defined(RURI_COMMIT_ID)
+#ifndef RURI_COMMIT_ID
 #define RURI_COMMIT_ID "unknown"
 #endif
 	char commit_id[128] = { '\0' };

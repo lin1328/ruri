@@ -50,7 +50,7 @@ static int get_last_cap(void)
 	if (ret != -1) {
 		return ret;
 	}
-	FILE *fp = fopen("/proc/sys/kernel/cap_last_cap", "r");
+	FILE *fp = fopen("/proc/sys/kernel/cap_last_cap", "re");
 	if (fp != NULL) {
 		if (fscanf(fp, "%d", &ret) == 1) {
 			fclose(fp);

@@ -39,8 +39,10 @@
  * I will rewrite them in the future.
  *
  */
+// NOLINTBEGIN
 int RURI_PWD_ERRNO = 0;
 static int RURI_PWD_ERRNO_INTERNAL = 0;
+// NOLINTEND
 static char *line_get_username(const char *_Nonnull p)
 {
 	/*
@@ -96,7 +98,7 @@ static uid_t line_get_uid(const char *_Nonnull p)
 		if (p[i] == ':') {
 			return ret;
 		}
-		ret = ret * 10 + (uid_t)(p[i] - '0');
+		ret = (ret * 10) + (uid_t)(p[i] - '0');
 	}
 	return 0;
 }
@@ -130,7 +132,7 @@ static gid_t line_get_gid(const char *_Nonnull p)
 		if (p[i] == ':') {
 			return ret;
 		}
-		ret = ret * 10 + (uid_t)(p[i] - '0');
+		ret = (ret * 10) + (uid_t)(p[i] - '0');
 	}
 	return 0;
 }
@@ -212,7 +214,7 @@ static uid_t line_get_uid_lower(const char *_Nonnull p)
 		if (p[i] == ':') {
 			return ret;
 		}
-		ret = ret * 10 + (uid_t)(p[i] - '0');
+		ret = (ret * 10) + (uid_t)(p[i] - '0');
 	}
 	return ret;
 }
@@ -251,7 +253,7 @@ static uid_t line_get_uid_count(const char *_Nonnull p)
 		if (p[i] == '\n') {
 			return ret;
 		}
-		ret = ret * 10 + (uid_t)(p[i] - '0');
+		ret = (ret * 10) + (uid_t)(p[i] - '0');
 	}
 	return ret;
 }
@@ -288,7 +290,7 @@ static void get_uid_map(char *_Nonnull user, struct RURI_ID_MAP *_Nonnull id_map
 	strcpy(str_to_find, user);
 	strcat(str_to_find, ":");
 	char *map = NULL;
-	while (map = strstr(buf, str_to_find)) {
+	while ((map = strstr(buf, str_to_find)) != NULL) {
 		// Check if the found username is valid.
 		if (map == buf || map[-1] == '\n') {
 			id_map->uid_lower = line_get_uid_lower(map);
@@ -330,7 +332,7 @@ static gid_t line_get_gid_lower(const char *_Nonnull p)
 		if (p[i] == ':') {
 			return ret;
 		}
-		ret = ret * 10 + (gid_t)(p[i] - '0');
+		ret = (ret * 10) + (gid_t)(p[i] - '0');
 	}
 	return ret;
 }
@@ -362,7 +364,7 @@ static gid_t line_get_gid_count(const char *_Nonnull p)
 		if (p[i] == '\n') {
 			return ret;
 		}
-		ret = ret * 10 + (gid_t)(p[i] - '0');
+		ret = (ret * 10) + (gid_t)(p[i] - '0');
 	}
 	return ret;
 }
@@ -400,7 +402,7 @@ static void get_gid_map(const char *_Nonnull user, struct RURI_ID_MAP *_Nonnull 
 	strcpy(str_to_find, user);
 	strcat(str_to_find, ":");
 	char *map = NULL;
-	while (map = strstr(buf, str_to_find)) {
+	while ((map = strstr(buf, str_to_find)) != NULL) {
 		// Check if the found username is valid.
 		if (map == buf || map[-1] == '\n') {
 			id_map->gid_lower = line_get_gid_lower(map);
@@ -642,7 +644,7 @@ static gid_t line_get_group_gid(const char *p)
 			RURI_PWD_ERRNO_INTERNAL = 1;
 			return 1145;
 		}
-		ret = ret * 10 + (gid_t)(p[i] - '0');
+		ret = (ret * 10) + (gid_t)(p[i] - '0');
 	}
 	RURI_PWD_ERRNO_INTERNAL = 1;
 	return 1145;

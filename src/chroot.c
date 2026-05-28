@@ -128,7 +128,9 @@ static void generate_machine_id(int container_id)
 	// This is true random, no shitting /dev/urandom.
 	srand((unsigned int)container_id);
 	for (int i = 0; i < 32; i++) {
+		// NOLINTBEGIN
 		new_machine_id[i] = hex_chars[rand() % 16];
+		// NOLINTEND
 	}
 	new_machine_id[32] = '\0';
 	remove("/etc/machine-id");
@@ -348,7 +350,8 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 			if (container->masked_path[i] == NULL) {
 				break;
 			}
-			int res1, res2;
+			int res1 = 0;
+			int res2 = 0;
 			// try to mask with ro tmpfs.
 			res1 = mount("tmpfs", container->masked_path[i], "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV | MS_RDONLY, NULL);
 			// Try to mask with /dev/null.
@@ -747,6 +750,7 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			gid_t user_gid = ruri_get_user_gid(user);
 			if (RURI_PWD_ERRNO != 0) {
 				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: failed to get user info for `%s`: %s{clear}\n", user, strerror(RURI_PWD_ERRNO));
+				free(groups);
 				return;
 			}
 			groups_count = ruri_get_groups(user_uid, groups);
@@ -765,6 +769,8 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_warn_on_error(res, 0, !container->no_warnings, "\n{yellow}Warning: failed to set uid QwQ\n");
 		}
 	}
+#ifdef RURI_DEV
+	// NOLINTBEGIN
 	ruri_log("{base}Changed to user: %s (uid: %d, gid: %d)\n", user, getuid(), getgid());
 	ruri_log("{base}Supplementary groups: \n");
 	int ngroups = getgroups(0, NULL);
@@ -780,6 +786,8 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 		}
 		free(groups);
 	}
+	// NOLINTEND
+#endif
 }
 static void set_hostname(struct RURI_CONTAINER *_Nonnull container)
 {

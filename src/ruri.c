@@ -35,7 +35,9 @@
  * maybe I will rewrite it one day, I hope.
  */
 // Force panic bit.
+// NOLINTBEGIN
 bool ruri_force_panic = false;
+// NOLINTEND
 // For profiling.
 #ifdef RURI_PROFILING
 long long ruri_diff_time(void)
@@ -75,13 +77,14 @@ void ruri_clear_env(char *const *_Nonnull argv)
 		if (fd < 0) {
 			ruri_warn_on_error(0, 1, true, "Failed to create memfd for ruri binary\n");
 			execve("/proc/self/exe", argv, envp);
+			ruri_error("{red}Failed to re-exec ruri binary QwQ\n");
 		}
 		// Set the file as executable.
 		fchmod(fd, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 		// Read the ruri binary from /proc/self/exe and write it to the memfd.
 		int orig_fd = open("/proc/self/exe", O_RDONLY | O_CLOEXEC);
 		char buf[4096];
-		ssize_t bytes_read;
+		ssize_t bytes_read = 0;
 		while ((bytes_read = read(orig_fd, buf, sizeof(buf))) > 0) {
 			if (write(fd, buf, (size_t)bytes_read) < 0) {
 				execve("/proc/self/exe", argv, envp);
@@ -237,9 +240,11 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		// Meow~
 		if (strcmp(argv[index], "meow") == 0) {
 			char *meows[] = { "(=￣ω￣=)", "(=^‥^=)", "≽^•⩊•^≼", "^•ω•^=", "₍^ >ヮ<^₎", "~(=^‥^)", "/ᐠ｡ꞈ｡ᐟ\\", "/ᐠ .ᆺ. ᐟ\\ﾉ", "₍^. .^₎⟆", "ᓚ₍⑅^..^₎♡", "/ᐠ - ˕ -マ", "^. .^₎Ⳋ", "/ᐠ ¬`‸´¬ マ", "⚞ • ⚟", "/ᐠ ˵> ˕ <˵マ", "ᗜ⩊ᗜ", "(˵◝ ⩊  ◜˵マ", "(•˕ •マ.ᐟ", NULL };
+			// NOLINTBEGIN
 			// Get a random meow
 			srand(time(NULL));
-			int random_index = rand() % (sizeof(meows) / sizeof(meows[0]) - 1);
+			int random_index = rand() % (int)(sizeof(meows) / sizeof(meows[0]) - 1);
+			// NOLINTEND
 			cprintf("\n{base}  %s{clear}\n", meows[random_index]);
 			cprintf("{base}How do you meow?{clear}\n");
 			exit(EXIT_SUCCESS);

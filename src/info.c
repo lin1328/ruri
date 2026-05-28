@@ -52,7 +52,7 @@ void ruri_show_version_info(void)
 	cprintf("{base}              <https://mit-license.org>\n");
 	cprintf("{base}         Copyright (C) 2022-2026 Moe-hacker\n\n");
 	cprintf("{base}%s%d.%d.%d%s", "Version ..........:  ", RURI_VERSION_MAJOR, RURI_VERSION_MINOR, RURI_VERSION_PATCH, "\n");
-#if defined(RURI_COMMIT_ID)
+#ifdef RURI_COMMIT_ID
 	cprintf("{base}%s%s%s", "Commit hash ......:  ", RURI_COMMIT_ID, "\n");
 #endif
 	cprintf("{base}%s%s%s", "Architecture .....:  ", RURI_HOST_ARCH, "\n");

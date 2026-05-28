@@ -271,7 +271,7 @@ static void setup_cgroup2(int container_id)
 	if (mkdir(cgroup_dir, 0755) == -1) {
 		ruri_error("{red}Failed to create cgroup directory QwQ\n");
 	}
-	FILE *cgroup_procs = fopen(strcat(cgroup_dir, "/cgroup.procs"), "w");
+	FILE *cgroup_procs = fopen(strcat(cgroup_dir, "/cgroup.procs"), "we");
 	if (!cgroup_procs) {
 		ruri_error("{red}Failed to open cgroup.procs QwQ\n");
 	}
@@ -282,7 +282,7 @@ static void join_cgroup2(int container_id)
 {
 	char cgroup_dir[PATH_MAX] = { '\0' };
 	sprintf(cgroup_dir, "/sys/fs/cgroup/ruri/%d/cgroup.procs", container_id);
-	FILE *cgroup_procs = fopen(cgroup_dir, "w");
+	FILE *cgroup_procs = fopen(cgroup_dir, "we");
 	if (!cgroup_procs) {
 		ruri_error("{red}Failed to open cgroup.procs QwQ\n");
 	}
