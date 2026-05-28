@@ -8,6 +8,10 @@ BSD-style usage is partially supported now. For example, you can use `-pW /root`
 ruri [OPTIONS]...
 ruri [ARGS]... [CONTAINER_DIRECTORY]... [COMMAND [ARGS]...]
 ```
+For example:
+```sh
+ruri /path/to/container echo "hello world"
+```
 
 ## Options
 

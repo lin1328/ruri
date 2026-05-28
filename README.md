@@ -6,7 +6,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14021121.svg)](https://doi.org/10.5281/zenodo.14021121) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/RuriOSS/ruri)
 
-![](https://img.shields.io/badge/backward-compatible-00d000?style=flat&labelColor=gray)
+![](https://img.shields.io/badge/backward%20compatible-for%20CLI%20USAGE-00d000?style=flat&labelColor=gray)
 ![](https://img.shields.io/badge/Powered%20By-GNU%20C-00d000?style=flat&labelColor=gray&logo=C)
 
 [![Build release](https://github.com/RuriOSS/ruri/actions/workflows/build.yml/badge.svg)](https://github.com/RuriOSS/ruri/actions/workflows/build.yml) [![Run autotest](https://github.com/RuriOSS/ruri/actions/workflows/test.yml/badge.svg)](https://github.com/RuriOSS/ruri/actions/workflows/test.yml)
@@ -31,9 +31,24 @@
 &emsp;ruri is pronounced as `lyoli`, or you can call it `[瑠璃/琉璃]` ~~(るり)~~ in Chinese or Japanese as well.    
 &emsp;ruri is acronym to Lightweight, User-friendly Linux-container Implementation.    
 &emsp;ruri is a powerful container implementation that runs on almost any Linux device, even with incomplete kernel configurations or minimal storage space.    
-# Full usage:
-See [USAGE](doc/USAGE.md) to explore all features of ruri.
+# Features:
+- Default configuration works on every device with chroot support.
+- Simple usage, just `ruri /path/to/rootfs [command...]` to run a container.
+- Supports chroot, unshare with pivot_root, capability control, cgroups, no_new_privs, environment/user/workdir setup, seccomp, and more.
+- Built-in binfmt_misc & QEMU for easy multi-arch containers.
+- Rootless containers, security options, and read-only filesystem support.
+- Flexible mount options: mount images/partitions, set mountpoints as read-only or rw.
+- Config file support.
+- Statically linked binaries for many architectures.
+- Very small binary size (even <200k with upx), yet over 30 options.
 
+# Full usage:
+See [USAGE](doc/USAGE.md) to explore all features of ruri.         
+# FAQ
+[FAQ](doc/FAQ.md)        
+# Container Security
+
+See [Enhance Container Security](doc/Security.md).        
 # Seccomp profile:
 After DirtyFrag and CopyFail, seccomp is more and more important for container security.       
 Our default seccomp profile is now ready, and will keep tracking the latest vulnerabilities.      
@@ -41,38 +56,14 @@ You can enable it by using `--enable-seccomp` option. And if you have any sugges
 NOTE: default seccomp profile blocks `personality()` syscall. And it will break debian reprotest, box86/wine and some other software. You can comment out this syscall in seccomp profile to make them work.      
 
 # Security Reporting:
-For vulnerability reporting, please refer to [SECURITY.md](SECURITY.md).
+Considering the security issues of chroot, ruri will drop CAP_SYS_CHROOT by default now  
+If you got any issues with this, please report.      
+In newest code, ruri will also do setgroups() for root user in container to avoid permission issues on some devices, If you'd like to disable it, please use `--no-setgroups` option.      
+See [SECURITY.md](SECURITY.md).
 
 # The enhanced version
 
 [rurima](https://github.com/RuriOSS/rurima) was planned to be the ruri manager, but since it now has a full integration of ruri, you can use it as an enhanced version of ruri.      
-
-# Highlights
-
-- **Powerful Features**
-  - Supports chroot, unshare with pivot_root, capability control, cgroups, no_new_privs, environment/user/workdir setup, seccomp, and more.
-  - Built-in binfmt_misc & QEMU for easy multi-arch containers.
-  - Rootless mode (requires user namespaces).
-  - Flexible mount options: mount images/partitions, set mountpoints as read-only or rw.
-  - Config file support.
-
-- **Ultra-lightweight & Zero Dependencies**
-  - Only optional `uidmap` needed for rootless mode; all other features are built-in.
-  - Statically linked binaries for many architectures.
-  - Very small binary size (even <200k with upx), yet over 30 options.
-
-- **Flexible & Cross-platform**
-  - Runs on rooted Android, IoT, amd64, s390x, and more, just needs root.
-
-- **Secure by Design**
-  - Rootless containers, security options, and read-only filesystem support.
-
-- **Simple for Beginners**
-  - Can replace `chroot` directly; easy to use without learning every option.
-
-  <p align="center">
-  <img src="https://github.com/RuriOSS/ruri/raw/main/logo/rurifetch.png" alt="" style="width:75%;align: center;">
-  </p>
 
 # Terms of Use:
 See [TERMS_OF_USE.md](TERMS_OF_USE.md)
@@ -81,11 +72,6 @@ See [TERMS_OF_USE.md](TERMS_OF_USE.md)
 You need to root your phone first, ruri supports to run with root on Android devices.      
 # Backward compatibility:
 We promise that ruri has backward compatibility of cli usage and config file since v3.9.0, you can keep updated to the newest version. Any breaking changes will not be introduced to v3.9.x
-
-# Important Notice:
-Considering the security issues of chroot, ruri will drop CAP_SYS_CHROOT by default now  
-If you got any issues with this, please report.      
-In newest code, ruri will also do setgroups() for root user in container to avoid permission issues on some devices, If you'd like to disable it, please use `--no-setgroups` option.      
 
 # Bug reporting
 
@@ -105,31 +91,6 @@ Or you can run the following command to download ruri automatically
 ```
 
 This will automatically download ruri binary to `./ruri`.
-
-# Container Security
-
-See [Enhance Container Security](doc/Security.md).
-
-# Build Manually
-
-Ruri provides statically linked binary, but if you want to build it yourself, see [Build](doc/Build.md).
-
-# Integration
-
-ruri is ready to integrate into other projects, with the MIT License, it is compatiblte to be redistribute with almost all license, or commercial/closed source.
-An example is ruri's own build action , it runs containers for 9 different architectures to build itself, that shows its broad application prospects.
-Another example is [rurima](https://github.com/RuriOSS/rurima), I made ruri built-in for it, so it can be run as a subcommand.
-See [Integration](doc/Integration.md) for a guide to integrate ruri into your projects.
-
-# Behavior of rurienv
-
-After initing the container, ruri will create a file /.rurienv by default, this config can unify container config, but it will also cover some of the command-line args, you can use `--no-rurienv` to disable it, or see [rurienv.md](doc/rurienv.md) to see its behavior.
-You might cannot remove this file unless you run `chattr -i .rurienv`, but don't worry, after umounting conainer by `ruri -U`, this config file will be removed automatically.
-If you want to change the container config, just use -U to umount it and re-run the container.
-
-# FAQ
-
-[FAQ](doc/FAQ.md)
 
 # Quick start(with rurima)
 
@@ -188,6 +149,22 @@ For command line examples, please see `ruri -H`.
 # Finally, umount the container
   sudo ruri -U /tmp/alpine
 ```
+# Behavior of rurienv
+
+After initing the container, ruri will create a file /.rurienv by default, this config can unify container config, but it will also cover some of the command-line args, you can use `--no-rurienv` to disable it, or see [rurienv.md](doc/rurienv.md) to see its behavior.
+You might cannot remove this file unless you run `chattr -i .rurienv`, but don't worry, after umounting conainer by `ruri -U`, this config file will be removed automatically.
+If you want to change the container config, just use -U to umount it and re-run the container.
+
+# Build Manually
+
+Ruri provides statically linked binary, but if you want to build it yourself, see [Build](doc/Build.md).
+
+# Integration
+
+ruri is ready to integrate into other projects, with the MIT License, it is compatiblte to be redistribute with almost all license, or commercial/closed source.
+An example is ruri's own build action , it runs containers for 9 different architectures to build itself, that shows its broad application prospects.
+Another example is [rurima](https://github.com/RuriOSS/rurima), I made ruri built-in for it, so it can be run as a subcommand.
+See [Integration](doc/Integration.md) for a guide to integrate ruri into your projects.
 # Performance
 
 On Macbook Air M4, orbstack, ubuntu 25.04:

@@ -1,4 +1,4 @@
-It is recommended to use an LLM that can access the full source code. I tried Deepwiki; it works well, though with some minor mistakes.  
+It is recommended to use an LLM that can access the full source code. I tried Deepwiki, and it works well, though with some minor mistakes.  
 As ruri is not a well-known project, you should ask the LLM to:  
 - Forget all previous conversations with you  
 - Forget all information about other Linux container implementations  

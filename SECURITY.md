@@ -1,8 +1,10 @@
+# For kernel 0-days:
+We are working for default seccomp profile, but unfortunately, the profile is not fully tested, and we cannot enforce it by default now. You can use `--enable-seccomp` to enable it, and help us to test it.       
 # Security Policy
-As ruri is not a project with a large user base, there is no formal security policy in place. However, we take security seriously and encourage responsible disclosure of vulnerabilities.
+As ruri is not a project with a large user base, there is no formal security policy in place. Just report the issues to us, and we will try to fix them as soon as possible.
 
 ## Supported Versions
-Only the latest v3.9.x build is supported now. As this project is backward compatible, no backports will be applied.      
+Only the latest version is supported now. As this project is backward compatible, no backports will be applied.      
 
 ## Reporting a Vulnerability
 
@@ -13,11 +15,10 @@ Emmmmm, when @Moe-hacker have time, he will fix the issues and release a new ver
 Give some time for fixing and testing. After the fix is released, the issues will be disclosed in this file.      
 
 # Security Issues:
-## Recent security issues and their resolutions:
 ### <=3.9.0:
 - CAP_SYS_CHROOT is kept by default, which may lead to container escape.
 - - Seriousness: Very High
-- - Fix: >=3.9.1: CAP_SYS_CHROOT is dropped by default now
+- - Fix: >=3.9.1: CAP_SYS_CHROOT is dropped by default now.
 ### <=3.9.1: 
 - ruri did not reload itself from memfd, which may lead to information leak or even code injection if /proc/pid/exe is replaced.
 - - Seriousness: Low

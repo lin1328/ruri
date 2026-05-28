@@ -1,6 +1,6 @@
 # Mount Option
 
-`ruri` supports mounting various types of resources into the container, with advanced mount types and flags.
+Ruri supports mounting various types of resources into the container, with advanced mount types and flags.
 
 ## Syntax
 

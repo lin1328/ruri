@@ -1,18 +1,20 @@
->WARNING: This doc may be outdated.
 # About rurienv:
 .rurienv is a config file in container, to make it safe, it's immutable by default, and as container do not have cap_linux_immutable by default, you are not able to edit or remove it in container unless you use `-k cap_linux_immutable -k cap_sys_admin` or `-p` to run container, umount it and unset immutable bit for it.      
 It will record the following config:      
 * The capabilty to drop.
 * Set NO_NEW_PRIVS bit.
 * Enable built-in seccomp profile.
+* Denied syscalls.
 * PID owning unshare namespace.
 * Container ID.
 * Work directory.
 * Do not show warnings.
 * User to run the container.
+* OOM score adj.
 * Extra mountpoint.
 * Extra read-only mountpoint.
 * Environment variable.
+* Skip setgroups().
 # Security:   
 .rurienv is set to immutable and bind-mount as read-only on itself. That means you can never edit it in container unless you have both CAP_SYS_ADMIN(umount it) and CAP_LINUX_IMMUTABLE(unset immutable bit) in container. Thus, we can basically trust it.       
 For rootless container, we cannot set this file to immutable, so we do not trust it.     

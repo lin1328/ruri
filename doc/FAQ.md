@@ -1,7 +1,3 @@
-# `-P` option cannot show the process:
-Since ruri use pivot_root() for unshare container for better security,      
-if your device does not support PID ns,      
-we cannot get process info by reading the link /proc/$PID/root, because after pivot_root, it will always be `/`            
 # Network issue:
 You might have `temporary failure resolving xxxxx` or `bad address xxxxx`.      
 Try:       
@@ -11,13 +7,13 @@ echo nameserver 1.1.1.1 > /etc/resolv.conf
 ```
 Or, for Android, run https://github.com/rurioss/daijin/raw/refs/heads/main/src/share/fixup.sh in container.      
 # About systemd:
-Systemd need CAP_SYS_ADMIN to work, and need PID namespace support to make itself to be PID 1.      
-On my device, with `sudo ./ruri -u -k cap_sys_admin ../ubuntu /sbin/init &` and then `sudo ./ruri ../ubuntu /bin/bash` to enter container, although it shows `State: degraded`, systemd seems works.     
-But, as it might do some changes for the host and might make the device crash, you take your own risk to use it.      
+Systemd needs pid namespace, make sure that your kernel has full support for namespaces.       
+You can now use `ruri --systemd --even-unstable /path/to/container /sbin/init` to try booting it up.      
+Some services like `systemd-resolved` might not work, you should disable or mask them.      
 # About container environment:      
-For safety, ruri container is like default docker container, it will mask some directory in /sys and /proc, drop unneed capabilities, and you are not able to run command like mknod or mount by default.      
+For safety, like default docker container, ruri will mask some directory in /sys and /proc, drop unnecessary capabilities, and you are not able to run command like `mknod` or `mount` by default.      
 # About capability:      
-ruri will set capability to the same as docker common container by default, you can use `-k [cap]` or `-d [cap]` to change the capability settings.      
+Ruri drops unnecessary capabilities by default, you can use `-k [cap]` or `-d [cap]` to change the capability settings.      
 For example, use `-d cap_sys_admin` to drop CAP_SYS_ADMIN.      
 In fulture, maybe new caps will be added to the kernel, and their name might cannot be recognized if you are using old builds. You can use the value of cap (use `capsh  --explain=[cap]` to get the value) to drop it, for example, use `-d 114` to drop the cap 114 (I don't know what the cap should be, mabe can make superuser to be a homo).
 # About config:
@@ -30,15 +26,14 @@ The rurienv file is automatically controled by ruri, please do not edit it.
 The command `tty` in ruri might say that "not a tty".      
 If you need to run some program like `gpg`, please use `script -q -O /dev/null` in container.      
 # About runtime dirs:
-ruri will create /dev/, /sys/ and /proc/ after chroot(2) into container for better security. You can use `-S` option to force it to bind-mount system runtime dirs.      
+ruri will create /dev/, /sys/ and /proc/ after chroot(2) into container for better security. You can use `-S` option to force it to bind-mount system runtime dirs. But note that, this is very dangerous.      
 # About multi-arch container:
 Yes, you can run multi-arch containers via ruri if your device support.      
 It needs CONFIG_BINFMT_MISC enabled in your kernel config.      
 You need to copy qemu-*-static to your container first.      
 The path of qemu is the absolute path of qemu binary in the chroot container, for example, you have a qemu binary at `/path/to/container/qemu-amd64-static`, use `-a x86_64 -q /qemu-amd64-static` arguments to start the container.
 # About rootless container:
+You need user namespaces enabled in your kernel config, and your user should have permission to use it.         
 If you get error like `Couldn't create temporary file /tmp/apt.conf.sIKx3J for passing config to apt-key` in container, please `chmod 777 /tmp`.      
 You need uidmap installed in your host.      
 You might need /etc/subuid and /etc/subgid configured in your host.       
-# About Seccomp:
-The seccomp rule of ruri is based on Docker's default seccomp profile. ruri does not provide the way to change it, but you can edit src/seccomp.c and rewrite setup_seccomp() with your own config.      

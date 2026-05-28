@@ -1,13 +1,13 @@
 # Dependency:
 libcap, libseccomp, libpthread.      
-# Build using build.c(experimental)
+# Build using build.c (experimental)
 We are very happy to introduce a new build system for ruri: build.c        
 It's a pure C program that does not depend on any external build system.       
 IT IS A BIG STEP BACKWARDS THE HISTORY OF COMPUTER SCIENCE!!!         
 That's great :)         
 To use it, just `cc build.c` and `./a.out`.       
 for help, see `./a.out -h`.          
-# Build using autoconf(recommended)
+# Build using autoconf (recommended)
 ```
 git clone https://github.com/rurioss/ruri
 cd ruri
@@ -30,7 +30,7 @@ The test script has a part that must be run with `sudo`, `DO NOT` run `make test
   --enable-dev            Enable dev build
 ```
 Note: `--enable-coreonly` will auto enable `--disable-libseccomp --disable-libcap --disable-rurienv`      
-# Build using CMake(for downstream)
+# Build using CMake (for downstream)
 (if you'd prefer to use CMake)      
 ```
 git clone https://github.com/rurioss/ruri
