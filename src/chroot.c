@@ -752,17 +752,17 @@ static void change_user(const struct RURI_CONTAINER *_Nonnull container)
 			groups_count = ruri_get_groups(user_uid, groups);
 			if (groups_count > 0) {
 				res = setgroups((size_t)groups_count, groups);
-				ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+				ruri_warn_on_error(res, 0, !container->no_warnings, "\n{yellow}Warning: failed to set groups QwQ\n");
 			} else {
 				groups[0] = user_uid;
 				res = setgroups(1, groups);
-				ruri_panic_on_error(res, 0, "{red}Error: failed to set groups QwQ\n");
+				ruri_warn_on_error(res, 0, !container->no_warnings, "\n{yellow}Warning: failed to set groups QwQ\n");
 			}
 			free(groups);
 			res = setgid(user_gid);
-			ruri_panic_on_error(res, 0, "{red}Error: failed to set gid QwQ\n");
+			ruri_warn_on_error(res, 0, !container->no_warnings, "\n{yellow}Warning: failed to set gid QwQ\n");
 			res = setuid(user_uid);
-			ruri_panic_on_error(res, 0, "{red}Error: failed to set uid QwQ\n");
+			ruri_warn_on_error(res, 0, !container->no_warnings, "\n{yellow}Warning: failed to set uid QwQ\n");
 		}
 	}
 	ruri_log("{base}Changed to user: %s (uid: %d, gid: %d)\n", user, getuid(), getgid());

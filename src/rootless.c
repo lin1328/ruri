@@ -456,11 +456,18 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			}
 		}
 	}
+	if (!set_id_map_succeed) {
+		if (container->command[0] == NULL) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "\n{yellow}Warning: failed to setup id map for user namespace, command like su will run failed QwQ\n");
+			container->command[0] = "sh";
+			container->command[1] = NULL;
+		}
+	}
 	// fork(2) into new namespaces we created.
 	pid_t pid = fork();
 	if (pid > 0) {
 		if (!set_id_map_succeed) {
-			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Check if uidmap is installed and /etc/subuid and /etc/subgid are configured on your host, command like su will run failed without uidmap.\n");
+			ruri_warn_on_error(1, 0, !container->no_warnings, "\n{yellow}Check if uidmap is installed and /etc/subuid and /etc/subgid are configured on your host, command like su will run failed without uidmap.\n");
 			set_id_map(uid, gid);
 		}
 		usleep(1000);
@@ -469,7 +476,7 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			ruri_store_info(container);
 		} else {
 			if (!container->no_warnings && !container_initlized) {
-				ruri_warn_on_error(1, 0, !container->no_warnings, "{base}NS PID:{green} %d\n", container->ns_pid);
+				ruri_warn_on_error(1, 0, !container->no_warnings, "\n{base}NS PID:{green} %d\n", container->ns_pid);
 			}
 		}
 		// Wait for child process to exit.
