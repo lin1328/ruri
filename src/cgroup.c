@@ -361,6 +361,14 @@ static void ruri_set_cpuset(const struct RURI_CONTAINER *_Nonnull container, con
 			return;
 		}
 	} else if (cg_env->cpuset.type == RURI_CGROUP_V1) {
+		// Set cpuset.mems to 0, otherwise cpuset.cpus will not work.
+		char cgroup_cpuset_mems_path[PATH_MAX] = "";
+		sprintf(cgroup_cpuset_mems_path, "%s%d/cpuset.mems", cg_env->cpuset.prefix, container->container_id);
+		if (open_and_write(cgroup_cpuset_mems_path, "0\n")) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{red}Failed to set cgroup v1 cpuset mems for %s\n", cgroup_cpuset_mems_path);
+			return;
+		}
+		// Set cpuset.cpus to the value specified by user.
 		char cgroup_cpuset_cpus_path[PATH_MAX] = "";
 		sprintf(cgroup_cpuset_cpus_path, "%s%d/cpuset.cpus", cg_env->cpuset.prefix, container->container_id);
 		char buf[256] = "";
