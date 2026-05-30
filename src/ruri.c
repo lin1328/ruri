@@ -138,6 +138,9 @@ static void check_container(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_error("{red}Error: mountpoint path is too long QwQ\n");
 		}
 	}
+	if (container->systemd_mode && container->mount_host_runtime) {
+		ruri_error("{red}Error: --systemd should not run with --mount-host-runtime QwQ\n");
+	}
 }
 static void parse_cgroup_settings(const char *_Nonnull str, struct RURI_CONTAINER *_Nonnull container)
 {
