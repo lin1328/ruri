@@ -470,7 +470,6 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			ruri_warn_on_error(1, 0, !container->no_warnings, "\n{yellow}Check if uidmap is installed and /etc/subuid and /etc/subgid are configured on your host, command like su will run failed without uidmap.\n");
 			set_id_map(uid, gid);
 		}
-		usleep(1000);
 		container->ns_pid = pid;
 		if (container->use_rurienv && !container_initlized && !container->just_chroot) {
 			ruri_store_info(container);
@@ -486,6 +485,9 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	} else if (pid < 0) {
 		ruri_error("{red}Fork error QwQ?\n");
 	} else {
+		if(!set_id_map_succeed) {
+			usleep(10000);
+		}
 		// Init rootless container.
 		if (!container->just_chroot) {
 			init_rootless_container(container);
