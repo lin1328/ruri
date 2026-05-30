@@ -96,9 +96,14 @@ pid_t ruri_get_ns_pid(const char *_Nonnull container_dir)
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
 	}
 	// Read .rurienv file.
-	char *buf = k2v_open_file(file, size + 4);
-	pid_t ret = k2v_get_key(int, "ns_pid", buf);
+	char *buf = k2v3_open_file(file);
+	if (buf == NULL) {
+		return RURI_INIT_VALUE;
+	}
+	k2v3_cache cache = k2v3_parse(buf);
+	pid_t ret = k2v3_get(int, "ns_pid", cache);
 	free(buf);
+	k2v3_free_cache(&cache);
 	if (ret <= 0) {
 		return RURI_INIT_VALUE;
 	}
@@ -308,41 +313,41 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 		return container;
 	}
-	size_t size = k2v_get_filesize(file);
-	if (size >= 65536) {
-		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
-	}
 	// Read .rurienv file.
-	char *buf = k2v_open_file(file, size + 4);
+	char *buf = k2v3_open_file(file);
+	if (buf == NULL) {
+		ruri_error("{red}Failed to read config file:%s\n{clear}", file);
+	}
+	k2v3_cache cache = k2v3_parse(buf);
 	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", buf);
 	// We only need to get part of container info when container is NULL.
 	if (container == NULL) {
 		// For ruri_umount_container().
 		container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
 		ruri_init_config(container);
-		int mlen = k2v_get_key(char_array, "extra_mountpoint", buf, container->extra_mountpoint, RURI_MAX_MOUNTPOINTS);
+		int mlen = k2v3_get(char_array, "extra_mountpoint", cache, container->extra_mountpoint, RURI_MAX_MOUNTPOINTS);
 		container->extra_mountpoint[mlen] = NULL;
 		container->extra_mountpoint[mlen + 1] = NULL;
-		mlen = k2v_get_key(char_array, "extra_ro_mountpoint", buf, container->extra_ro_mountpoint, RURI_MAX_MOUNTPOINTS);
+		mlen = k2v3_get(char_array, "extra_ro_mountpoint", cache, container->extra_ro_mountpoint, RURI_MAX_MOUNTPOINTS);
 		container->extra_ro_mountpoint[mlen] = NULL;
 		container->extra_ro_mountpoint[mlen + 1] = NULL;
 		// For ruri_container_ps() and ruri_umount_container().
-		if (is_ruri_pid(k2v_get_key(int, "ns_pid", buf))) {
-			container->ns_pid = k2v_get_key(int, "ns_pid", buf);
-			container->container_id = k2v_get_key(int, "container_id", buf);
+		if (is_ruri_pid(k2v3_get(int, "ns_pid", cache))) {
+			container->ns_pid = k2v3_get(int, "ns_pid", cache);
+			container->container_id = k2v3_get(int, "container_id", cache);
 		} else {
 			container->ns_pid = RURI_INIT_VALUE;
 			container->container_id = RURI_INIT_VALUE;
 		}
 		// Get rootless.
-		container->rootless = k2v_get_key(bool, "rootless", buf);
+		container->rootless = k2v3_get(bool, "rootless", cache);
 		free(buf);
 		return container;
 	}
 	// Check if ns_pid is a ruri process.
 	// If not, that means the container is not running.
-	if ((container->enable_unshare || container->rootless) && !is_ruri_pid(k2v_get_key(int, "ns_pid", buf))) {
-		ruri_log("{base}pid %d is not a ruri process.\n", k2v_get_key(int, "ns_pid", buf));
+	if ((container->enable_unshare || container->rootless) && !is_ruri_pid(k2v3_get(int, "ns_pid", cache))) {
+		ruri_log("{base}pid %d is not a ruri process.\n", k2v3_get(int, "ns_pid", cache));
 		free(buf);
 		// Unset immutable flag of .rurienv.
 		umount2(file, MNT_DETACH | MNT_FORCE);
@@ -362,12 +367,12 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	// Rootless container will only get ns_pid, work_dir and user.
 	// Because these config are safe.
 	if (container->rootless) {
-		container->ns_pid = k2v_get_key(int, "ns_pid", buf);
+		container->ns_pid = k2v3_get(int, "ns_pid", cache);
 		if (container->work_dir == NULL) {
-			container->work_dir = k2v_get_key(char, "work_dir", buf);
+			container->work_dir = k2v3_get(char, "work_dir", cache);
 		}
 		if (container->user == NULL) {
-			container->user = k2v_get_key(char, "user", buf);
+			container->user = k2v3_get(char, "user", cache);
 		}
 		free(buf);
 		// Unset timens offsets because it's already set.
@@ -381,7 +386,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 #ifndef DISABLE_LIBCAP
 	// Get capabilities to drop.
 	char *drop_caplist[RURI_CAP_LAST_CAP + 1] = { NULL };
-	int caplen = k2v_get_key(char_array, "drop_caplist", buf, drop_caplist, RURI_CAP_LAST_CAP);
+	int caplen = k2v3_get(char_array, "drop_caplist", cache, drop_caplist, RURI_CAP_LAST_CAP);
 	drop_caplist[caplen] = NULL;
 	for (int i = 0; true; i++) {
 		if (drop_caplist[i] == NULL) {
@@ -406,7 +411,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 	}
 	// Get no_new_privs.
-	container->no_new_privs = k2v_get_key(bool, "no_new_privs", buf);
+	container->no_new_privs = k2v3_get(bool, "no_new_privs", cache);
 	// Check if no_new_privs changed.
 	if (backup->no_new_privs != container->no_new_privs) {
 		if (!container->no_warnings) {
@@ -414,7 +419,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 	}
 	// Get enable_seccomp.
-	container->enable_default_seccomp = k2v_get_key(bool, "enable_seccomp", buf);
+	container->enable_default_seccomp = k2v3_get(bool, "enable_seccomp", cache);
 	// Check if enable_seccomp changed.
 	if (backup->enable_default_seccomp != container->enable_default_seccomp) {
 		if (!container->no_warnings) {
@@ -422,7 +427,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 	}
 	// Get skip_setgroups.
-	container->skip_setgroups = k2v_get_key(bool, "skip_setgroups", buf);
+	container->skip_setgroups = k2v3_get(bool, "skip_setgroups", cache);
 	// Check if skip_setgroups changed.
 	if (backup->skip_setgroups != container->skip_setgroups) {
 		if (!container->no_warnings) {
@@ -430,37 +435,37 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		}
 	}
 	// Get seccomp_denied_syscall.
-	int seccomplen = k2v_get_key(char_array, "deny_syscall", buf, container->seccomp_denied_syscall, RURI_MAX_SECCOMP_DENIED_SYSCALL);
+	int seccomplen = k2v3_get(char_array, "deny_syscall", cache, container->seccomp_denied_syscall, RURI_MAX_SECCOMP_DENIED_SYSCALL);
 	container->seccomp_denied_syscall[seccomplen] = NULL;
 	// Check if seccomp_denied_syscall changed.
 	//
 	// TODO
 	//
 	// Get ns_pid.
-	container->ns_pid = k2v_get_key(int, "ns_pid", buf);
+	container->ns_pid = k2v3_get(int, "ns_pid", cache);
 	ruri_log("{base}ns_pid: %d\n", container->ns_pid);
 	// Get container_id.
-	container->container_id = k2v_get_key(int, "container_id", buf);
+	container->container_id = k2v3_get(int, "container_id", cache);
 	// Get work_dir.
 	if (container->work_dir == NULL) {
-		container->work_dir = k2v_get_key(char, "work_dir", buf);
+		container->work_dir = k2v3_get(char, "work_dir", cache);
 	}
 	// Get no_warnings.
-	container->no_warnings = k2v_get_key(bool, "no_warnings", buf);
+	container->no_warnings = k2v3_get(bool, "no_warnings", cache);
 	// User.
 	if (container->user == NULL) {
-		container->user = k2v_get_key(char, "user", buf);
+		container->user = k2v3_get(char, "user", cache);
 	}
 	// Get no_network.
-	container->no_network = k2v_get_key(bool, "no_network", buf);
+	container->no_network = k2v3_get(bool, "no_network", cache);
 	// Get oom_score_adj.
-	container->oom_score_adj = k2v_get_key(int, "oom_score_adj", buf);
+	container->oom_score_adj = k2v3_get(int, "oom_score_adj", cache);
 	// Get env.
-	int envlen = k2v_get_key(char_array, "env", buf, container->env, RURI_MAX_ENVS);
+	int envlen = k2v3_get(char_array, "env", cache, container->env, RURI_MAX_ENVS);
 	container->env[envlen] = NULL;
 	container->env[envlen + 1] = NULL;
 	// Get systemd_mode.
-	container->systemd_mode = k2v_get_key(bool, "systemd_mode", buf);
+	container->systemd_mode = k2v3_get(bool, "systemd_mode", cache);
 	// Qemu will only be set when initializing container.
 	free(container->cross_arch);
 	free(container->qemu_path);
@@ -475,5 +480,6 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	container->timens_monotonic_offset = 0;
 	free(buf);
 	free(backup);
+	k2v3_free_cache(&cache);
 	return container;
 }

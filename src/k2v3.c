@@ -694,7 +694,7 @@ void k2v3_dump(k2v3_cache cache)
 		cache = cache->next;
 	}
 }
-char *k2v3_open_file(char *const _Nonnull path)
+char *k2v3_open_file(const char *_Nonnull path)
 {
 	if (!path) {
 		return NULL;
@@ -732,20 +732,30 @@ char *k2v3_open_file(char *const _Nonnull path)
 	close(fd);
 	return buf;
 }
-int k2v3_have_key(k2v3_cache cache, char *const _Nonnull key, enum K2V3_TYPE type)
+int k2v3_have_key(k2v3_cache cache, const char *const _Nonnull key, enum K2V3_TYPE type)
 {
 	/*
 	 * 0 for key exists with the expected type.
 	 * 1 for key exists but with different type.
 	 * -1 for key does not exist.
 	 */
-	while (cache != NULL) {
-		if (strcmp(cache->key, key) == 0 && cache->type == type) {
-			return 0;
-		} else if (strcmp(cache->key, key) == 0 && cache->type != type) {
-			return 1;
+	if (type == K2V3_ANY) {
+		while (cache != NULL) {
+			if (strcmp(cache->key, key) == 0) {
+				return 0;
+			}
+			cache = cache->next;
 		}
-		cache = cache->next;
+		return -1;
+	} else {
+		while (cache != NULL) {
+			if (strcmp(cache->key, key) == 0 && cache->type == type) {
+				return 0;
+			} else if (strcmp(cache->key, key) == 0 && cache->type != type) {
+				return 1;
+			}
+			cache = cache->next;
+		}
 	}
 	return -1;
 }

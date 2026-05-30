@@ -413,25 +413,22 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	 * and set container config.
 	 */
 	k2v3_stop_at_warning(1);
-	size_t size = k2v_get_filesize(path);
-	if (size >= 65536) {
-		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
-	}
-	char *buf = k2v_open_file(path, size + 4);
+	char *buf = k2v3_open_file(path);
+	k2v3_cache cache = k2v3_parse(buf);
 	if (buf == NULL) {
 		ruri_error("{red}Failed to read config file:%s\n{clear}", path);
 	}
 	// Check if config is valid.
 	char *key_list[] = { "timens_realtime_offset", "timens_monotonic_offset", "hidepid", "char_devs", "use_kvm", "no_network", "container_dir", "user", "drop_caplist", "no_new_privs", "enable_seccomp", "rootless", "no_warnings", "cross_arch", "qemu_path", "use_rurienv", "cpuset", "memory", "cpupercent", "just_chroot", "unmask_dirs", "mount_host_runtime", "work_dir", "rootfs_source", "ro_root", "extra_mountpoint", "extra_ro_mountpoint", "env", "command", "hostname", NULL };
 	for (int i = 0; key_list[i] != NULL; i++) {
-		if (!have_key(key_list[i], buf)) {
+		if (k2v3_have_key(cache, key_list[i], K2V3_ANY) != 0) {
 			ruri_error("{red}Invalid config file, there is no key:%s\nHint:\n You can try to use `ruri -C config` to fix the config file{clear}", key_list[i]);
 		}
 	}
 #ifndef DISABLE_LIBCAP
 	// Get drop_caplist.
 	char *drop_caplist[RURI_CAP_LAST_CAP + 1] = { NULL };
-	int caplen = k2v_get_key(char_array, "drop_caplist", buf, drop_caplist, RURI_CAP_LAST_CAP);
+	int caplen = k2v3_get(char_array, "drop_caplist", cache, drop_caplist, RURI_CAP_LAST_CAP);
 	drop_caplist[caplen] = NULL;
 	for (int i = 0; true; i++) {
 		if (drop_caplist[i] == NULL) {
@@ -449,104 +446,107 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	}
 #endif
 	// Get no_new_privs.
-	container->no_new_privs = k2v_get_key(bool, "no_new_privs", buf);
+	container->no_new_privs = k2v3_get(bool, "no_new_privs", cache);
 	// Get enable_seccomp.
-	container->enable_default_seccomp = k2v_get_key(bool, "enable_seccomp", buf);
+	container->enable_default_seccomp = k2v3_get(bool, "enable_seccomp", cache);
 	// Get container_dir.
-	container->container_dir = k2v_get_key(char, "container_dir", buf);
+	container->container_dir = k2v3_get(char, "container_dir", cache);
 	// Get qemu_path.
-	container->qemu_path = k2v_get_key(char, "qemu_path", buf);
+	container->qemu_path = k2v3_get(char, "qemu_path", cache);
 	// Get cross_arch.
-	container->cross_arch = k2v_get_key(char, "cross_arch", buf);
+	container->cross_arch = k2v3_get(char, "cross_arch", cache);
 	// Get rootless.
-	container->rootless = k2v_get_key(bool, "rootless", buf);
+	container->rootless = k2v3_get(bool, "rootless", cache);
 	// Get mount_host_runtime.
-	container->mount_host_runtime = k2v_get_key(bool, "mount_host_runtime", buf);
+	container->mount_host_runtime = k2v3_get(bool, "mount_host_runtime", cache);
 	// Get ro_root.
-	container->ro_root = k2v_get_key(bool, "ro_root", buf);
+	container->ro_root = k2v3_get(bool, "ro_root", cache);
 	// Get no_warnings.
-	container->no_warnings = k2v_get_key(bool, "no_warnings", buf);
+	container->no_warnings = k2v3_get(bool, "no_warnings", cache);
 	// Get use_rurienv.
-	container->use_rurienv = k2v_get_key(bool, "use_rurienv", buf);
+	container->use_rurienv = k2v3_get(bool, "use_rurienv", cache);
 #ifdef DISABLE_RURIENV
 	container->use_rurienv = false;
 #endif
 	// Get cpuset.
-	container->cpuset = k2v_get_key(char, "cpuset", buf);
+	container->cpuset = k2v3_get(char, "cpuset", cache);
 	// Get memory.
-	container->memory = k2v_get_key(char, "memory", buf);
+	container->memory = k2v3_get(char, "memory", cache);
 	// Get cpupercent.
-	container->cpupercent = k2v_get_key(int, "cpupercent", buf);
+	container->cpupercent = k2v3_get(int, "cpupercent", cache);
 	// Get just_chroot.
-	container->just_chroot = k2v_get_key(bool, "just_chroot", buf);
+	container->just_chroot = k2v3_get(bool, "just_chroot", cache);
 	// Get work_dir.
-	container->work_dir = k2v_get_key(char, "work_dir", buf);
+	container->work_dir = k2v3_get(char, "work_dir", cache);
 	// Get rootfs_source.
-	container->rootfs_source = k2v_get_key(char, "rootfs_source", buf);
+	container->rootfs_source = k2v3_get(char, "rootfs_source", cache);
 	// Get unmask_dirs.
-	container->unmask_dirs = k2v_get_key(bool, "unmask_dirs", buf);
+	container->unmask_dirs = k2v3_get(bool, "unmask_dirs", cache);
 	// Get hostname.
-	container->hostname = k2v_get_key(char, "hostname", buf);
+	container->hostname = k2v3_get(char, "hostname", cache);
 	// Get no_network.
-	container->no_network = k2v_get_key(bool, "no_network", buf);
+	container->no_network = k2v3_get(bool, "no_network", cache);
 	// Get use_kvm.
-	container->use_kvm = k2v_get_key(bool, "use_kvm", buf);
+	container->use_kvm = k2v3_get(bool, "use_kvm", cache);
 	// Get hidepid.
-	container->hidepid = k2v_get_key(int, "hidepid", buf);
+	container->hidepid = k2v3_get(int, "hidepid", cache);
 	// Get oom_score_adj.
-	container->oom_score_adj = k2v_get_key(int, "oom_score_adj", buf);
+	container->oom_score_adj = k2v3_get(int, "oom_score_adj", cache);
 	// Get skip_setgroups.
-	container->skip_setgroups = k2v_get_key(bool, "skip_setgroups", buf);
+	container->skip_setgroups = k2v3_get(bool, "skip_setgroups", cache);
 	// Get user.
 	if (container->user == NULL) {
-		container->user = k2v_get_key(char, "user", buf);
+		container->user = k2v3_get(char, "user", cache);
 	}
 	// Get env.
-	int envlen = k2v_get_key(char_array, "env", buf, container->env, RURI_MAX_ENVS);
+	int envlen = k2v3_get(char_array, "env", cache, container->env, RURI_MAX_ENVS);
 	if (envlen % 2 != 0) {
 		ruri_error("{red}Invalid env format\n{clear}");
 	}
 	container->env[envlen] = NULL;
 	container->env[envlen + 1] = NULL;
 	// Get extra_mountpoint.
-	int mlen = k2v_get_key(char_array, "extra_mountpoint", buf, container->extra_mountpoint, RURI_MAX_MOUNTPOINTS);
+	int mlen = k2v3_get(char_array, "extra_mountpoint", cache, container->extra_mountpoint, RURI_MAX_MOUNTPOINTS);
 	if (mlen % 2 != 0) {
 		ruri_error("{red}Invalid extra_mountpoint format\n{clear}");
 	}
 	container->extra_mountpoint[mlen] = NULL;
 	container->extra_mountpoint[mlen + 1] = NULL;
 	// Get extra_ro_mountpoint.
-	mlen = k2v_get_key(char_array, "extra_ro_mountpoint", buf, container->extra_ro_mountpoint, RURI_MAX_MOUNTPOINTS);
+	mlen = k2v3_get(char_array, "extra_ro_mountpoint", cache, container->extra_ro_mountpoint, RURI_MAX_MOUNTPOINTS);
 	if (mlen % 2 != 0) {
 		ruri_error("{red}Invalid extra_ro_mountpoint format\n{clear}");
 	}
 	container->extra_ro_mountpoint[mlen] = NULL;
 	container->extra_ro_mountpoint[mlen + 1] = NULL;
 	// Get char_devs.
-	int charlen = k2v_get_key(char_array, "char_devs", buf, container->char_devs, RURI_MAX_CHAR_DEVS);
+	int charlen = k2v3_get(char_array, "char_devs", cache, container->char_devs, RURI_MAX_CHAR_DEVS);
 	container->char_devs[charlen] = NULL;
 	if (charlen % 3 != 0) {
 		ruri_error("{red}Invalid char_devs format\n{clear}");
 	}
 	// Get seccomp_denied_syscall.
-	int seccomplen = k2v_get_key(char_array, "deny_syscall", buf, container->seccomp_denied_syscall, RURI_MAX_SECCOMP_DENIED_SYSCALL);
+	int seccomplen = k2v3_get(char_array, "deny_syscall", cache, container->seccomp_denied_syscall, RURI_MAX_SECCOMP_DENIED_SYSCALL);
 	container->seccomp_denied_syscall[seccomplen] = NULL;
 	// Get time offset.
-	container->timens_realtime_offset = k2v_get_key(long, "timens_realtime_offset", buf);
-	container->timens_monotonic_offset = k2v_get_key(long, "timens_monotonic_offset", buf);
+	container->timens_realtime_offset = k2v3_get(long, "timens_realtime_offset", cache);
+	container->timens_monotonic_offset = k2v3_get(long, "timens_monotonic_offset", cache);
 	// Get masked_path.
-	int maskedlen = k2v_get_key(char_array, "masked_path", buf, container->masked_path, RURI_MAX_MOUNTPOINTS);
+	int maskedlen = k2v3_get(char_array, "masked_path", cache, container->masked_path, RURI_MAX_MOUNTPOINTS);
 	container->masked_path[maskedlen] = NULL;
 	// Get enable_tty_signals.
-	container->enable_tty_signals = k2v_get_key(bool, "enable_tty_signals", buf);
+	container->enable_tty_signals = k2v3_get(bool, "enable_tty_signals", cache);
 	// Get command.
-	int comlen = k2v_get_key(char_array, "command", buf, container->command, RURI_MAX_COMMANDS);
+	int comlen = k2v3_get(char_array, "command", cache, container->command, RURI_MAX_COMMANDS);
 	container->command[comlen] = NULL;
 	// Get systemd_mode.
-	container->systemd_mode = k2v_get_key(bool, "systemd_mode", buf);
+	container->systemd_mode = k2v3_get(bool, "systemd_mode", cache);
 	free(buf);
+	k2v3_dump(cache);
+	k2v3_free_cache(&cache);
 	buf = ruri_container_info_to_k2v(container);
-	ruri_log("{base}Container config in %s:{cyan}\n%s", path, buf);
+	ruri_log("{base}Container config in %s:{cyan}\n", path);
+	ruri_log("%s{clear}", buf);
 	free(buf);
 }
 void ruri_correct_config(const char *_Nonnull path)
