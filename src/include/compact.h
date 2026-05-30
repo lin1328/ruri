@@ -7,8 +7,8 @@
 #if __STDC_VERSION__ < 202000L
 #ifndef bool
 #define bool _Bool
-#define true ((_Bool) + 1u)
-#define false ((_Bool) + 0u)
+#define true ((_Bool)1u)
+#define false ((_Bool)0u)
 #endif
 #endif
 // Fix definition of HOST_NAME_MAX
