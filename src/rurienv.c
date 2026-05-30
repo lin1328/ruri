@@ -135,19 +135,19 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 			cap_tmp = NULL;
 		}
 	}
-	ret = k2v_add_comment(ret, "The capability to drop.");
-	ret = k2v_add_config(char_array, ret, "drop_caplist", drop_caplist, len);
+	ret = k2v3_add_comment(ret, "The capability to drop.");
+	ret = k2v3_add_config(char_array, ret, "drop_caplist", drop_caplist, len);
 	// Make ASAN happy.
 	for (int i = 0; i < len; i++) {
 		free(drop_caplist[i]);
 	}
 #endif
 	// no_new_privs.
-	ret = k2v_add_comment(ret, "Set NO_NEW_PRIVS bit.");
-	ret = k2v_add_config(bool, ret, "no_new_privs", container->no_new_privs);
+	ret = k2v3_add_comment(ret, "Set NO_NEW_PRIVS bit.");
+	ret = k2v3_add_config(bool, ret, "no_new_privs", container->no_new_privs);
 	// enable_seccomp.
-	ret = k2v_add_comment(ret, "Enable built-in seccomp profile.");
-	ret = k2v_add_config(bool, ret, "enable_seccomp", container->enable_default_seccomp);
+	ret = k2v3_add_comment(ret, "Enable built-in seccomp profile.");
+	ret = k2v3_add_config(bool, ret, "enable_seccomp", container->enable_default_seccomp);
 	// seccomp_denied_syscall.
 	for (int i = 0; true; i++) {
 		if (container->seccomp_denied_syscall[i] == NULL) {
@@ -155,33 +155,33 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Denied syscalls, use seccomp.");
-	ret = k2v_add_config(char_array, ret, "deny_syscall", container->seccomp_denied_syscall, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Denied syscalls, use seccomp.");
+	ret = k2v3_add_config(char_array, ret, "deny_syscall", container->seccomp_denied_syscall, len);
+	ret = k2v3_add_newline(ret);
 	// ns_pid.
-	ret = k2v_add_comment(ret, "PID owning unshare namespace.");
-	ret = k2v_add_config(int, ret, "ns_pid", container->ns_pid);
+	ret = k2v3_add_comment(ret, "PID owning unshare namespace.");
+	ret = k2v3_add_config(int, ret, "ns_pid", container->ns_pid);
 	// container_id.
-	ret = k2v_add_comment(ret, "Container ID.");
-	ret = k2v_add_config(int, ret, "container_id", container->container_id);
+	ret = k2v3_add_comment(ret, "Container ID.");
+	ret = k2v3_add_config(int, ret, "container_id", container->container_id);
 	// work_dir.
-	ret = k2v_add_comment(ret, "Work directory.");
-	ret = k2v_add_config(char, ret, "work_dir", container->work_dir);
+	ret = k2v3_add_comment(ret, "Work directory.");
+	ret = k2v3_add_config(char, ret, "work_dir", container->work_dir);
 	// no_warnings.
-	ret = k2v_add_comment(ret, "Do not show warnings.");
-	ret = k2v_add_config(bool, ret, "no_warnings", container->no_warnings);
+	ret = k2v3_add_comment(ret, "Do not show warnings.");
+	ret = k2v3_add_config(bool, ret, "no_warnings", container->no_warnings);
 	// no_network.
-	ret = k2v_add_comment(ret, "Disable network.");
-	ret = k2v_add_config(bool, ret, "no_network", container->no_network);
+	ret = k2v3_add_comment(ret, "Disable network.");
+	ret = k2v3_add_config(bool, ret, "no_network", container->no_network);
 	// rootless
-	ret = k2v_add_comment(ret, "Run rootless container.");
-	ret = k2v_add_config(bool, ret, "rootless", container->rootless);
+	ret = k2v3_add_comment(ret, "Run rootless container.");
+	ret = k2v3_add_config(bool, ret, "rootless", container->rootless);
 	// user.
-	ret = k2v_add_comment(ret, "User to run command in the container.");
-	ret = k2v_add_config(char, ret, "user", container->user);
+	ret = k2v3_add_comment(ret, "User to run command in the container.");
+	ret = k2v3_add_config(char, ret, "user", container->user);
 	// OOM score.
-	ret = k2v_add_comment(ret, "OOM score.");
-	ret = k2v_add_config(int, ret, "oom_score_adj", container->oom_score_adj);
+	ret = k2v3_add_comment(ret, "OOM score.");
+	ret = k2v3_add_config(int, ret, "oom_score_adj", container->oom_score_adj);
 	// extra_mountpoint.
 	for (int i = 0; true; i++) {
 		if (container->extra_mountpoint[i] == NULL) {
@@ -189,8 +189,8 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Extra mountpoint.");
-	ret = k2v_add_config(char_array, ret, "extra_mountpoint", container->extra_mountpoint, len);
+	ret = k2v3_add_comment(ret, "Extra mountpoint.");
+	ret = k2v3_add_config(char_array, ret, "extra_mountpoint", container->extra_mountpoint, len);
 	// extra_ro_mountpoint.
 	for (int i = 0; true; i++) {
 		if (container->extra_ro_mountpoint[i] == NULL) {
@@ -198,8 +198,8 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Extra read-only mountpoint.");
-	ret = k2v_add_config(char_array, ret, "extra_ro_mountpoint", container->extra_ro_mountpoint, len);
+	ret = k2v3_add_comment(ret, "Extra read-only mountpoint.");
+	ret = k2v3_add_config(char_array, ret, "extra_ro_mountpoint", container->extra_ro_mountpoint, len);
 	// env.
 	for (int i = 0; true; i++) {
 		if (container->env[i] == NULL) {
@@ -207,16 +207,16 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Environment variable.");
-	ret = k2v_add_config(char_array, ret, "env", container->env, len);
+	ret = k2v3_add_comment(ret, "Environment variable.");
+	ret = k2v3_add_config(char_array, ret, "env", container->env, len);
 	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", ret);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_newline(ret);
 	// skip_setgroups.
-	ret = k2v_add_comment(ret, "Skip setgroups() call.");
-	ret = k2v_add_config(bool, ret, "skip_setgroups", container->skip_setgroups);
+	ret = k2v3_add_comment(ret, "Skip setgroups() call.");
+	ret = k2v3_add_config(bool, ret, "skip_setgroups", container->skip_setgroups);
 	// Systemd mode.
-	ret = k2v_add_comment(ret, "Systemd mode.");
-	ret = k2v_add_config(bool, ret, "systemd_mode", container->systemd_mode);
+	ret = k2v3_add_comment(ret, "Systemd mode.");
+	ret = k2v3_add_config(bool, ret, "systemd_mode", container->systemd_mode);
 	return ret;
 }
 // Store container info.

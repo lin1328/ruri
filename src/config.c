@@ -130,17 +130,17 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 	}
 	char *ret = strdup(shebang);
 	// container_dir.
-	ret = k2v_add_comment(ret, "The CONTAINER_DIR.");
-	ret = k2v_add_comment(ret, "Should be an absolute path on host.");
-	ret = k2v_add_comment(ret, "This can not be empty.");
-	ret = k2v_add_config(char, ret, "container_dir", container->container_dir);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "The CONTAINER_DIR.");
+	ret = k2v3_add_comment(ret, "Should be an absolute path on host.");
+	ret = k2v3_add_comment(ret, "This can not be empty.");
+	ret = k2v3_add_config(char, ret, "container_dir", container->container_dir);
+	ret = k2v3_add_newline(ret);
 	// user.
-	ret = k2v_add_comment(ret, "The user to run command in the container.");
-	ret = k2v_add_comment(ret, "Use username or uid is both valid.");
-	ret = k2v_add_comment(ret, "Default is root, set it to empty to use default.");
-	ret = k2v_add_config(char, ret, "user", container->user);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "The user to run command in the container.");
+	ret = k2v3_add_comment(ret, "Use username or uid is both valid.");
+	ret = k2v3_add_comment(ret, "Default is root, set it to empty to use default.");
+	ret = k2v3_add_config(char, ret, "user", container->user);
+	ret = k2v3_add_newline(ret);
 	// drop_caplist.
 	char *drop_caplist[RURI_CAP_LAST_CAP + 1] = { NULL };
 	int len = 0;
@@ -162,131 +162,131 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 		}
 	}
 #endif
-	ret = k2v_add_comment(ret, "The capability to drop.");
-	ret = k2v_add_comment(ret, "Format: \"capname1\",\"capname2\".");
-	ret = k2v_add_comment(ret, "For example, [\"cap_sys_admin\",\"cap_sys_chroot\"] is valid.");
-	ret = k2v_add_config(char_array, ret, "drop_caplist", drop_caplist, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "The capability to drop.");
+	ret = k2v3_add_comment(ret, "Format: \"capname1\",\"capname2\".");
+	ret = k2v3_add_comment(ret, "For example, [\"cap_sys_admin\",\"cap_sys_chroot\"] is valid.");
+	ret = k2v3_add_config(char_array, ret, "drop_caplist", drop_caplist, len);
+	ret = k2v3_add_newline(ret);
 	// Make ASAN happy.
 	for (int i = 0; i < len; i++) {
 		free(drop_caplist[i]);
 	}
 	// no_new_privs.
-	ret = k2v_add_comment(ret, "Set NO_NEW_PRIVS bit.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "no_new_privs", container->no_new_privs);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Set NO_NEW_PRIVS bit.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "no_new_privs", container->no_new_privs);
+	ret = k2v3_add_newline(ret);
 	// enable_unshare.
-	ret = k2v_add_comment(ret, "Enable unshare feature.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "enable_unshare", container->enable_unshare);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Enable unshare feature.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "enable_unshare", container->enable_unshare);
+	ret = k2v3_add_newline(ret);
 	// rootless.
-	ret = k2v_add_comment(ret, "Run rootless container.");
-	ret = k2v_add_comment(ret, "Need user ns support.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "rootless", container->rootless);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Run rootless container.");
+	ret = k2v3_add_comment(ret, "Need user ns support.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "rootless", container->rootless);
+	ret = k2v3_add_newline(ret);
 	// no_warnings.
-	ret = k2v_add_comment(ret, "Disable warnings.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "no_warnings", container->no_warnings);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Disable warnings.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "no_warnings", container->no_warnings);
+	ret = k2v3_add_newline(ret);
 	// cross_arch.
-	ret = k2v_add_comment(ret, "The arch for running cross-arch container.");
-	ret = k2v_add_comment(ret, "For example, x86_64.");
-	ret = k2v_add_comment(ret, "Should also set qemu_path.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char, ret, "cross_arch", container->cross_arch);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "The arch for running cross-arch container.");
+	ret = k2v3_add_comment(ret, "For example, x86_64.");
+	ret = k2v3_add_comment(ret, "Should also set qemu_path.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char, ret, "cross_arch", container->cross_arch);
+	ret = k2v3_add_newline(ret);
 	// qemu_path.
-	ret = k2v_add_comment(ret, "The path of qemu-user static binary.");
-	ret = k2v_add_comment(ret, "For example, /usr/bin/qemu-x86_64-static.");
-	ret = k2v_add_comment(ret, "Should also set cross_arch.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char, ret, "qemu_path", container->qemu_path);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "The path of qemu-user static binary.");
+	ret = k2v3_add_comment(ret, "For example, /usr/bin/qemu-x86_64-static.");
+	ret = k2v3_add_comment(ret, "Should also set cross_arch.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char, ret, "qemu_path", container->qemu_path);
+	ret = k2v3_add_newline(ret);
 	// use_rurienv.
-	ret = k2v_add_comment(ret, "Enable using .rurienv file.");
-	ret = k2v_add_comment(ret, "Default is true.");
-	ret = k2v_add_config(bool, ret, "use_rurienv", container->use_rurienv);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Enable using .rurienv file.");
+	ret = k2v3_add_comment(ret, "Default is true.");
+	ret = k2v3_add_config(bool, ret, "use_rurienv", container->use_rurienv);
+	ret = k2v3_add_newline(ret);
 	// enable_default_seccomp.
-	ret = k2v_add_comment(ret, "Enable built-in seccomp profile.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "enable_seccomp", container->enable_default_seccomp);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Enable built-in seccomp profile.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "enable_seccomp", container->enable_default_seccomp);
+	ret = k2v3_add_newline(ret);
 	// hidepid.
-	ret = k2v_add_comment(ret, "Hide pid in /proc.");
-	ret = k2v_add_comment(ret, "Can be 1 or 2, set <=0 to use default.");
-	ret = k2v_add_config(int, ret, "hidepid", container->hidepid);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Hide pid in /proc.");
+	ret = k2v3_add_comment(ret, "Can be 1 or 2, set <=0 to use default.");
+	ret = k2v3_add_config(int, ret, "hidepid", container->hidepid);
+	ret = k2v3_add_newline(ret);
 	// cpuset.
-	ret = k2v_add_comment(ret, "Cgroup cpuset limit.");
-	ret = k2v_add_comment(ret, "For example, 0-2 or 0 is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char, ret, "cpuset", container->cpuset);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Cgroup cpuset limit.");
+	ret = k2v3_add_comment(ret, "For example, 0-2 or 0 is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char, ret, "cpuset", container->cpuset);
+	ret = k2v3_add_newline(ret);
 	// cpupercent.
-	ret = k2v_add_comment(ret, "Cgroup cpu limit.");
-	ret = k2v_add_comment(ret, "The value is in percentage, set it <=0 to disable.");
-	ret = k2v_add_config(int, ret, "cpupercent", container->cpupercent);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Cgroup cpu limit.");
+	ret = k2v3_add_comment(ret, "The value is in percentage, set it <=0 to disable.");
+	ret = k2v3_add_config(int, ret, "cpupercent", container->cpupercent);
+	ret = k2v3_add_newline(ret);
 	// memory.
-	ret = k2v_add_comment(ret, "Cgroup memory limit.");
-	ret = k2v_add_comment(ret, "For example, 1G or 1024M is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char, ret, "memory", container->memory);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Cgroup memory limit.");
+	ret = k2v3_add_comment(ret, "For example, 1G or 1024M is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char, ret, "memory", container->memory);
+	ret = k2v3_add_newline(ret);
 	// just_chroot.
-	ret = k2v_add_comment(ret, "Just chroot, do not create runtime dirs.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "just_chroot", container->just_chroot);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Just chroot, do not create runtime dirs.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "just_chroot", container->just_chroot);
+	ret = k2v3_add_newline(ret);
 	// unmask_dirs.
-	ret = k2v_add_comment(ret, "Unmask dirs in /proc and /sys.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "unmask_dirs", container->unmask_dirs);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Unmask dirs in /proc and /sys.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "unmask_dirs", container->unmask_dirs);
+	ret = k2v3_add_newline(ret);
 	// mount_host_runtime.
-	ret = k2v_add_comment(ret, "Mount runtime dirs from the host.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "mount_host_runtime", container->mount_host_runtime);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Mount runtime dirs from the host.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "mount_host_runtime", container->mount_host_runtime);
+	ret = k2v3_add_newline(ret);
 	// work_dir.
-	ret = k2v_add_comment(ret, "Work directory.");
-	ret = k2v_add_comment(ret, "Should be an absolute path in the container.");
-	ret = k2v_add_comment(ret, "Default is / , set it to empty to use default.");
-	ret = k2v_add_config(char, ret, "work_dir", container->work_dir);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Work directory.");
+	ret = k2v3_add_comment(ret, "Should be an absolute path in the container.");
+	ret = k2v3_add_comment(ret, "Default is / , set it to empty to use default.");
+	ret = k2v3_add_config(char, ret, "work_dir", container->work_dir);
+	ret = k2v3_add_newline(ret);
 	// rootfs_source.
-	ret = k2v_add_comment(ret, "Rootfs source, will be mount to / as first mountpoint.");
-	ret = k2v_add_comment(ret, "Should be an absolute path in the host.");
-	ret = k2v_add_comment(ret, "/path/to/rootfs.img or /dev/sda1 is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to use container_dir as default.");
-	ret = k2v_add_config(char, ret, "rootfs_source", container->rootfs_source);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Rootfs source, will be mount to / as first mountpoint.");
+	ret = k2v3_add_comment(ret, "Should be an absolute path in the host.");
+	ret = k2v3_add_comment(ret, "/path/to/rootfs.img or /dev/sda1 is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to use container_dir as default.");
+	ret = k2v3_add_config(char, ret, "rootfs_source", container->rootfs_source);
+	ret = k2v3_add_newline(ret);
 	// ro_root.
-	ret = k2v_add_comment(ret, "Make / read-only.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "ro_root", container->ro_root);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Make / read-only.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "ro_root", container->ro_root);
+	ret = k2v3_add_newline(ret);
 	// no_network.
-	ret = k2v_add_comment(ret, "Disable network.");
-	ret = k2v_add_comment(ret, "This also need enable_unshare to be true.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "no_network", container->no_network);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Disable network.");
+	ret = k2v3_add_comment(ret, "This also need enable_unshare to be true.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "no_network", container->no_network);
+	ret = k2v3_add_newline(ret);
 	// Use kvm.
-	ret = k2v_add_comment(ret, "Use kvm");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "use_kvm", container->use_kvm);
+	ret = k2v3_add_comment(ret, "Use kvm");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "use_kvm", container->use_kvm);
 	// oom_score_adj.
-	ret = k2v_add_comment(ret, "OOM score.");
-	ret = k2v_add_comment(ret, "Default is 0.");
-	ret = k2v_add_comment(ret, "Set it to 0 to disable.");
-	ret = k2v_add_config(int, ret, "oom_score_adj", container->oom_score_adj);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "OOM score.");
+	ret = k2v3_add_comment(ret, "Default is 0.");
+	ret = k2v3_add_comment(ret, "Set it to 0 to disable.");
+	ret = k2v3_add_config(int, ret, "oom_score_adj", container->oom_score_adj);
+	ret = k2v3_add_newline(ret);
 	// extra_mountpoint.
 	for (int i = 0; true; i++) {
 		if (container->extra_mountpoint[i] == NULL) {
@@ -294,12 +294,12 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Extra mountpoint.");
-	ret = k2v_add_comment(ret, "Format: \"source\",\"target\".");
-	ret = k2v_add_comment(ret, "For example, [\"/tmp\",\"/tmp\",\"/var\",\"/var\"] is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char_array, ret, "extra_mountpoint", container->extra_mountpoint, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Extra mountpoint.");
+	ret = k2v3_add_comment(ret, "Format: \"source\",\"target\".");
+	ret = k2v3_add_comment(ret, "For example, [\"/tmp\",\"/tmp\",\"/var\",\"/var\"] is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char_array, ret, "extra_mountpoint", container->extra_mountpoint, len);
+	ret = k2v3_add_newline(ret);
 	// extra_ro_mountpoint.
 	for (int i = 0; true; i++) {
 		if (container->extra_ro_mountpoint[i] == NULL) {
@@ -307,12 +307,12 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Extra read-only mountpoint.");
-	ret = k2v_add_comment(ret, "Format: \"source\",\"target\".");
-	ret = k2v_add_comment(ret, "For example, [\"/tmp\",\"/tmp\",\"/var\",\"/var\"] is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char_array, ret, "extra_ro_mountpoint", container->extra_ro_mountpoint, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Extra read-only mountpoint.");
+	ret = k2v3_add_comment(ret, "Format: \"source\",\"target\".");
+	ret = k2v3_add_comment(ret, "For example, [\"/tmp\",\"/tmp\",\"/var\",\"/var\"] is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char_array, ret, "extra_ro_mountpoint", container->extra_ro_mountpoint, len);
+	ret = k2v3_add_newline(ret);
 	// env.
 	for (int i = 0; true; i++) {
 		if (container->env[i] == NULL) {
@@ -320,12 +320,12 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Environment variable.");
-	ret = k2v_add_comment(ret, "Format: \"key\",\"value\".");
-	ret = k2v_add_comment(ret, "For example, [\"key1\",\"value1\",\"key2\",\"value2\"] is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char_array, ret, "env", container->env, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Environment variable.");
+	ret = k2v3_add_comment(ret, "Format: \"key\",\"value\".");
+	ret = k2v3_add_comment(ret, "For example, [\"key1\",\"value1\",\"key2\",\"value2\"] is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char_array, ret, "env", container->env, len);
+	ret = k2v3_add_newline(ret);
 	// Char devices.
 	for (int i = 0; true; i++) {
 		if (container->char_devs[i] == NULL) {
@@ -333,12 +333,12 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Extra char devices.");
-	ret = k2v_add_comment(ret, "Format: \"device\",\"major\",\"minor\".");
-	ret = k2v_add_comment(ret, "For example, [\"kvm\",\"10\",\"232\"] is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char_array, ret, "char_devs", container->char_devs, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Extra char devices.");
+	ret = k2v3_add_comment(ret, "Format: \"device\",\"major\",\"minor\".");
+	ret = k2v3_add_comment(ret, "For example, [\"kvm\",\"10\",\"232\"] is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char_array, ret, "char_devs", container->char_devs, len);
+	ret = k2v3_add_newline(ret);
 	// command.
 	for (int i = 0; true; i++) {
 		if (container->command[i] == NULL) {
@@ -346,24 +346,24 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Default command to run.");
-	ret = k2v_add_comment(ret, "For example, [\"/bin/sh\",\"-c\",\"echo hello\"] is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to use default (/bin/su - or /bin/sh).");
-	ret = k2v_add_config(char_array, ret, "command", container->command, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Default command to run.");
+	ret = k2v3_add_comment(ret, "For example, [\"/bin/sh\",\"-c\",\"echo hello\"] is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to use default (/bin/su - or /bin/sh).");
+	ret = k2v3_add_config(char_array, ret, "command", container->command, len);
+	ret = k2v3_add_newline(ret);
 	// hostname.
-	ret = k2v_add_comment(ret, "The hostname of the container.");
-	ret = k2v_add_comment(ret, "This is only for unshare container.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable it.");
-	ret = k2v_add_config(char, ret, "hostname", container->hostname);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "The hostname of the container.");
+	ret = k2v3_add_comment(ret, "This is only for unshare container.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable it.");
+	ret = k2v3_add_config(char, ret, "hostname", container->hostname);
+	ret = k2v3_add_newline(ret);
 	// Time offset.
-	ret = k2v_add_comment(ret, "Time offset for timens.");
-	ret = k2v_add_comment(ret, "Default is 0.");
-	ret = k2v_add_comment(ret, "Need unshare enabled.");
-	ret = k2v_add_config(long, ret, "timens_monotonic_offset", container->timens_monotonic_offset);
-	ret = k2v_add_config(long, ret, "timens_realtime_offset", container->timens_realtime_offset);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Time offset for timens.");
+	ret = k2v3_add_comment(ret, "Default is 0.");
+	ret = k2v3_add_comment(ret, "Need unshare enabled.");
+	ret = k2v3_add_config(long, ret, "timens_monotonic_offset", container->timens_monotonic_offset);
+	ret = k2v3_add_config(long, ret, "timens_realtime_offset", container->timens_realtime_offset);
+	ret = k2v3_add_newline(ret);
 	// seccomp_denied_syscall.
 	for (int i = 0; true; i++) {
 		if (container->seccomp_denied_syscall[i] == NULL) {
@@ -371,11 +371,11 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Denied syscalls, use seccomp.");
-	ret = k2v_add_comment(ret, "For example, [\"syscall1\",\"syscall2\"] is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char_array, ret, "deny_syscall", container->seccomp_denied_syscall, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Denied syscalls, use seccomp.");
+	ret = k2v3_add_comment(ret, "For example, [\"syscall1\",\"syscall2\"] is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char_array, ret, "deny_syscall", container->seccomp_denied_syscall, len);
+	ret = k2v3_add_newline(ret);
 	// masked_path.
 	for (int i = 0; true; i++) {
 		if (container->masked_path[i] == NULL) {
@@ -383,27 +383,27 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 			break;
 		}
 	}
-	ret = k2v_add_comment(ret, "Masked path, will be masked with ro tmpfs or /dev/null.");
-	ret = k2v_add_comment(ret, "Format: \"path\".");
-	ret = k2v_add_comment(ret, "For example, [\"/sys/class\",\"/etc/ssl\"] is valid.");
-	ret = k2v_add_comment(ret, "Set it to empty to disable.");
-	ret = k2v_add_config(char_array, ret, "masked_path", container->masked_path, len);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Masked path, will be masked with ro tmpfs or /dev/null.");
+	ret = k2v3_add_comment(ret, "Format: \"path\".");
+	ret = k2v3_add_comment(ret, "For example, [\"/sys/class\",\"/etc/ssl\"] is valid.");
+	ret = k2v3_add_comment(ret, "Set it to empty to disable.");
+	ret = k2v3_add_config(char_array, ret, "masked_path", container->masked_path, len);
+	ret = k2v3_add_newline(ret);
 	// enable_tty_signals.
-	ret = k2v_add_comment(ret, "Enable TTY signals in the container.");
-	ret = k2v_add_config(bool, ret, "enable_tty_signals", container->enable_tty_signals);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Enable TTY signals in the container.");
+	ret = k2v3_add_config(bool, ret, "enable_tty_signals", container->enable_tty_signals);
+	ret = k2v3_add_newline(ret);
 	// skip_setgroups.
-	ret = k2v_add_comment(ret, "Skip setgroups() call.");
-	ret = k2v_add_config(bool, ret, "skip_setgroups", container->skip_setgroups);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Skip setgroups() call.");
+	ret = k2v3_add_config(bool, ret, "skip_setgroups", container->skip_setgroups);
+	ret = k2v3_add_newline(ret);
 	// systemd_mode.
 	// TODO: This cannot enable --even-unstable.
-	ret = k2v_add_comment(ret, "Enable systemd mode.");
-	ret = k2v_add_comment(ret, "Also enables unshare.");
-	ret = k2v_add_comment(ret, "Default is false.");
-	ret = k2v_add_config(bool, ret, "systemd_mode", container->systemd_mode);
-	ret = k2v_add_newline(ret);
+	ret = k2v3_add_comment(ret, "Enable systemd mode.");
+	ret = k2v3_add_comment(ret, "Also enables unshare.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "systemd_mode", container->systemd_mode);
+	ret = k2v3_add_newline(ret);
 	return ret;
 }
 void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_Nonnull path)

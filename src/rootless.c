@@ -485,7 +485,7 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	} else if (pid < 0) {
 		ruri_error("{red}Fork error QwQ?\n");
 	} else {
-		if(!set_id_map_succeed) {
+		if (!set_id_map_succeed) {
 			usleep(10000);
 		}
 		// Init rootless container.
