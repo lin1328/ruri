@@ -3,7 +3,7 @@
   * Auto detect device major and minor number when major is set to 0 in `--char-dev` option.
   * Auto add `cap_` prefix for capability name in `--cap-drop` and `--cap-add` option.
   * Use host cgroup path for cgroup setup.
-  * Use cgroup v2 killer for unshare container if available.
+  * Use cgroup for kill/ps unshare container if available.
   * Experimentally support `--systemd` with `--even-unstable` option, but it may not work as expected.
   * Add `--strict-mode` option to make ruri exit immediately when any error.
   * Rewrite default seccomp profile, make it more useable, and act for recent 0day vulnerabilities.

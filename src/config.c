@@ -413,7 +413,7 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	 * and set container config.
 	 */
 	k2v3_stop_at_warning(1);
-	char *buf = k2v3_open_file(path);
+	char *buf = k2v3_open_file(path, 65536);
 	k2v3_cache cache = k2v3_parse(buf);
 	if (buf == NULL) {
 		ruri_error("{red}Failed to read config file:%s\n{clear}", path);

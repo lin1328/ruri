@@ -91,12 +91,8 @@ pid_t ruri_get_ns_pid(const char *_Nonnull container_dir)
 	if (access(file, F_OK) != 0) {
 		return RURI_INIT_VALUE;
 	}
-	size_t size = k2v_get_filesize(file);
-	if (size >= 65536) {
-		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");
-	}
 	// Read .rurienv file.
-	char *buf = k2v3_open_file(file);
+	char *buf = k2v3_open_file(file, 65536);
 	if (buf == NULL) {
 		return RURI_INIT_VALUE;
 	}
@@ -314,7 +310,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		return container;
 	}
 	// Read .rurienv file.
-	char *buf = k2v3_open_file(file);
+	char *buf = k2v3_open_file(file, 65536);
 	if (buf == NULL) {
 		ruri_error("{red}Failed to read config file:%s\n{clear}", file);
 	}
