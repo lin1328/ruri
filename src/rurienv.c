@@ -290,6 +290,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	 * For ruri_umount_container() and ruri_container_ps(), it will accept a NULL struct,
 	 * and return a struct with malloced memory.
 	 */
+	k2v3_stop_at_warning(1);
 	char file[PATH_MAX] = { '\0' };
 	if (snprintf(file, sizeof(file), "%s/.rurienv", container_dir) >= (int)sizeof(file)) {
 		ruri_error("{red}QwQ? Why we are here?\n");

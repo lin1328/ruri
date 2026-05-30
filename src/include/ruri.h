@@ -114,6 +114,7 @@ typedef int cap_value_t;
 // Include other headers.
 #include "cprintf.h"
 #include "k2v.h"
+#include "k2v3.h"
 #include "version.h"
 #include "compact.h"
 #undef cprintf

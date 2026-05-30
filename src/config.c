@@ -412,6 +412,7 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	 * Read k2v format config file,
 	 * and set container config.
 	 */
+	k2v3_stop_at_warning(1);
 	size_t size = k2v_get_filesize(path);
 	if (size >= 65536) {
 		ruri_error("{red}Config file is too large, it should be less than 65536 bytes.\n{clear}");

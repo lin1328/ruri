@@ -67,6 +67,7 @@ void ruri_show_version_info(void)
 	cprintf("{base}%s%d%s%d%s%d%s", "libseccomp .......:  ", SCMP_VER_MAJOR, ".", SCMP_VER_MINOR, ".", SCMP_VER_MICRO, "\n");
 #endif
 	cprintf("{base}%s%d%s%d%s", "libk2v ...........:  ", LIBK2V_MAJOR, ".", LIBK2V_MINOR, "\n");
+	cprintf("{base}%s%d%s%d%s", "libk2v3 ..........:  ", LIBK2V3_MAJOR, ".", LIBK2V3_MINOR, "\n");
 	cprintf("{base}%s%d%s%d%s", "cprintf ..........:  ", CPRINTF_MAJOR, ".", CPRINTF_MINOR, "\n");
 	cprintf("{base}%s%s\n", "Compiler version .:  ", __VERSION__);
 	cprintf("{base}%s%s\n", "Source updated ...:  ", __TIMESTAMP__);

@@ -11,6 +11,7 @@ ruri_SOURCES = \
 	src/elf-magic.c \
 	src/info.c \
 	src/k2v.c \
+	src/k2v3.c \
 	src/main.c \
 	src/mount.c \
 	src/passwd.c \
@@ -93,6 +94,8 @@ distclean-local:
 upk2v:
 	@cp ../libk2v/src/k2v.c src/k2v.c
 	@cp ../libk2v/src/include/k2v.h src/include/k2v.h
+	@cp ../libk2v/v3/k2v3.c src/k2v3.c
+	@cp ../libk2v/v3/include/k2v3.h src/include/k2v3.h
 upcprintf:
 	@cp ../cprintf/cprintf.c src/cprintf.c
 	@cp ../cprintf/include/cprintf.h src/include/cprintf.h
