@@ -199,7 +199,7 @@ static int ruri_resolve_seccomp_errno(const char *_Nonnull syscall, scmp_filter_
 	return -1;
 }
 #endif
-bool kernel_version_le(int major, int minor, int patch)
+static bool kernel_version_le(int major, int minor, int patch)
 {
 	struct utsname buf;
 	uname(&buf);
@@ -222,8 +222,22 @@ void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull containe
 	 * Fully kang moby's default seccomp profile.
 	 * See: https://github.com/moby/profiles/blob/main/seccomp/default.json
 	 * TODO: value should be converted to macro like SOCK_STREAM, O_RDONLY, etc. for better readability.
+	 *
 	 */
+
+#ifndef DISABLE_LIBCAP
 	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ERRNO(EPERM));
+	// Deny user-defined syscalls.
+	for (int i = 0; container->seccomp_denied_syscall[i] != NULL; i++) {
+		int syscall_nr = seccomp_syscall_resolve_name(container->seccomp_denied_syscall[i]);
+		if (syscall_nr == __NR_SCMP_ERROR) {
+			if (ruri_resolve_seccomp_errno(container->seccomp_denied_syscall[i], &ctx) != 0) {
+				ruri_error("Failed to resolve syscall: %s\n", container->seccomp_denied_syscall[i]);
+			}
+		} else {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, syscall_nr, 0);
+		}
+	}
 	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept), 0);
 	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept4), 0);
 	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(access), 0);
@@ -720,6 +734,9 @@ void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull containe
 	if (seccomp_load(ctx) != 0) {
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: failed to load seccomp filter QwQ{clear}\n");
 	}
+#else
+	ruri_error("libcap is disabled, cannot setup seccomp whitelist filter\n");
+#endif
 }
 // Setup seccomp filter rule, with libseccomp.
 void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
