@@ -1341,8 +1341,6 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		close(fd);
 		exit(EXIT_SUCCESS);
 	}
-	// Clear envs.
-	ruri_clear_env(argv);
 	// Enable unshare automatically if we got a ns_pid.
 	pid_t ns_pid = ruri_get_ns_pid(container->container_dir);
 	if (ns_pid > 0) {
@@ -1404,14 +1402,14 @@ int ruri(int argc, char **argv)
 #if defined(RURI_DEBUG) || defined(RURI_DEV)
 	ruri_warning("{red}Warning: this is a dev/debug build, do not use it in production{clear}\n");
 #endif
-	// Info of container to run.
-	struct RURI_CONTAINER *container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
-	// Parse arguments.
-	parse_args(argc, argv, container);
 	// Clear env, and re-exec ruri from memfd.
 	ruri_clear_env(argv);
 	// Unset ruri_rexec env.
 	unsetenv("ruri_rexec");
+	// Info of container to run.
+	struct RURI_CONTAINER *container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
+	// Parse arguments.
+	parse_args(argc, argv, container);
 	// Detect rootless mode.
 	if (geteuid() != 0) {
 		container->rootless = true;
