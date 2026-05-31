@@ -199,6 +199,528 @@ static int ruri_resolve_seccomp_errno(const char *_Nonnull syscall, scmp_filter_
 	return -1;
 }
 #endif
+bool kernel_version_le(int major, int minor, int patch)
+{
+	struct utsname buf;
+	uname(&buf);
+	int k_major, k_minor, k_patch;
+	sscanf(buf.release, "%d.%d.%d", &k_major, &k_minor, &k_patch);
+	if (k_major < major) {
+		return true;
+	} else if (k_major == major) {
+		if (k_minor < minor) {
+			return true;
+		} else if (k_minor == minor) {
+			return k_patch <= patch;
+		}
+	}
+	return false;
+}
+void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull container)
+{
+	/*
+	 * Fully kang moby's default seccomp profile.
+	 * See: https://github.com/moby/profiles/blob/main/seccomp/default.json
+	 * TODO: value should be converted to macro like SOCK_STREAM, O_RDONLY, etc. for better readability.
+	 */
+	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ERRNO(EPERM));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept4), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(access), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(adjtimex), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(alarm), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(bind), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(brk), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(cachestat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(capget), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(capset), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chdir), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chmod), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chown), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chown32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_adjtime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_adjtime64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(close), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(close_range), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(connect), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(copy_file_range), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(creat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup3), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_create), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_create1), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_ctl), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_ctl_old), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait_old), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(eventfd), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(eventfd2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(execve), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(execveat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(faccessat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(faccessat2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fadvise64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fadvise64_64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fallocate), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fanotify_mark), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchdir), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmod), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmodat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmodat2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchown), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchown32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchownat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fdatasync), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fgetxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(flistxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(flock), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fork), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fremovexattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsetxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatat64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatfs), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatfs64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsync), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ftruncate), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ftruncate64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_requeue), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_wait), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_waitv), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_wake), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futimesat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcpu), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcwd), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getdents), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getdents64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getegid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getegid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(geteuid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(geteuid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgroups), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgroups32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getitimer), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpeername), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpgid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpgrp), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getppid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpriority), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrandom), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresgid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresgid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresuid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresuid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrlimit), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_robust_list), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrusage), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsockname), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsockopt), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_thread_area), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(gettid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(gettimeofday), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getuid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getuid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getxattrat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_add_watch), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_init), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_init1), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_rm_watch), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_cancel), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_destroy), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_getevents), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_get), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_set), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_setup), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_submit), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ipc), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(kill), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_add_rule), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_create_ruleset), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_restrict_self), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lchown), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lchown32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lgetxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(link), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(linkat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(listen), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(listmount), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(listxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(listxattrat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(llistxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(_llseek), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lremovexattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lseek), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lsetxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lstat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lstat64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(madvise), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(map_shadow_stack), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(membarrier), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(memfd_create), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(memfd_secret), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mincore), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mkdir), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mkdirat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mknod), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mknodat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlock), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlock2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlockall), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mmap), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mmap2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mprotect), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_getsetattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_notify), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_open), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_unlink), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mremap), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mseal), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgctl), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgget), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgrcv), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgsnd), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msync), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(munlock), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(munlockall), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(munmap), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(name_to_handle_at), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(nanosleep), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(newfstatat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(_newselect), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(open), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(openat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(openat2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pause), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_open), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_send_signal), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pipe), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pipe2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_alloc), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_free), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_mprotect), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(poll), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(prctl), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(preadv), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(preadv2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(prlimit64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_mrelease), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwritev), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwritev2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readahead), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readlink), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readlinkat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readv), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recv), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvfrom), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmsg), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(remap_file_pages), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(removexattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(removexattrat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rename), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(renameat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(renameat2), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(restart_syscall), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(riscv_hwprobe), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rmdir), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rseq), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigaction), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigpending), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigprocmask), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigqueueinfo), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigreturn), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigsuspend), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_tgsigqueueinfo), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getaffinity), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getparam), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_get_priority_max), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_get_priority_min), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getscheduler), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setaffinity), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setparam), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setscheduler), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_yield), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(seccomp), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(select), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semctl), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semget), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semop), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(send), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendfile), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendfile64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendmmsg), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendmsg), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendto), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsgid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsgid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsuid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsuid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgroups), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgroups32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setitimer), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setpgid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setpriority), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setregid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setregid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresgid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresgid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresuid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresuid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setreuid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setreuid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setrlimit), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_robust_list), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_thread_area), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_tid_address), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setuid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setuid32), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setxattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setxattrat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmctl), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmdt), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmget), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shutdown), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigaltstack), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(signalfd), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(signalfd4), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigprocmask), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigreturn), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socketcall), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socketpair), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(splice), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(stat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(stat64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(statfs), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(statfs64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(statmount), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(statx), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(symlink), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(symlinkat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(syncfs), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sysinfo), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(tee), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(tgkill), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(time), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_create), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_delete), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_getoverrun), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_create), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(times), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(tkill), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(truncate), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(truncate64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ugetrlimit), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(umask), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(uname), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(unlink), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(unlinkat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(uretprobe), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat_time64), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimes), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(vfork), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(vmsplice), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(wait4), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(waitid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(waitpid), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(writev), 0);
+	if (!kernel_version_le(4, 8, 0)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ptrace), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_readv), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_writev), 0);
+	}
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_LT, 38));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, 39));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_GT, 40));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 0));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 8));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 131072));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 131080));
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 4294967295U));
+	if (seccomp_arch_native() == SCMP_ARCH_PPC64LE) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range2), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(swapcontext), 0);
+	}
+	if (seccomp_arch_native() == SCMP_ARCH_ARM || seccomp_arch_native() == SCMP_ARCH_AARCH64) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(arm_fadvise64_64), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(arm_sync_file_range), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range2), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(breakpoint), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(cacheflush), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_tls), 0);
+	}
+	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_X32) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(arch_prctl), 0);
+	}
+	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_X86 || seccomp_arch_native() == SCMP_ARCH_X32) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(modify_ldt), 0);
+	}
+	if (seccomp_arch_native() == SCMP_ARCH_S390 || seccomp_arch_native() == SCMP_ARCH_S390X) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_pci_mmio_read), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_pci_mmio_write), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_runtime_instr), 0);
+	}
+	if (seccomp_arch_native() == SCMP_ARCH_RISCV64) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(riscv_flush_icache), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(open_by_handle_at), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(bpf), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone3), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fanotify_init), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsconfig), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsmount), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsopen), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fspick), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lookup_dcookie), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lsm_get_self_attr), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lsm_list_modules), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lsm_set_self_attr), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mount), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mount_setattr), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(move_mount), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(open_tree), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(perf_event_open), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(quotactl), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(quotactl_fd), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setdomainname), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sethostname), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setns), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(syslog), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(umount), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(umount2), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(unshare), 0);
+	}
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) && !(seccomp_arch_native() == SCMP_ARCH_S390 || seccomp_arch_native() == SCMP_ARCH_S390X)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, 2114060288));
+	}
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) && (seccomp_arch_native() == SCMP_ARCH_S390 || seccomp_arch_native() == SCMP_ARCH_S390X)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, 2114060288));
+	}
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(38), SCMP_SYS(clone3), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_BOOT)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(reboot), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chroot), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_MODULE)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(init_module), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(delete_module), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(finit_module), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(acct), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PTRACE)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(kcmp), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_getfd), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_madvise), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_readv), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_writev), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ptrace), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_RAWIO)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioperm), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(iopl), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_TIME)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(settimeofday), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(stime), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_settime), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_settime64), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_TTY_CONFIG)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(vhangup), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_mempolicy), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mbind), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_mempolicy), 0);
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_mempolicy_home_node), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYSLOG)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(syslog), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_BPF)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(bpf), 0);
+	}
+	if (!ruri_is_in_caplist(container->drop_caplist, CAP_PERFMON)) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(perf_event_open), 0);
+	}
+	// Disable no_new_privs bit by default.
+	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
+	// Load seccomp rules.
+	if (seccomp_load(ctx) != 0) {
+		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: failed to load seccomp filter QwQ{clear}\n");
+	}
+}
 // Setup seccomp filter rule, with libseccomp.
 void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 {

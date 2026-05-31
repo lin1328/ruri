@@ -208,6 +208,11 @@ License of clang-format config file
 
 - GPL-2.0
 
+# Also Thanks to:
+- [moby](https://github.com/moby), especially [moby/profiles](https://github.com/moby/profiles) for the seccomp profile.
+- [docker](https://github.com/docker), for default container configuration and many other inspirations.
+
+
 ---
 
 <p align="center">「 咲誇る花 美しく、</p>
