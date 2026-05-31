@@ -121,8 +121,6 @@ static void init_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	mount("/dev/full", "./dev/full", NULL, MS_BIND, NULL);
 	close(open("./dev/null", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP));
 	mount("/dev/null", "./dev/null", NULL, MS_BIND, NULL);
-	close(open("./dev/ptmx", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP));
-	mount("/dev/ptmx", "./dev/ptmx", NULL, MS_BIND, NULL);
 	close(open("./dev/random", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP));
 	mount("/dev/random", "./dev/random", NULL, MS_BIND, NULL);
 	close(open("./dev/urandom", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP));
@@ -133,6 +131,9 @@ static void init_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		close(open("./dev/kvm", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP));
 		mount("/dev/kvm", "./dev/kvm", NULL, MS_BIND, NULL);
 	}
+	mkdir("./dev/pts", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
+	mount("devpts", "./dev/pts", "devpts", MS_NOSUID | MS_NOEXEC, "newinstance,gid=5,mode=620,ptmxmode=666,max=1024");
+	symlink("./dev/pts/ptmx", "./dev/ptmx");
 	symlink("/proc/self/fd", "./dev/fd");
 	symlink("/proc/self/fd/0", "./dev/stdin");
 	symlink("/proc/self/fd/1", "./dev/stdout");
@@ -140,8 +141,6 @@ static void init_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	symlink("./dev/null", "./dev/tty0");
 	symlink("./dev/null", "./dev/console");
 	symlink("./dev/null", "./dev/tty");
-	mkdir("./dev/pts", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
-	mount("devpts", "./dev/pts", "devpts", MS_NOSUID | MS_NOEXEC, "gid=5,mode=620,ptmxmode=666,max=1024");
 	// Mount other char devices.
 	if (container->char_devs[0] != NULL) {
 		for (int i = 0; true; i += 3) {

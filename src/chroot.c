@@ -247,7 +247,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		// Continue mounting some other directories in /dev.
 		res = mkdir("/dev/pts", S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP);
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/pts, will continue.\n");
-		res = mount("devpts", "/dev/pts", "devpts", MS_NOSUID | MS_NOEXEC, "gid=5,mode=620,ptmxmode=666,max=1024");
+		res = mount("devpts", "/dev/pts", "devpts", MS_NOSUID | MS_NOEXEC, "newinstance,gid=5,mode=620,ptmxmode=666,max=1024");
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to mount devpts, will continue.\n");
 		char *devshm_options = NULL;
 		if (container->memory == NULL) {
@@ -274,7 +274,7 @@ static void init_container(struct RURI_CONTAINER *_Nonnull container)
 		res = mknod("/dev/zero", S_IFCHR, makedev(1, 5));
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/zero, will continue.\n");
 		chmod("/dev/zero", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		res = mknod("/dev/ptmx", S_IFCHR, makedev(5, 2));
+		res = symlink("/dev/pts/ptmx", "/dev/ptmx");
 		ruri_warn_on_error(res, 0, !container->no_warnings, "{yellow}Warning: Failed to create /dev/ptmx, will continue.\n");
 		chown("/dev/ptmx", 0, 5);
 		chmod("/dev/ptmx", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
