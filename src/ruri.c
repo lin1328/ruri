@@ -63,8 +63,8 @@ void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
 	char buf[256] = { '\0' };
 	switch (req) {
 	case RURI_PID_FILE_INIT:
-		// Handle initialization logic
-		break;
+		// Not here.
+		return;
 	case RURI_PID_FILE_PID:
 		snprintf(buf, sizeof(buf), "%lld\n", arg);
 		break;
@@ -376,6 +376,16 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 				ruri_error("{red}Error: unknown file type QwQ\n");
 			}
 			exit(114);
+		}
+		// --stat
+		if (strcmp(argv[index], "--stat") == 0) {
+			index += 1;
+			char *pid_file = NULL;
+			if (argv[index] != NULL) {
+				pid_file = argv[index];
+			}
+			ruri_stat(pid_file);
+			exit(EXIT_FAILURE);
 		}
 		// Correct a container config.
 		if (strcmp(argv[index], "-C") == 0 || strcmp(argv[index], "--correct-config") == 0) {

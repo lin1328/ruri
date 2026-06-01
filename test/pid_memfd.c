@@ -67,5 +67,23 @@ int main(int argc, char *argv[])
 		}
 		buffer[bytesRead] = '\0'; // Null-terminate the buffer
 		printf("Data read from memfd: \n///\n%s///\n", buffer);
+		pid_t pid_2 = fork();
+		if (pid_2 == -1) {
+			perror("fork");
+			exit(1);
+		} else if (pid_2 == 0) {
+			// Child process
+			char *ruri_stat_exe[8];
+			ruri_stat_exe[0] = "ruri";
+			ruri_stat_exe[1] = "--stat";
+			ruri_stat_exe[2] = proc_fs_fd_path;
+			ruri_stat_exe[3] = NULL;
+			execv("./ruri", ruri_stat_exe);
+			perror("execv");
+			exit(1);
+		} else {
+			wait(NULL); // Wait for the child process to finish
+		}
+		return 0;
 	}
 }

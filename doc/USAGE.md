@@ -22,6 +22,7 @@ ruri /path/to/container echo "hello world"
 | `-h`, `--help` | Show help |
 | `-H`, `--show-examples` | Show command-line examples |
 | `-P`, `--ps [container_dir/config]` | Show process status of the container |
+| `--stat [pid_file]` | Show statistics of a running container |
 
 These options will display information.
 
