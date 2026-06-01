@@ -1588,6 +1588,10 @@ int ruri(int argc, char **argv)
 					fsync(file_fd);
 					// If we got RURI_PANIC_*, exit now.
 					if (strncmp(buf, "RURI_PANIC_", strlen("RURI_PANIC_")) == 0) {
+						// For timeout panic, just exit.
+						if (strncmp(buf, "RURI_PANIC_TIMEOUT", strlen("RURI_PANIC_TIMEOUT")) == 0) {
+							exit(EXIT_FAILURE);
+						}
 						if (container->auto_umount || container->auto_umount_on_panic) {
 							// Sleep 0.5s.
 							usleep(500000);
@@ -1647,6 +1651,7 @@ int ruri(int argc, char **argv)
 						if (container->auto_umount_on_panic) {
 							// Sleep 0.5s.
 							usleep(500000);
+							ruri_warning("{yellow}Auto umounting the container directory QwQ\n");
 							ruri_umount_container(container->container_dir);
 						}
 						exit(EXIT_FAILURE);
@@ -1671,7 +1676,6 @@ int ruri(int argc, char **argv)
 				// Sleep 0.5s
 				usleep(500000);
 			}
-
 			exit(EXIT_SUCCESS);
 		}
 	}

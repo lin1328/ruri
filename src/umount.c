@@ -123,46 +123,44 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 	if (container != NULL) {
 		// Umount extra_mountpoint.
 		for (int i = 1; true; i += 2) {
-			if (container->extra_mountpoint[i] != NULL) {
-				if (snprintf(to_umountpoint, sizeof(to_umountpoint), "%s%s", container_dir, container->extra_mountpoint[i]) >= (int)sizeof(to_umountpoint)) {
-					ruri_error("{red}QwQ? Why we are here?\n");
-				}
-				ruri_log("{base}Umounting %s\n", to_umountpoint);
-				for (int j = 0; j < 10; j++) {
-					umount2(to_umountpoint, MNT_DETACH);
-					umount(to_umountpoint);
-					usleep(20000);
-				}
-				// Remove the empty file we created for mounting files into container.
-				remove(to_umountpoint);
-				// Make ASAN happy.
-				free(container->extra_mountpoint[i]);
-				free(container->extra_mountpoint[i - 1]);
-			} else {
+			if (container->extra_mountpoint[i] == NULL) {
 				break;
 			}
+			if (snprintf(to_umountpoint, sizeof(to_umountpoint), "%s%s", container_dir, container->extra_mountpoint[i]) >= (int)sizeof(to_umountpoint)) {
+				ruri_error("{red}QwQ? Why we are here?\n");
+			}
+			ruri_log("{base}Umounting %s\n", to_umountpoint);
+			for (int j = 0; j < 10; j++) {
+				umount2(to_umountpoint, MNT_DETACH);
+				umount(to_umountpoint);
+				usleep(20000);
+			}
+			// Remove the empty file we created for mounting files into container.
+			remove(to_umountpoint);
+			// Make ASAN happy.
+			free(container->extra_mountpoint[i]);
+			free(container->extra_mountpoint[i - 1]);
 		}
 		// Umount extra_ro_mountpoint.
 		for (int i = 1; true; i += 2) {
-			if (container->extra_ro_mountpoint[i] != NULL) {
-				if (snprintf(to_umountpoint, sizeof(to_umountpoint), "%s%s", container_dir, container->extra_ro_mountpoint[i]) >= (int)sizeof(to_umountpoint)) {
-					ruri_error("{red}QwQ? Why we are here?\n");
-				}
-				for (int j = 0; j < 10; j++) {
-					ruri_log("{base}Umounting %s\n", to_umountpoint);
-					umount2(to_umountpoint, MNT_DETACH);
-					umount(to_umountpoint);
-					usleep(20000);
-				}
-				// Remove the empty file we created for mounting files into container.
-				// Not rmdir(), so directory will not be removed.
-				remove(to_umountpoint);
-				// Make ASAN happy.
-				free(container->extra_ro_mountpoint[i]);
-				free(container->extra_ro_mountpoint[i - 1]);
-			} else {
+			if (container->extra_ro_mountpoint[i] == NULL) {
 				break;
 			}
+			if (snprintf(to_umountpoint, sizeof(to_umountpoint), "%s%s", container_dir, container->extra_ro_mountpoint[i]) >= (int)sizeof(to_umountpoint)) {
+				ruri_error("{red}QwQ? Why we are here?\n");
+			}
+			for (int j = 0; j < 10; j++) {
+				ruri_log("{base}Umounting %s\n", to_umountpoint);
+				umount2(to_umountpoint, MNT_DETACH);
+				umount(to_umountpoint);
+				usleep(20000);
+			}
+			// Remove the empty file we created for mounting files into container.
+			// Not rmdir(), so directory will not be removed.
+			remove(to_umountpoint);
+			// Make ASAN happy.
+			free(container->extra_ro_mountpoint[i]);
+			free(container->extra_ro_mountpoint[i - 1]);
 		}
 	}
 	// Force umount system runtime directories for 10 times.
