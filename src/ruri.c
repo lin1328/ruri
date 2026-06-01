@@ -279,8 +279,6 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		}
 		// Umount a container.
 		if (strcmp(argv[index], "-U") == 0 || strcmp(argv[index], "--umount") == 0) {
-			// Clear envs.
-			ruri_clear_env(argv);
 			index += 1;
 			struct stat st;
 			if (stat(argv[index], &st) != 0) {
@@ -302,8 +300,6 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		}
 		// Show process status of a container.
 		if (strcmp(argv[index], "-P") == 0 || strcmp(argv[index], "--ps") == 0) {
-			// Clear envs.
-			ruri_clear_env(argv);
 			index += 1;
 			struct stat st;
 			if (stat(argv[index], &st) != 0) {
@@ -1278,8 +1274,6 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		if (f1 > 0) {
 			exit(EXIT_SUCCESS);
 		}
-		// Clear envs.
-		ruri_clear_env(argv);
 		pid_t fpid = fork();
 		if (fpid > 0) {
 			printf("PID: %d\n", fpid);
