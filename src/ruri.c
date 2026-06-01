@@ -1640,6 +1640,11 @@ int ruri(int argc, char **argv)
 						// Timeout reached, kill the container process.
 						ruri_warning("{red}Timeout reached, killing the container process QwQ\n");
 						kill(timeout_pid, SIGKILL);
+						if (container->auto_umount_on_panic) {
+							// Sleep 0.5s.
+							usleep(500000);
+							ruri_umount_container(container->container_dir);
+						}
 						exit(EXIT_FAILURE);
 					}
 				} else if (result > 0) {
