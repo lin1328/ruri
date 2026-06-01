@@ -159,7 +159,7 @@ void ruri_show_helps(void)
 	cprintf("{base}      --auto-umount ...........................: Automatically umount the container when it exits\n");
 	cprintf("{base}      --umount-on-panic .......................: Automatically umount the container only when it panics\n");
 	cprintf("{base}      --health-check ..........................: Run as health check process in the container\n");
-	cprintf("{base}	     --timeout [seconds] .....................: Automatically kill the process after the specified time\n");
+	cprintf("{base}      --timeout [seconds] .....................: Automatically kill the process after the specified time\n");
 	cprintf("\n");
 	cprintf("{base}Note:\n");
 	cprintf("{base}(*1)  : Will not work for unshare containers without PID ns support\n");
