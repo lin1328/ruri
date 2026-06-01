@@ -40,6 +40,24 @@
  *       ⠁⠁
  *  "I don't know what's happening, but I got killed in the game..."
  */
+char *ruri_get_proc_type(void)
+{
+	switch (ruri_proc_mark(RURI_QUERY)) {
+	case RURI_UNSHARE:
+		return "unshare container";
+	case RURI_CHROOT:
+		return "chroot container";
+	case RURI_ROOTLESS:
+		return "rootless container";
+	case RURI_DAEMON:
+		return "daemon process";
+	case RURI_UMOUNT:
+		return "umount container";
+	default:
+		return "unknown process";
+	}
+	return "";
+}
 // Show some extra info when segfault.
 static void panic(int sig)
 {
@@ -65,22 +83,7 @@ static void panic(int sig)
 	cfprintf(stderr, "{base}SIG: %d\n", sig);
 	cfprintf(stderr, "{base}UID: %u\n", getuid());
 	cfprintf(stderr, "{base}PID: %d\n", getpid());
-	switch (ruri_proc_mark(RURI_QUERY)) {
-	case RURI_UNSHARE:
-		cfprintf(stderr, "{base}CMT: unshare container\n");
-		break;
-	case RURI_CHROOT:
-		cfprintf(stderr, "{base}CMT: chroot container\n");
-		break;
-	case RURI_DAEMON:
-		cfprintf(stderr, "{base}CMT: daemon process\n");
-		break;
-	case RURI_UMOUNT:
-		cfprintf(stderr, "{base}CMT: umount container\n");
-		break;
-	default:
-		cfprintf(stderr, "{base}CMT: unknown process\n");
-	}
+	cfprintf(stderr, "{base}PROCESS: %s\n", ruri_get_proc_type());
 	cfprintf(stderr, "{base}CLI: ");
 	for (ssize_t i = 0; i < bufsize - 1; i++) {
 		if (buf[i] == '\0') {

@@ -245,6 +245,7 @@ enum RURI_PID_FILE_REQ {
 	RURI_PID_FILE_UNKNOWN,
 };
 void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg);
+char *ruri_get_proc_type(void);
 // Show error msg and exit.
 #define ruri_error(format, ...)                                                                                                                      \
 	do {                                                                                                                                         \
@@ -258,6 +259,7 @@ void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg);
 		cfprintf(stderr, "{base}%s{clear}\n", "ﾉノ㇏  ^  ﾉﾉ");                                                                               \
 		cfprintf(stderr, "{base}%s{clear}\n", "      ⠁⠁");                                                                                   \
 		cfprintf(stderr, "{base}%s{clear}\n", "RURI ERROR MESSAGE");                                                                         \
+		cfprintf(stderr, "{base}PROCESS: %s\n", ruri_get_proc_type());                                                                       \
 		cfprintf(stderr, "{base}%s{clear}\n", "Note: for some configs, you might need to run `-U` to umount container before changing it."); \
 		cfprintf(stderr, "{base}%s{clear}\n", "If you think something is wrong, please report at:");                                         \
 		cfprintf(stderr, "\033[4m{base}%s{clear}\n", "https://github.com/rurioss/ruri/issues");                                              \
@@ -354,6 +356,7 @@ enum RURI_PROC_TYPE {
 	RURI_QUERY,
 	RURI_UNSHARE,
 	RURI_CHROOT,
+	RURI_ROOTLESS,
 	RURI_DAEMON,
 	RURI_UMOUNT,
 };
