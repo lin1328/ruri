@@ -32,7 +32,7 @@
 // To test if we can get pid_file from memfd, so no disk file is needed.
 int main(int argc, char *argv[])
 {
-	int fd = memfd_create("test", 0);
+	int fd = memfd_create("test", MFD_CLOEXEC);
 	fchmod(fd, 0777);
 	if (fd == -1) {
 		perror("memfd_create");
