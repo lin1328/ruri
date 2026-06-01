@@ -36,8 +36,25 @@
  */
 // Force panic bit.
 // NOLINTBEGIN
-bool ruri_force_panic = false;
+bool ruri_force_panic(int req)
+{
+	static thread_local bool ret = false;
+	if (req == -1) {
+		return req;
+	}
+	ret = !!req;
+	return ret;
+}
 // NOLINTEND
+enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark)
+{
+	static thread_local enum RURI_PROC_TYPE ret = RURI_CHROOT;
+	if (mark == RURI_QUERY) {
+		return ret;
+	}
+	ret = mark;
+	return ret;
+}
 // For profiling.
 #ifdef RURI_PROFILING
 long long ruri_diff_time(void)
@@ -758,7 +775,19 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		}
 		// Force panic on error, for security.
 		else if (strcmp(argv[index], "--strict-mode") == 0) {
-			ruri_force_panic = true;
+			ruri_force_panic(1);
+		}
+		// Pid file.
+		else if (strcmp(argv[index], "--pid-file") == 0) {
+			index++;
+			if (index == argc - 1) {
+				ruri_error("{red}Please specify the pid file\n{clear}");
+			}
+			container->pid_file = strdup(argv[index]);
+		}
+		// Auto umount after running container.
+		else if (strcmp(argv[index], "--auto-umount") == 0) {
+			container->auto_umount = true;
 		}
 		// If use_config_file is true.
 		// The first unrecognized argument will be treated as command to exec in container.
@@ -1418,6 +1447,90 @@ int ruri(int argc, char **argv)
 	free(info);
 	ruri_profile_log("ruri() to run_container(): %lldns\n", ruri_diff_time());
 	// Run container.
+	// Use SOCK_SEQPACKET to create a socket pair for pid file, so we can read the pid from it without worrying about buffering.
+	int pid_pipe[2] = { -1, -1 };
+	if (socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, pid_pipe) < 0) {
+		ruri_warning("{red}Warning: failed to create socket pair for pid file, pid file will not be updated QwQ\n");
+	}
+	int pid_file_fd = pid_pipe[0];
+	container->pid_fd = pid_pipe[1];
+	signal(SIGPIPE, SIG_IGN);
+	// fork() twice then watch pid_file_fd, and write content to pidfile.
+	pid_t pid1 = fork();
+	if (pid1 > 0) {
+		// Parent process, wait for child to exit.
+		waitpid(pid1, NULL, 0);
+	} else {
+		// First child process, fork again.
+		pid_t pid2 = fork();
+		if (pid2 > 0) {
+			exit(EXIT_SUCCESS);
+		} else {
+			ruri_proc_mark(RURI_DAEMON);
+			close(pid_pipe[1]);
+			signal(SIGPIPE, SIG_IGN);
+			// read pid from pid_file_fd and write to pidfile.
+			int file_fd = -1;
+			if (container->pid_file == NULL) {
+				file_fd = open("/dev/null", O_RDWR);
+			} else {
+				file_fd = open(container->pid_file, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IWUSR);
+			}
+			if (file_fd < 0) {
+				exit(EXIT_FAILURE);
+			}
+			ftruncate(file_fd, 0);
+			lseek(file_fd, 0, SEEK_SET);
+			char buf[256] = { 0 };
+			// Write current time to pid file, so we can detect if the container is running by checking if the pid file is updated.
+			// Get current time in ns.
+			struct timespec ts;
+			clock_gettime(CLOCK_MONOTONIC, &ts);
+			long long now_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+			snprintf(buf, sizeof(buf), "RURI_INIT_%lld\n", now_ns);
+			write(file_fd, buf, strlen(buf));
+			while (1) {
+				ssize_t n = read(pid_file_fd, buf, sizeof(buf) - 1);
+				if (n > 0) {
+					buf[n] = '\0';
+					ftruncate(file_fd, 0);
+					lseek(file_fd, 0, SEEK_SET);
+					write(file_fd, buf, n);
+					fsync(file_fd);
+					// If we got RURI_PANIC_*, exit now.
+					if (strncmp(buf, "RURI_PANIC_", strlen("RURI_PANIC_")) == 0) {
+						if (container->auto_umount) {
+							// Sleep 0.5s.
+							usleep(500000);
+							ruri_umount_container(container->container_dir);
+						}
+						exit(EXIT_FAILURE);
+					}
+				} else if (n == 0) {
+					// EOF, the other side has closed the connection, exit.
+					if (container->auto_umount) {
+						// Sleep 0.5s.
+						usleep(500000);
+						ruri_umount_container(container->container_dir);
+					}
+					exit(EXIT_SUCCESS);
+				} else {
+					// Error, maybe EINTR, try again.
+					if (errno == EINTR) {
+						continue;
+					}
+					// Other errors, exit.
+					if (container->auto_umount) {
+						// Sleep 0.5s.
+						usleep(500000);
+						ruri_umount_container(container->container_dir);
+					}
+					exit(EXIT_FAILURE);
+				}
+			}
+		}
+	}
+	close(pid_pipe[0]);
 	if ((container->enable_unshare) && !(container->rootless)) {
 		// Unshare container.
 		ruri_run_unshare_container(container);
@@ -1426,7 +1539,36 @@ int ruri(int argc, char **argv)
 		ruri_run_rootless_container(container);
 	} else {
 		// Common chroot container.
-		ruri_run_chroot_container(container);
+		// Fork once, so we can watch the container process and update pid file in time.
+		pid_t chroot_pid = fork();
+		if (chroot_pid > 0) {
+			// Parent process, wait for child to exit.
+			int stat = 0;
+			waitpid(chroot_pid, &stat, 0);
+			// Write exit status to pid_fd.
+			if (container->pid_fd >= 0) {
+				char buf[256] = { 0 };
+				if (WIFEXITED(stat)) {
+					snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", WEXITSTATUS(stat));
+				} else if (WIFSIGNALED(stat)) {
+					snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", WTERMSIG(stat));
+				} else {
+					snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
+				}
+				write(container->pid_fd, buf, strlen(buf));
+			}
+			if (WIFEXITED(stat)) {
+				exit(WEXITSTATUS(stat));
+			}
+			if (WIFSIGNALED(stat)) {
+				exit(128 + WTERMSIG(stat));
+			}
+			exit(EXIT_FAILURE);
+		} else if (chroot_pid == 0) {
+			ruri_run_chroot_container(container);
+		} else {
+			ruri_error("{red}Failed to fork for chroot container QwQ\n");
+		}
 	}
 	return 0;
 }

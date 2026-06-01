@@ -102,9 +102,18 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		ruri_error("{red}pipe2 sync failed, QwQ?\n");
 	}
 	// Fork itself into namespace.
-	// This can fix `can't fork: out of memory` issue.
 	unshare_pid = fork();
 	if (unshare_pid > 0) {
+		// Store container info.
+		if (container->use_rurienv) {
+			container->ns_pid = unshare_pid;
+			ruri_store_info(container);
+		} else if (!container->no_warnings) {
+			ruri_warning("{base}NS PID:{green} %d\n", unshare_pid);
+		}
+		char pid_buf[64] = { '\0' };
+		snprintf(pid_buf, sizeof(pid_buf), "%d\n", unshare_pid);
+		write(container->pid_fd, pid_buf, strlen(pid_buf));
 		// parent: close write end, wait for child sync signal first
 		close(sync_pipe[1]);
 		char ready = 0;
@@ -113,15 +122,20 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		if (n < 0) {
 			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}sync pipe read failed{clear}\n");
 		}
-		// Store container info.
-		if (container->use_rurienv) {
-			container->ns_pid = unshare_pid;
-			ruri_store_info(container);
-		} else if (!container->no_warnings) {
-			ruri_warning("{base}NS PID:{green} %d\n", unshare_pid);
-		}
 		int stat = 0;
 		waitpid(unshare_pid, &stat, 0);
+		// Write exit status to pid_fd.
+		if (container->pid_fd >= 0) {
+			char buf[256] = { 0 };
+			if (WIFEXITED(stat)) {
+				snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", WEXITSTATUS(stat));
+			} else if (WIFSIGNALED(stat)) {
+				snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", WTERMSIG(stat));
+			} else {
+				snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
+			}
+			write(container->pid_fd, buf, strlen(buf));
+		}
 		if (WIFEXITED(stat)) {
 			exit(WEXITSTATUS(stat));
 		}
@@ -245,9 +259,24 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	unshare_pid = fork();
 	// Fix `can't access tty` issue.
 	if (unshare_pid > 0) {
+		char pid_buf[64] = { '\0' };
+		snprintf(pid_buf, sizeof(pid_buf), "%d\n", unshare_pid);
+		write(container->pid_fd, pid_buf, strlen(pid_buf));
 		// Wait until current process exit.
 		int stat = 0;
 		waitpid(unshare_pid, &stat, 0);
+		// Write exit status to pid_fd.
+		if (container->pid_fd >= 0) {
+			char buf[256] = { 0 };
+			if (WIFEXITED(stat)) {
+				snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", WEXITSTATUS(stat));
+			} else if (WIFSIGNALED(stat)) {
+				snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", WTERMSIG(stat));
+			} else {
+				snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
+			}
+			write(container->pid_fd, buf, strlen(buf));
+		}
 		if (WIFEXITED(stat)) {
 			exit(WEXITSTATUS(stat));
 		}
@@ -297,6 +326,7 @@ void ruri_run_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 	 * If container->ns_pid is not set, use unshare(2) to create new namespaces.
 	 * If container->ns_pid is set, use setns(2) to enter existing namespaces.
 	 */
+	ruri_proc_mark(RURI_UNSHARE);
 	pid_t unshare_pid = RURI_INIT_VALUE;
 	// unshare(2) itself into new namespaces.
 	if (container->use_rurienv) {

@@ -154,6 +154,8 @@ void ruri_show_helps(void)
 	cprintf("{base}  -z, --enable-tty-signals ....................: Enable TTY signals in the container (*16)\n");
 	cprintf("{base}  -g, --skip-setgroups ........................: Skip setgroups() call\n");
 	cprintf("{base}      --strict-mode ...........................: Force panic on error, for better security\n");
+	cprintf("{base}      --pid-file [file] .......................: Write the PID of the container to the specified file\n");
+	cprintf("{base}      --auto-umount ...........................: Automatically umount the container when it exits\n");
 	cprintf("\n");
 	cprintf("{base}Note:\n");
 	cprintf("{base}(*1)  : Will not work for unshare containers without PID ns support\n");

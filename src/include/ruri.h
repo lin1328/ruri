@@ -202,6 +202,11 @@ struct RURI_CONTAINER {
 	// First init.
 	bool first_init;
 	bool systemd_mode;
+	// pid file.
+	char *_Nullable pid_file;
+	int pid_fd;
+	// Auto umount container when panic.
+	bool auto_umount;
 };
 // For ruri_get_magic().
 #define ruri_magicof(x) (x##_magic)
@@ -248,11 +253,11 @@ struct RURI_ID_MAP {
 			ruri_error(format__, ##__VA_ARGS__); \
 		}                                            \
 	} while (0)
-extern bool ruri_force_panic;
+bool ruri_force_panic(int req);
 #define ruri_warn_on_error(ret__, expect__, show__, format__, ...)                         \
 	do {                                                                               \
 		if (ret__ != expect__) {                                                   \
-			if (ruri_force_panic) {                                            \
+			if (ruri_force_panic(-1)) {                                        \
 				ruri_warning(format__, ##__VA_ARGS__);                     \
 				ruri_error("{red}Force panic is enabled, exiting now.\n"); \
 			} else {                                                           \
@@ -329,6 +334,14 @@ int ruri_cap_from_name(const char *str, cap_value_t *cap);
 void ruri_clear_env(char *const *_Nonnull argv);
 bool ruri_pid_in_cgroup(pid_t pid, int container_id);
 long long ruri_diff_time(void);
+enum RURI_PROC_TYPE {
+	RURI_QUERY,
+	RURI_UNSHARE,
+	RURI_CHROOT,
+	RURI_DAEMON,
+	RURI_UMOUNT,
+};
+enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark);
 //   ██╗ ██╗  ███████╗   ████╗   ███████╗
 //  ████████╗ ██╔════╝ ██╔═══██╗ ██╔════╝
 //  ╚██╔═██╔╝ █████╗   ██║   ██║ █████╗

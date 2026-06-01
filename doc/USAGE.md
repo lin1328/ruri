@@ -489,3 +489,27 @@ This option allows you to run systemd as init in the container. It will set up s
 | `--strict` | Enable strict mode |
 
 This option will enable strict mode, ruri will treat most important warning as error, and panic immediately when any setup is failed.
+
+---
+| Option | Description |
+|--------|-------------|
+| `--pid-file [file]` | Write the PID of the container to the specified file |
+
+WARNING: experimental and might not work as expected.      
+This option allows you to write the PID of the container to a specified file.       
+pid file format:
+- RURI_INIT_{TIME} (e.g. `RURI_INIT_114514`), which is the time when the container is initialized, in nanoseconds for clock_gettime(CLOCK_MONOTONIC).
+- container pid (e.g. `114514`).
+- RURI_PANIC_{REASON} (e.g. `RURI_PANIC_EXE` for exec failure), which is the reason for panic if the container panics.
+- RURI_EXITED_{EXIT_CODE} (e.g. `RURI_EXITED_0`), which is the exit code if the container exits normally.
+- RURI_SIGNALED_{SIGNAL} (e.g. `RURI_SIGNALED_9`), which is the signal number if the container is killed by a signal.
+- RURI_EXIT_UNKNOWN for unknown exit status.
+
+
+---
+| Option | Description |
+|--------|-------------|
+| `--auto-umount` | Automatically umount the container when it exits |
+
+WARNING: This option is dangerous, use it only if you know what you are doing.      
+This option allows you to automatically umount the container when it exits.      

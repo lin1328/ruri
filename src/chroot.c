@@ -855,6 +855,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	 * It's called by main() and ruri_run_unshare_container().
 	 * It will run container as the config in CONTAINER struct.
 	 */
+	ruri_proc_mark(RURI_CHROOT);
 	// Set hostname.
 	set_hostname(container);
 	// Ignore SIGTTIN, if we are running in the background, SIGTTIN may kill this process.
@@ -1010,10 +1011,13 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	// Change user.
 	change_user(container);
-	// We only need 0(stdin), 1(stdout), 2(stderr),
+	// We only need 0(stdin), 1(stdout), 2(stderr), and pid_fd
 	// So we close the other fds to avoid security issues.
 	// NOTE: this might cause unknown issues.
 	for (int i = 3; i <= 10; i++) {
+		if (i == container->pid_fd) {
+			continue;
+		}
 		close(i);
 	}
 	// Execute command in container.
@@ -1024,10 +1028,17 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 	}
 	ruri_profile_log("run_container() to exec(): %lldns\n", ruri_diff_time());
+	if (!container->enable_unshare) {
+		char pid_buf[16] = { '\0' };
+		sprintf(pid_buf, "%d\n", getpid());
+		write(container->pid_fd, pid_buf, strlen(pid_buf));
+	}
 	if (execvp(container->command[0], container->command) == -1) {
 		// Catch exceptions.
-		ruri_error("{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
+		write(container->pid_fd, "RURI_PANIC_EXE\n", strlen("RURI_PANIC_EXE\n"));
+		ruri_error("\n{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
 	}
+	ruri_error("{red}Error: execvp() returned without error, this should never happen QwQ\n");
 }
 // Run chroot container.
 void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull container)
@@ -1125,6 +1136,9 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	for (int i = 3; i <= 10; i++) {
+		if (i == container->pid_fd) {
+			continue;
+		}
 		close(i);
 	}
 	// Fix console color.
@@ -1133,6 +1147,7 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	// Use exec(3) function because system(3) may be unavailable now.
 	if (execvp(container->command[0], container->command) == -1) {
 		// Catch exceptions.
+		write(container->pid_fd, "RURI_PANIC_EXE\n", strlen("RURI_PANIC_EXE\n"));
 		ruri_error("{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
 	}
 }

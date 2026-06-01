@@ -76,6 +76,7 @@ void ruri_umount_container(const char *_Nonnull container_dir)
 	 * including extra_mountpoint and extra_ro_mountpoint,
 	 * and umount system runtime directories.
 	 */
+	ruri_proc_mark(RURI_UMOUNT);
 	if (container_dir == NULL) {
 		ruri_error("{red}Error: container directory does not exist QwQ\n");
 	}

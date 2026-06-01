@@ -65,6 +65,22 @@ static void panic(int sig)
 	cfprintf(stderr, "{base}SIG: %d\n", sig);
 	cfprintf(stderr, "{base}UID: %u\n", getuid());
 	cfprintf(stderr, "{base}PID: %d\n", getpid());
+	switch (ruri_proc_mark(RURI_QUERY)) {
+	case RURI_UNSHARE:
+		cfprintf(stderr, "{base}CMT: unshare container\n");
+		break;
+	case RURI_CHROOT:
+		cfprintf(stderr, "{base}CMT: chroot container\n");
+		break;
+	case RURI_DAEMON:
+		cfprintf(stderr, "{base}CMT: daemon process\n");
+		break;
+	case RURI_UMOUNT:
+		cfprintf(stderr, "{base}CMT: umount container\n");
+		break;
+	default:
+		cfprintf(stderr, "{base}CMT: unknown process\n");
+	}
 	cfprintf(stderr, "{base}CLI: ");
 	for (ssize_t i = 0; i < bufsize - 1; i++) {
 		if (buf[i] == '\0') {
