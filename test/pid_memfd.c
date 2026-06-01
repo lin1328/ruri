@@ -33,7 +33,7 @@
 int main(int argc, char *argv[])
 {
 	int fd = memfd_create("test", MFD_CLOEXEC);
-	fchmod(fd, 0777);
+	fchmod(fd, S_IRUSR | S_IWUSR);
 	if (fd == -1) {
 		perror("memfd_create");
 		return 1;
