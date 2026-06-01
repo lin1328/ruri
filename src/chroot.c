@@ -1015,7 +1015,7 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	// So we close the other fds to avoid security issues.
 	// NOTE: this might cause unknown issues.
 	for (int i = 3; i <= 10; i++) {
-		if (i == container->pid_fd) {
+		if (i == ruri_pid_file_fd(-1)) {
 			continue;
 		}
 		close(i);
@@ -1029,13 +1029,11 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	ruri_profile_log("run_container() to exec(): %lldns\n", ruri_diff_time());
 	if (!container->enable_unshare) {
-		char pid_buf[16] = { '\0' };
-		sprintf(pid_buf, "%d\n", getpid());
-		write(container->pid_fd, pid_buf, strlen(pid_buf));
+		ruri_pid_file_write(RURI_PID_FILE_PID, getpid());
 	}
 	if (execvp(container->command[0], container->command) == -1) {
 		// Catch exceptions.
-		write(container->pid_fd, "RURI_PANIC_EXE\n", strlen("RURI_PANIC_EXE\n"));
+		ruri_pid_file_write(RURI_PID_FILE_PANIC_EXEC, 0);
 		ruri_error("\n{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
 	}
 	ruri_error("{red}Error: execvp() returned without error, this should never happen QwQ\n");
@@ -1136,7 +1134,7 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	// We only need 0(stdin), 1(stdout), 2(stderr),
 	// So we close the other fds to avoid security issues.
 	for (int i = 3; i <= 10; i++) {
-		if (i == container->pid_fd) {
+		if (i == ruri_pid_file_fd(-1)) {
 			continue;
 		}
 		close(i);
@@ -1147,7 +1145,7 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	// Use exec(3) function because system(3) may be unavailable now.
 	if (execvp(container->command[0], container->command) == -1) {
 		// Catch exceptions.
-		write(container->pid_fd, "RURI_PANIC_EXE\n", strlen("RURI_PANIC_EXE\n"));
+		ruri_pid_file_write(RURI_PID_FILE_PANIC_EXEC, 0);
 		ruri_error("{red}Failed to execute `%s`\nexecv() returned: %d\nerror reason: %s\nNote: unset $LD_PRELOAD before running ruri might fix this{clear}\n", container->command[0], errno, strerror(errno));
 	}
 }

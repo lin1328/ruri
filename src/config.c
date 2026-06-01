@@ -91,7 +91,6 @@ void ruri_init_config(struct RURI_CONTAINER *_Nonnull container)
 	container->first_init = true;
 	container->systemd_mode = false;
 	container->pid_file = NULL;
-	container->pid_fd = RURI_INIT_VALUE;
 	container->auto_umount = false;
 }
 static int pmcrts(const char *s1, const char *s2)

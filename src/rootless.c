@@ -477,24 +477,19 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 				ruri_warn_on_error(1, 0, !container->no_warnings, "\n{base}NS PID:{green} %d\n", container->ns_pid);
 			}
 		}
-		char buf[64] = { '\0' };
-		sprintf(buf, "%d\n", container->ns_pid);
-		write(container->pid_fd, buf, strlen(buf));
+		ruri_pid_file_write(RURI_PID_FILE_PID, container->ns_pid);
 		// Wait for child process to exit.
 		int stat = 0;
 		waitpid(pid, &stat, 0);
 		usleep(200);
 		if (WIFEXITED(stat)) {
-			snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", WEXITSTATUS(stat));
-			write(container->pid_fd, buf, strlen(buf));
+			ruri_pid_file_write(RURI_PID_FILE_EXITED, WEXITSTATUS(stat));
 			exit(WEXITSTATUS(stat));
 		} else if (WIFSIGNALED(stat)) {
-			snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", WTERMSIG(stat));
-			write(container->pid_fd, buf, strlen(buf));
+			ruri_pid_file_write(RURI_PID_FILE_SIGNALED, 128 + WTERMSIG(stat));
 			exit(128 + WTERMSIG(stat));
 		} else {
-			snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
-			write(container->pid_fd, buf, strlen(buf));
+			ruri_pid_file_write(RURI_PID_FILE_UNKNOWN, 0);
 			exit(1);
 		}
 	} else if (pid < 0) {

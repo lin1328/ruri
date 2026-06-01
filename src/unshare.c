@@ -111,9 +111,7 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		} else if (!container->no_warnings) {
 			ruri_warning("{base}NS PID:{green} %d\n", unshare_pid);
 		}
-		char pid_buf[64] = { '\0' };
-		snprintf(pid_buf, sizeof(pid_buf), "%d\n", unshare_pid);
-		write(container->pid_fd, pid_buf, strlen(pid_buf));
+		ruri_pid_file_write(RURI_PID_FILE_PID, unshare_pid);
 		// parent: close write end, wait for child sync signal first
 		close(sync_pipe[1]);
 		char ready = 0;
@@ -125,16 +123,13 @@ static pid_t init_unshare_container(struct RURI_CONTAINER *_Nonnull container)
 		int stat = 0;
 		waitpid(unshare_pid, &stat, 0);
 		// Write exit status to pid_fd.
-		if (container->pid_fd >= 0) {
-			char buf[256] = { 0 };
-			if (WIFEXITED(stat)) {
-				snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", WEXITSTATUS(stat));
-			} else if (WIFSIGNALED(stat)) {
-				snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", WTERMSIG(stat));
-			} else {
-				snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
-			}
-			write(container->pid_fd, buf, strlen(buf));
+		// Write exit status to pid_fd.
+		if (WIFEXITED(stat)) {
+			ruri_pid_file_write(RURI_PID_FILE_EXITED, WEXITSTATUS(stat));
+		} else if (WIFSIGNALED(stat)) {
+			ruri_pid_file_write(RURI_PID_FILE_SIGNALED, WTERMSIG(stat));
+		} else {
+			ruri_pid_file_write(RURI_PID_FILE_UNKNOWN, 0);
 		}
 		if (WIFEXITED(stat)) {
 			exit(WEXITSTATUS(stat));
@@ -259,23 +254,17 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	unshare_pid = fork();
 	// Fix `can't access tty` issue.
 	if (unshare_pid > 0) {
-		char pid_buf[64] = { '\0' };
-		snprintf(pid_buf, sizeof(pid_buf), "%d\n", unshare_pid);
-		write(container->pid_fd, pid_buf, strlen(pid_buf));
+		ruri_pid_file_write(RURI_PID_FILE_PID, unshare_pid);
 		// Wait until current process exit.
 		int stat = 0;
 		waitpid(unshare_pid, &stat, 0);
 		// Write exit status to pid_fd.
-		if (container->pid_fd >= 0) {
-			char buf[256] = { 0 };
-			if (WIFEXITED(stat)) {
-				snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", WEXITSTATUS(stat));
-			} else if (WIFSIGNALED(stat)) {
-				snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", WTERMSIG(stat));
-			} else {
-				snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
-			}
-			write(container->pid_fd, buf, strlen(buf));
+		if (WIFEXITED(stat)) {
+			ruri_pid_file_write(RURI_PID_FILE_EXITED, WEXITSTATUS(stat));
+		} else if (WIFSIGNALED(stat)) {
+			ruri_pid_file_write(RURI_PID_FILE_SIGNALED, WTERMSIG(stat));
+		} else {
+			ruri_pid_file_write(RURI_PID_FILE_UNKNOWN, 0);
 		}
 		if (WIFEXITED(stat)) {
 			exit(WEXITSTATUS(stat));

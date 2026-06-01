@@ -204,7 +204,6 @@ struct RURI_CONTAINER {
 	bool systemd_mode;
 	// pid file.
 	char *_Nullable pid_file;
-	int pid_fd;
 	// Auto umount container when panic.
 	bool auto_umount;
 };
@@ -231,10 +230,20 @@ struct RURI_ID_MAP {
 		cfprintf(stderr, format, ##__VA_ARGS__);                                           \
 	} while (0)
 int ruri_pid_file_fd(int req);
+enum RURI_PID_FILE_REQ {
+	RURI_PID_FILE_INIT,
+	RURI_PID_FILE_PID,
+	RURI_PID_FILE_PANIC_EXEC,
+	RURI_PID_FILE_PANIC_INTERNAL,
+	RURI_PID_FILE_EXITED,
+	RURI_PID_FILE_SIGNALED,
+	RURI_PID_FILE_UNKNOWN,
+};
+void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg);
 // Show error msg and exit.
 #define ruri_error(format, ...)                                                                                                                      \
 	do {                                                                                                                                         \
-		write(ruri_pid_file_fd(-1), "RURI_PANIC_INTERNAL\n", strlen("RURI_PANIC_INTERNAL\n"));                                               \
+		ruri_pid_file_write(RURI_PID_FILE_PANIC_INTERNAL, 0);                                                                                \
 		cfprintf(stderr, "{red}in %s() at %s line %d:\n", __func__, __FILE__, __LINE__);                                                     \
 		cfprintf(stderr, format, ##__VA_ARGS__);                                                                                             \
 		cfprintf(stderr, "{base}%s{clear}\n", "\n  .^.   .^.");                                                                              \

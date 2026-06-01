@@ -55,6 +55,39 @@ int ruri_pid_file_fd(int req)
 	return ret;
 }
 // NOLINTEND
+void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
+{
+	if (ruri_pid_file_fd(-1) < 0) {
+		return;
+	}
+	char buf[256] = { '\0' };
+	switch (req) {
+	case RURI_PID_FILE_INIT:
+		// Handle initialization logic
+		break;
+	case RURI_PID_FILE_PID:
+		snprintf(buf, sizeof(buf), "%lld\n", arg);
+		break;
+	case RURI_PID_FILE_PANIC_EXEC:
+		snprintf(buf, sizeof(buf), "RURI_PANIC_EXE\n");
+		break;
+	case RURI_PID_FILE_PANIC_INTERNAL:
+		snprintf(buf, sizeof(buf), "RURI_PANIC_INTERNAL\n");
+		break;
+	case RURI_PID_FILE_EXITED:
+		snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", arg);
+		break;
+	case RURI_PID_FILE_SIGNALED:
+		snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", arg);
+		break;
+	case RURI_PID_FILE_UNKNOWN:
+		snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
+		break;
+	default:
+		return;
+	}
+	write(ruri_pid_file_fd(-1), buf, strlen(buf));
+}
 enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark)
 {
 	static thread_local enum RURI_PROC_TYPE ret = RURI_CHROOT;
@@ -1462,7 +1495,6 @@ int ruri(int argc, char **argv)
 		ruri_warning("{red}Warning: failed to create socket pair for pid file, pid file will not be updated QwQ\n");
 	}
 	int pid_file_fd = pid_pipe[0];
-	container->pid_fd = pid_pipe[1];
 	ruri_pid_file_fd(pid_pipe[1]);
 	signal(SIGPIPE, SIG_IGN);
 	// fork() twice then watch pid_file_fd, and write content to pidfile.
@@ -1500,9 +1532,17 @@ int ruri(int argc, char **argv)
 			snprintf(buf, sizeof(buf), "RURI_INIT_%lld\n", now_ns);
 			write(file_fd, buf, strlen(buf));
 			while (1) {
+				memset(buf, 0, sizeof(buf));
 				ssize_t n = read(pid_file_fd, buf, sizeof(buf) - 1);
 				if (n > 0) {
 					buf[n] = '\0';
+					// only 0-9,a-z,A-Z and _ are allowed in the pid file, for safety.
+					for (ssize_t i = 0; i < n; i++) {
+						if (!((buf[i] >= '0' && buf[i] <= '9') || (buf[i] >= 'a' && buf[i] <= 'z') || (buf[i] >= 'A' && buf[i] <= 'Z') || buf[i] == '_' || buf[i] == '\n')) {
+							memset(buf, 0, sizeof(buf));
+							continue;
+						}
+					}
 					ftruncate(file_fd, 0);
 					lseek(file_fd, 0, SEEK_SET);
 					write(file_fd, buf, n);
@@ -1556,22 +1596,15 @@ int ruri(int argc, char **argv)
 			int stat = 0;
 			waitpid(chroot_pid, &stat, 0);
 			// Write exit status to pid_fd.
-			if (container->pid_fd >= 0) {
-				char buf[256] = { 0 };
-				if (WIFEXITED(stat)) {
-					snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", WEXITSTATUS(stat));
-				} else if (WIFSIGNALED(stat)) {
-					snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", WTERMSIG(stat));
-				} else {
-					snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
-				}
-				write(container->pid_fd, buf, strlen(buf));
-			}
 			if (WIFEXITED(stat)) {
+				ruri_pid_file_write(RURI_PID_FILE_EXITED, WEXITSTATUS(stat));
 				exit(WEXITSTATUS(stat));
-			}
-			if (WIFSIGNALED(stat)) {
+			} else if (WIFSIGNALED(stat)) {
+				ruri_pid_file_write(RURI_PID_FILE_SIGNALED, 128 + WTERMSIG(stat));
 				exit(128 + WTERMSIG(stat));
+			} else {
+				ruri_pid_file_write(RURI_PID_FILE_UNKNOWN, 0);
+				exit(1);
 			}
 			exit(EXIT_FAILURE);
 		} else if (chroot_pid == 0) {
