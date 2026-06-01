@@ -226,6 +226,7 @@ void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull containe
 	 */
 
 #ifndef DISABLE_LIBCAP
+#ifndef DISABLE_LIBSECCOMP
 	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ERRNO(EPERM));
 	// Deny user-defined syscalls.
 	for (int i = 0; container->seccomp_denied_syscall[i] != NULL; i++) {
@@ -735,8 +736,11 @@ void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull containe
 		ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: failed to load seccomp filter QwQ{clear}\n");
 	}
 #else
+	ruri_error("libseccomp is disabled, cannot setup seccomp whitelist filter\n");
+#endif // DISABLE_LIBSECCOMP
+#else
 	ruri_error("libcap is disabled, cannot setup seccomp whitelist filter\n");
-#endif
+#endif // DISABLE_LIBCAP
 }
 // Setup seccomp filter rule, with libseccomp.
 void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
