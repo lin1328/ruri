@@ -7,7 +7,9 @@
   * Experimentally support `--systemd` with `--even-unstable` option, but it may not work as expected.
   * Add `--strict-mode` option to make ruri exit immediately when any error.
   * Experimentally support `--pid-file` option to write the PID of the container to a file.
+  * Experimentally support `--stat` option to read pidfile.
   * Experimentally support `--auto-umount` option to automatically umount the container when it exits.
+  * Experimentally support `--umount-on-panic` option to automatically umount the container when it exits.
   * Rewrite default seccomp profile, make it more useable, and act for recent 0day vulnerabilities.
   * Migrate libk2v to libk2v3.
   * Refactored build system.
