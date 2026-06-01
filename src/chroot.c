@@ -880,6 +880,9 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 			}
 		}
 		if (!proc_mounted) {
+			if (container->is_health_check) {
+				ruri_error("{red}Error: health check should not run before container is initialized QwQ\n");
+			}
 			// Mount mountpoints.
 			mount_rootfs(container);
 			mount_mountpoints(container);

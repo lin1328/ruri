@@ -847,6 +847,26 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 			container->auto_umount_on_panic = true;
 			ruri_force_panic(1);
 		}
+		// Is health check process.
+		else if (strcmp(argv[index], "--health-check") == 0) {
+			container->is_health_check = true;
+		}
+		// Timeout.
+		else if (strcmp(argv[index], "--timeout") == 0) {
+			index++;
+			if (index == argc - 1) {
+				ruri_error("{red}Please specify the timeout in seconds\n{clear}");
+			}
+			// This is a float, use strtof to parse it.
+			char *endptr;
+			container->timeout = strtof(argv[index], &endptr);
+			if (*endptr != '\0') {
+				ruri_error("{red}Invalid timeout value\n{clear}");
+			}
+			if (container->timeout < 0) {
+				ruri_error("{red}Timeout should be non-negative\n{clear}");
+			}
+		}
 		// If use_config_file is true.
 		// The first unrecognized argument will be treated as command to exec in container.
 		else if (use_config_file) {
@@ -1597,6 +1617,55 @@ int ruri(int argc, char **argv)
 		}
 	}
 	close(pid_pipe[0]);
+	// Timeout watchdog.
+	if (container->timeout > 0) {
+		pid_t timeout_pid = fork();
+		if (timeout_pid < 0) {
+			ruri_error("{red}Failed to fork for timeout watchdog QwQ\n");
+		}
+		if (timeout_pid > 0) {
+			// Get current time in ns.
+			struct timespec ts;
+			clock_gettime(CLOCK_MONOTONIC, &ts);
+			long long start_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+			while (1) {
+				// Non-blocking check if the container process is still running by waitpid with WNOHANG.
+				int stat = 0;
+				pid_t result = waitpid(timeout_pid, &stat, WNOHANG);
+				if (result == 0) {
+					// Still running, check if timeout is reached.
+					clock_gettime(CLOCK_MONOTONIC, &ts);
+					long long now_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+					if ((now_ns - start_ns) >= (long long)(container->timeout * 1000000000LL)) {
+						// Timeout reached, kill the container process.
+						ruri_warning("{red}Timeout reached, killing the container process QwQ\n");
+						kill(timeout_pid, SIGKILL);
+						exit(EXIT_FAILURE);
+					}
+				} else if (result > 0) {
+					// Container process exited, exit as same exit code.
+					if (WIFEXITED(stat)) {
+						exit(WEXITSTATUS(stat));
+					} else if (WIFSIGNALED(stat)) {
+						exit(128 + WTERMSIG(stat));
+					} else {
+						exit(1);
+					}
+				} else {
+					// Error, maybe EINTR, try again.
+					if (errno == EINTR) {
+						continue;
+					}
+					// Other errors, exit.
+					exit(EXIT_FAILURE);
+				}
+				// Sleep 0.5s
+				usleep(500000);
+			}
+
+			exit(EXIT_SUCCESS);
+		}
+	}
 	if ((container->enable_unshare) && !(container->rootless)) {
 		// Unshare container.
 		ruri_run_unshare_container(container);

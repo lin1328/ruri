@@ -523,3 +523,12 @@ This option allows you to automatically umount the container when it exits.
 
 WARNING: This option is dangerous, use it only if you know what you are doing.
 Only triggered when ruri panics, and will not affect the behavior when the container exits normally.      
+
+---
+| Option | Description |
+|--------|-------------|
+| `--health-check` | Run as health check process in the container |
+| `--timeout [seconds]` | Set timeout for health check process |
+
+Health check process is a special process in the container, it will automatically panic if the container is not initialized, and will will automatically die after timeout.          
+`--timeout` can also use without `--health-check` option, in this case, it will automatically kill the container process after the specified time.      

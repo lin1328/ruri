@@ -208,6 +208,9 @@ struct RURI_CONTAINER {
 	bool auto_umount;
 	// Auto umount container when panic.
 	bool auto_umount_on_panic;
+	// Is health check process.
+	bool is_health_check;
+	float timeout;
 };
 // For ruri_get_magic().
 #define ruri_magicof(x) (x##_magic)

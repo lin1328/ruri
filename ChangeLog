@@ -10,6 +10,8 @@
   * Experimentally support `--stat` option to read pidfile.
   * Experimentally support `--auto-umount` option to automatically umount the container when it exits.
   * Experimentally support `--umount-on-panic` option to automatically umount the container when it exits.
+  * Experimentally support `--health-check` option for health check process.
+  * Experimentally support `--timeout` option to automatically kill the process after the specified time.
   * Rewrite default seccomp profile, make it more useable, and act for recent 0day vulnerabilities.
   * Migrate libk2v to libk2v3.
   * Refactored build system.
