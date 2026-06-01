@@ -230,9 +230,11 @@ struct RURI_ID_MAP {
 		cfprintf(stderr, "{yellow}in %s() at %s line %d: ", __func__, __FILE__, __LINE__); \
 		cfprintf(stderr, format, ##__VA_ARGS__);                                           \
 	} while (0)
+int ruri_pid_file_fd(int req);
 // Show error msg and exit.
 #define ruri_error(format, ...)                                                                                                                      \
 	do {                                                                                                                                         \
+		write(ruri_pid_file_fd(-1), "RURI_PANIC_INTERNAL\n", strlen("RURI_PANIC_INTERNAL\n"));                                               \
 		cfprintf(stderr, "{red}in %s() at %s line %d:\n", __func__, __FILE__, __LINE__);                                                     \
 		cfprintf(stderr, format, ##__VA_ARGS__);                                                                                             \
 		cfprintf(stderr, "{base}%s{clear}\n", "\n  .^.   .^.");                                                                              \

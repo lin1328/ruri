@@ -40,9 +40,18 @@ bool ruri_force_panic(int req)
 {
 	static thread_local bool ret = false;
 	if (req == -1) {
-		return req;
+		return ret;
 	}
 	ret = !!req;
+	return ret;
+}
+int ruri_pid_file_fd(int req)
+{
+	static thread_local int ret = -1;
+	if (req < 0) {
+		return ret;
+	}
+	ret = req;
 	return ret;
 }
 // NOLINTEND
@@ -1454,6 +1463,7 @@ int ruri(int argc, char **argv)
 	}
 	int pid_file_fd = pid_pipe[0];
 	container->pid_fd = pid_pipe[1];
+	ruri_pid_file_fd(pid_pipe[1]);
 	signal(SIGPIPE, SIG_IGN);
 	// fork() twice then watch pid_file_fd, and write content to pidfile.
 	pid_t pid1 = fork();
