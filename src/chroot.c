@@ -924,6 +924,15 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	if (!container->enable_unshare) {
 		ruri_set_limit(container);
 	}
+	// We only need 0(stdin), 1(stdout), 2(stderr), and pid_fd
+	// So we close the other fds to avoid security issues.
+	// NOTE: this might cause unknown issues.
+	for (int i = 3; i <= 10; i++) {
+		if (i == ruri_pid_file_fd(-1)) {
+			continue;
+		}
+		close(i);
+	}
 	// chroot(2) into container, or use pivot_root(2) if `-u` is set.
 	if (!container->enable_unshare) {
 		if (chdir(container->container_dir) != 0) {
@@ -1086,6 +1095,15 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	}
 	// Check binary used.
 	check_binary(container);
+	// We only need 0(stdin), 1(stdout), 2(stderr), and pid_fd
+	// So we close the other fds to avoid security issues.
+	// NOTE: this might cause unknown issues.
+	for (int i = 3; i <= 10; i++) {
+		if (i == ruri_pid_file_fd(-1)) {
+			continue;
+		}
+		close(i);
+	}
 	// chroot(2) into container.
 	chdir(container->container_dir);
 	if (chroot(".") == -1) {

@@ -159,6 +159,15 @@ static pid_t join_ns(struct RURI_CONTAINER *_Nonnull container)
 	 * Use setns(2) to enter existing namespaces.
 	 */
 	pid_t unshare_pid = RURI_INIT_VALUE;
+	// We only need 0(stdin), 1(stdout), 2(stderr), and pid_fd
+	// So we close the other fds to avoid security issues.
+	// NOTE: this might cause unknown issues.
+	for (int i = 3; i <= 10; i++) {
+		if (i == ruri_pid_file_fd(-1)) {
+			continue;
+		}
+		close(i);
+	}
 	// Use setns(2) to enter existing namespaces.
 	char cgroup_ns_file[PATH_MAX] = { '\0' };
 	char ipc_ns_file[PATH_MAX] = { '\0' };
