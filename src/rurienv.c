@@ -312,7 +312,14 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	// Read .rurienv file.
 	char *buf = k2v3_open_file(file, 65536);
 	if (buf == NULL) {
-		ruri_error("{red}Failed to read config file:%s\n{clear}", file);
+		if (container == NULL) {
+			// For ruri_umount_container().
+			container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
+			ruri_init_config(container);
+			return container;
+		} else {
+			ruri_error("{red}Failed to read config file:%s\n{clear}", file);
+		}
 	}
 	k2v3_cache cache = k2v3_parse(buf);
 	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", buf);
