@@ -74,6 +74,9 @@ void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
 	case RURI_PID_FILE_PANIC_INTERNAL:
 		snprintf(buf, sizeof(buf), "RURI_PANIC_INTERNAL\n");
 		break;
+	case RURI_PID_FILE_PANIC_TIMEOUT:
+		snprintf(buf, sizeof(buf), "RURI_PANIC_TIMEOUT\n");
+		break;
 	case RURI_PID_FILE_EXITED:
 		snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", arg);
 		break;
@@ -1640,6 +1643,7 @@ int ruri(int argc, char **argv)
 						// Timeout reached, kill the container process.
 						ruri_warning("{red}Timeout reached, killing the container process QwQ\n");
 						kill(timeout_pid, SIGKILL);
+						ruri_pid_file_write(RURI_PID_FILE_PANIC_TIMEOUT, 0);
 						if (container->auto_umount_on_panic) {
 							// Sleep 0.5s.
 							usleep(500000);

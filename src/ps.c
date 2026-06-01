@@ -332,6 +332,17 @@ void ruri_stat(const char *pid_file)
 	}
 	if (strncmp(buf, "RURI_PANIC_", 11) == 0) {
 		cprintf("{red}Paniced\n{clear}");
+		// Get reason.
+		char *reason = buf + 11;
+		if (strncmp(reason, "EXEC", 4) == 0) {
+			cprintf("{red}Panic reason: execution failed\n{clear}");
+		} else if (strncmp(reason, "INTERNAL", 8) == 0) {
+			cprintf("{red}Panic reason: internal error\n{clear}");
+		} else if (strncmp(reason, "TIMEOUT", 7) == 0) {
+			cprintf("{red}Panic reason: timeout\n{clear}");
+		} else {
+			cprintf("{red}Panic reason: unknown\n{clear}");
+		}
 		exit(114);
 	}
 	if (strncmp(buf, "RURI_EXITED_", 12) == 0) {
