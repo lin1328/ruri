@@ -818,6 +818,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		// Force panic on error, for security.
 		else if (strcmp(argv[index], "--strict-mode") == 0) {
 			ruri_force_panic(1);
+			container->auto_umount_on_panic = true;
 		}
 		// Pid file.
 		else if (strcmp(argv[index], "--pid-file") == 0) {
@@ -830,6 +831,11 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		// Auto umount after running container.
 		else if (strcmp(argv[index], "--auto-umount") == 0) {
 			container->auto_umount = true;
+		}
+		// Auto umount on panic.
+		else if (strcmp(argv[index], "--umount-on-panic") == 0) {
+			container->auto_umount_on_panic = true;
+			ruri_force_panic(1);
 		}
 		// If use_config_file is true.
 		// The first unrecognized argument will be treated as command to exec in container.
@@ -1549,7 +1555,7 @@ int ruri(int argc, char **argv)
 					fsync(file_fd);
 					// If we got RURI_PANIC_*, exit now.
 					if (strncmp(buf, "RURI_PANIC_", strlen("RURI_PANIC_")) == 0) {
-						if (container->auto_umount) {
+						if (container->auto_umount || container->auto_umount_on_panic) {
 							// Sleep 0.5s.
 							usleep(500000);
 							ruri_umount_container(container->container_dir);

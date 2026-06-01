@@ -486,9 +486,10 @@ This option allows you to run systemd as init in the container. It will set up s
 ---
 | Option | Description |
 |--------|-------------|
-| `--strict` | Enable strict mode |
+| `--strict-mode` | Enable strict mode |
 
-This option will enable strict mode, ruri will treat most important warning as error, and panic immediately when any setup is failed.
+This option will enable strict mode, ruri will treat most important warning as error, and panic immediately when any setup is failed.      
+This option will also automatically enable `--umount-on-panic` option, so the container will be automatically umounted when it exits.
 
 ---
 | Option | Description |
@@ -512,4 +513,12 @@ pid file format:
 | `--auto-umount` | Automatically umount the container when it exits |
 
 WARNING: This option is dangerous, use it only if you know what you are doing.      
-This option allows you to automatically umount the container when it exits.      
+This option allows you to automatically umount the container when it exits.    
+
+---
+| Option | Description |
+|--------|-------------|
+| `--umount-on-panic` | Automatically umount the container when it panics |
+
+WARNING: This option is dangerous, use it only if you know what you are doing.
+Only triggered when ruri panics, and will not affect the behavior when the container exits normally.      
