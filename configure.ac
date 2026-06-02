@@ -39,7 +39,7 @@ AC_ARG_ENABLE([debug],
 # Only applies when user has not pre-set CFLAGS via environment or command line.
 AS_IF([test "x${enable_debug}" = "xyes"],
     [: ${CFLAGS="-O0 -g3"}],
-    [: ${CFLAGS="-O2 -g0"}])
+    [: ${CFLAGS="-O1 -g0"}])
 
 AC_PROG_CC
 # PKG_PROG_PKG_CONFIG

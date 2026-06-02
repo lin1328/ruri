@@ -249,10 +249,10 @@ endif()
 
 # RURI_DEBUG/RURI_DEV built-in macro
 target_compile_definitions(ruri PRIVATE $<$<CONFIG:Debug>:RURI_DEBUG>)
-# Override -O3 to -O2 in Release (the compiler takes the last -O flag).
+# Override -O3 to -O1 in Release (the compiler takes the last -O flag).
 # -DNDEBUG is still injected by the default CMAKE_C_FLAGS_RELEASE.
-target_compile_options(ruri PRIVATE $<$<CONFIG:Release>:-O2>)
-target_link_options(ruri PRIVATE $<$<CONFIG:Release>:-O2>)
+target_compile_options(ruri PRIVATE $<$<CONFIG:Release>:-O1>)
+target_link_options(ruri PRIVATE $<$<CONFIG:Release>:-O1>)
 
 if(DISABLE_RURIENV)
 target_compile_definitions(ruri PRIVATE DISABLE_RURIENV)

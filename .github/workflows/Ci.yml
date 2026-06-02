@@ -30,7 +30,7 @@ jobs:
           make -C libcap-2.77/libcap BUILD_CC=gcc \
             CC="${HOST_TRIPLE}-gcc" \
             SHARED=no GOLANG=no PAM_CAP=no DYNAMIC=no lib=lib \
-            COPTS="-O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security" \
+            COPTS="-O1 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security" \
             prefix=$(pwd)/out \
             install
 
