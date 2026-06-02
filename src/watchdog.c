@@ -251,6 +251,10 @@ void ruri_fork_as_init(void)
 		}
 		return;
 	}
+	close(ruri_pid_file_fd(-1));
+	for (int i = 3; i < 10; i++) {
+		close(i);
+	}
 	setpgid(pid, pid);
 	ruri_tgid_init(pid);
 	// Set PR_SET_PDEATHSIG to SIGKILL.
