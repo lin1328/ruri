@@ -211,7 +211,10 @@ struct RURI_CONTAINER {
 	bool auto_umount_on_panic;
 	// Is health check process.
 	bool is_health_check;
+	// Timeout for watchdog killer.
 	float timeout;
+	// Make ruri fork as init.
+	bool fork_as_init;
 };
 // For ruri_get_magic().
 #define ruri_magicof(x) (x##_magic)
@@ -366,6 +369,7 @@ enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark);
 void ruri_stat(const char *pid_file);
 void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container);
 int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container);
+void ruri_fork_as_init(void);
 //   ██╗ ██╗  ███████╗   ████╗   ███████╗
 //  ████████╗ ██╔════╝ ██╔═══██╗ ██╔════╝
 //  ╚██╔═██╔╝ █████╗   ██║   ██║ █████╗

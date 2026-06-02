@@ -1041,6 +1041,9 @@ void ruri_run_chroot_container(struct RURI_CONTAINER *_Nonnull container)
 	if (!container->enable_unshare) {
 		ruri_pid_file_write(RURI_PID_FILE_PID, getpid());
 	}
+	if (container->fork_as_init) {
+		ruri_fork_as_init();
+	}
 	if (execvp(container->command[0], container->command) == -1) {
 		// Catch exceptions.
 		ruri_pid_file_write(RURI_PID_FILE_PANIC_EXEC, 0);
@@ -1158,6 +1161,9 @@ void ruri_run_rootless_chroot_container(struct RURI_CONTAINER *_Nonnull containe
 	}
 	// Fix console color.
 	cprintf("{clear}");
+	if (container->fork_as_init) {
+		ruri_fork_as_init();
+	}
 	// Execute command in container.
 	// Use exec(3) function because system(3) may be unavailable now.
 	if (execvp(container->command[0], container->command) == -1) {

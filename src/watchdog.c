@@ -68,7 +68,14 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 				// This will exit pid_file daemon.
 				ruri_pid_file_write(RURI_PID_FILE_PANIC_TIMEOUT, 0);
 				usleep(100000); // Sleep 0.1s to wait for the pid file to be updated.
-				kill(to_watch, SIGKILL);
+				if (!container->fork_as_init) {
+					kill(to_watch, SIGKILL);
+				} else {
+					kill(to_watch, SIGUSR1);
+					// 3s timeout for waitpid() in daemon.
+					sleep(3);
+					kill(to_watch, SIGKILL);
+				}
 				usleep(100000); // Sleep 0.1s to wait for the process to be killed.
 				if (container->auto_umount_on_panic) {
 					// Sleep 0.5s.
@@ -188,4 +195,79 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 	}
 	close(pid_pipe[0]);
 	return pid_file_fd;
+}
+static int ruri_tgid_init(int req)
+{
+	// Just to store tgid for sig handler when we got SIGUSER1.
+	static thread_local int tgid = -1;
+	if (req < 0) {
+		return tgid;
+	}
+	tgid = req;
+	return tgid;
+}
+static void kill_subprocess_and_die(int __attribute__((unused)) signum)
+{
+	int tgid = ruri_tgid_init(-1);
+	if (tgid > 0) {
+		kill(-tgid, SIGKILL);
+	}
+	// Keep do non-blocking wait for 3s.
+	// Get time.
+	struct timeval start, now;
+	gettimeofday(&start, NULL);
+	int wait_time_ms = 3000;
+	while (true) {
+		while (waitpid(-1 * ruri_tgid_init(-1), NULL, WNOHANG) > 0)
+			;
+		for (int i = 0; i < 15; i++) {
+			if (waitpid(-1 * ruri_tgid_init(-1), NULL, WNOHANG) < 0) {
+				exit(EXIT_FAILURE);
+			}
+			// usleep 0.03s to avoid busy loop, total sleep time is 0.45s.
+			usleep(30000);
+		}
+		// check timeout.
+		gettimeofday(&now, NULL);
+		if ((now.tv_sec - start.tv_sec) * 1000 + (now.tv_usec - start.tv_usec) / 1000 >= wait_time_ms) {
+			kill(0, SIGKILL);
+			exit(EXIT_FAILURE);
+		}
+	}
+	exit(EXIT_FAILURE);
+}
+void ruri_fork_as_init(void)
+{
+	ruri_proc_mark(RURI_DAEMON);
+	pid_t pid = fork();
+	if (pid < 0) {
+		ruri_error("{red}Failed to fork for init process QwQ\n");
+	}
+	if (pid == 0) {
+		setpgid(0, 0);
+		if (tcsetpgrp(STDIN_FILENO, getpid()) < 0) {
+			// This may fail if the parent process is not a terminal, just ignore it.
+			ruri_warning("{yellow}: Warning: failed to set controlling terminal for init process, maybe the parent process is not a terminal QwQ\n");
+		}
+		return;
+	}
+	setpgid(pid, pid);
+	ruri_tgid_init(pid);
+	// Set PR_SET_PDEATHSIG to SIGKILL.
+	prctl(PR_SET_PDEATHSIG, SIGKILL);
+	// Set SIGUSR1 handler to kill subprocesses.
+	signal(SIGUSR1, kill_subprocess_and_die);
+	// Keep do non-blocking wait for child process, if all child process exited, exit too.
+	int status;
+	int last_status = EXIT_SUCCESS;
+	while (true) {
+		if (waitpid(-pid, &status, 0) < 0) {
+			exit(last_status);
+		}
+		if (WIFEXITED(status)) {
+			last_status = WEXITSTATUS(status);
+		} else if (WIFSIGNALED(status)) {
+			last_status = 128 + WTERMSIG(status);
+		}
+	}
 }

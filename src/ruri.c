@@ -858,6 +858,10 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		else if (strcmp(argv[index], "--enable-seccomp-whitelist") == 0) {
 			container->enable_seccomp_whitelist = true;
 		}
+		// --fork-as-init.
+		else if (strcmp(argv[index], "--fork-as-init") == 0) {
+			container->fork_as_init = true;
+		}
 		// Timeout.
 		else if (strcmp(argv[index], "--timeout") == 0) {
 			index++;
@@ -1518,6 +1522,12 @@ int ruri(int argc, char **argv)
 	struct RURI_CONTAINER *container = (struct RURI_CONTAINER *)malloc(sizeof(struct RURI_CONTAINER));
 	// Parse arguments.
 	parse_args(argc, argv, container);
+	// If --fork-as-init, erase argv.
+	if (container->fork_as_init) {
+		for (int i = 0; i < argc; i++) {
+			memset(argv[i], 0, strlen(argv[i]));
+		}
+	}
 	// Detect rootless mode.
 	if (geteuid() != 0) {
 		container->rootless = true;

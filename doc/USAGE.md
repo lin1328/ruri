@@ -524,3 +524,10 @@ Only trigger auto-umount when ruri panics, and will not affect the behavior when
 
 Health check process is a special process in the container, it will automatically panic if the container is not initialized, and will will automatically die after timeout.          
 `--timeout` can also use without `--health-check` option, in this case, it will automatically kill the container process after the specified time.      
+
+---
+| Option | Description |
+|--------|-------------|
+| `--fork-as-init` | Make ruri fork as init process in the container |
+
+This will make ruri fork() once before exec() in container, and do waitpid() for child container process. This is to avoid zombie processes in the container.       

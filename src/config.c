@@ -96,6 +96,7 @@ void ruri_init_config(struct RURI_CONTAINER *_Nonnull container)
 	container->is_health_check = false;
 	container->timeout = -1.0;
 	container->enable_seccomp_whitelist = false;
+	container->fork_as_init = false;
 }
 static int pmcrts(const char *s1, const char *s2)
 {
