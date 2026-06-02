@@ -259,17 +259,21 @@ static int mount_as_filesystem(const char *_Nonnull source, const char *_Nonnull
 		return -1;
 	}
 	ruri_log("{base}Mounting {cyan}%s{base} to {cyan}%s{base} with fstype {cyan}%s{base} and flags {cyan}%d{base}\n", source, target, fstype, mountflags);
+	int ret = 0;
 	// If source is not a block device, losetup it.
 	if (!S_ISBLK(dev_stat.st_mode)) {
 		char *loopfile = losetup(source);
 		if (loopfile == NULL) {
 			return -1;
 		}
-		int ret = mount(loopfile, target, fstype, mountflags, NULL);
+		ret = mount(loopfile, target, fstype, mountflags, NULL);
+		mount(loopfile, target, fstype, mountflags | MS_REMOUNT, NULL);
 		free(loopfile);
 		return ret;
 	}
-	return mount(source, target, fstype, mountflags, NULL);
+	ret = mount(source, target, fstype, mountflags, NULL);
+	mount(source, target, fstype, mountflags | MS_REMOUNT, NULL);
+	return ret;
 }
 static int mount_other_type(const char *_Nonnull source, const char *_Nonnull target, unsigned int mountflags)
 {
@@ -316,6 +320,7 @@ static int mount_other_type(const char *_Nonnull source, const char *_Nonnull ta
 		}
 		char *tmpfs_flag = strdup(source + strlen("TMPFS:"));
 		int ret = mount("tmpfs", target, "tmpfs", mountflags, tmpfs_flag);
+		mount("tmpfs", target, "tmpfs", mountflags | MS_REMOUNT, tmpfs_flag);
 		free(tmpfs_flag);
 		return ret;
 	}
