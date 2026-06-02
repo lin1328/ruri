@@ -40,13 +40,12 @@
  */
 // Reslove prefix for errno.
 #ifndef DISABLE_LIBSECCOMP
-#define ruri_seccomp_rule_add(container, ...)                                                                                 \
-	do {                                                                                                                  \
-		int ret__ = seccomp_rule_add(__VA_ARGS__);                                                                    \
-		if (ret__ < 0 && ret__ != -EEXIST) {                                                                          \
-			ruri_warn_on_error(1, 0, !container->no_warnings, "seccomp rule add failed: %s\n", strerror(-ret__)); \
-		}                                                                                                             \
-	} while (0)
+static void ruri_check_seccomp_ret(int res, bool no_warnings)
+{
+	if (res < 0 && res != -EEXIST) {
+		ruri_warn_on_error(1, 0, !no_warnings, "seccomp rule add failed: %s\n", strerror(-res));
+	}
+}
 static int ruri_resolve_seccomp_errno(const char *_Nonnull syscall, scmp_filter_ctx *_Nonnull ctx)
 {
 	const char *syscall_name = syscall;
@@ -226,6 +225,7 @@ static void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull c
 	 */
 #ifndef DISABLE_LIBCAP
 #ifndef DISABLE_LIBSECCOMP
+	int res = 0;
 	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ERRNO(EPERM));
 	// Deny user-defined syscalls.
 	for (int i = 0; container->seccomp_denied_syscall[i] != NULL; i++) {
@@ -235,498 +235,941 @@ static void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull c
 				ruri_error("Failed to resolve syscall: %s\n", container->seccomp_denied_syscall[i]);
 			}
 		} else {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, syscall_nr, 0);
+			res = seccomp_rule_add(ctx, SCMP_ACT_KILL, syscall_nr, 0);
+			ruri_check_seccomp_ret(res, container->no_warnings);
 		}
 	}
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept4), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(access), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(adjtimex), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(alarm), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(bind), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(brk), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(cachestat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(capget), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(capset), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chdir), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chmod), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chown), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chown32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_adjtime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_adjtime64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(close), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(close_range), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(connect), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(copy_file_range), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(creat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup3), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_create), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_create1), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_ctl), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_ctl_old), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait_old), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(eventfd), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(eventfd2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(execve), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(execveat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(faccessat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(faccessat2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fadvise64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fadvise64_64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fallocate), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fanotify_mark), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchdir), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmod), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmodat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmodat2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchown), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchown32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchownat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fdatasync), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fgetxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(flistxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(flock), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fork), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fremovexattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsetxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatat64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatfs), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatfs64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsync), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ftruncate), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ftruncate64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_requeue), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_wait), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_waitv), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_wake), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(futimesat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcpu), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcwd), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getdents), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getdents64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getegid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getegid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(geteuid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(geteuid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgroups), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgroups32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getitimer), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpeername), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpgid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpgrp), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getppid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpriority), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrandom), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresgid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresgid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresuid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresuid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrlimit), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_robust_list), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrusage), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsockname), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsockopt), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_thread_area), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(gettid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(gettimeofday), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getuid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getuid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(getxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("getxattrat"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_add_watch), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_init), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_init1), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_rm_watch), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_cancel), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_destroy), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_getevents), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_get), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_set), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_setup), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_submit), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ipc), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(kill), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_add_rule), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_create_ruleset), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_restrict_self), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lchown), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lchown32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lgetxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(link), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(linkat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(listen), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("listmount"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(listxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("listxattrat"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(llistxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(_llseek), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lremovexattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lseek), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lsetxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lstat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lstat64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(madvise), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(map_shadow_stack), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(membarrier), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(memfd_create), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(memfd_secret), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mincore), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mkdir), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mkdirat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mknod), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mknodat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlock), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlock2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlockall), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mmap), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mmap2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mprotect), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_getsetattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_notify), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_open), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_unlink), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mremap), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("mseal"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgctl), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgget), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgrcv), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgsnd), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(msync), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(munlock), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(munlockall), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(munmap), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(name_to_handle_at), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(nanosleep), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(newfstatat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(_newselect), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(open), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(openat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(openat2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pause), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_open), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_send_signal), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pipe), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pipe2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_alloc), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_free), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_mprotect), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(poll), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(prctl), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(preadv), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(preadv2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(prlimit64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_mrelease), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwritev), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwritev2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readahead), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readlink), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readlinkat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(readv), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recv), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvfrom), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmsg), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(remap_file_pages), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(removexattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("removexattrat"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rename), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(renameat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(renameat2), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(restart_syscall), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("riscv_hwprobe"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rmdir), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rseq), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigaction), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigpending), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigprocmask), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigqueueinfo), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigreturn), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigsuspend), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_tgsigqueueinfo), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getaffinity), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getparam), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_get_priority_max), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_get_priority_min), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getscheduler), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setaffinity), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setparam), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setscheduler), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_yield), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(seccomp), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(select), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semctl), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semget), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semop), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(send), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendfile), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendfile64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendmmsg), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendmsg), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendto), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsgid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsgid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsuid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsuid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgroups), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgroups32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setitimer), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setpgid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setpriority), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setregid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setregid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresgid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresgid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresuid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresuid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setreuid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setreuid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setrlimit), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_robust_list), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_thread_area), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_tid_address), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setuid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setuid32), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setxattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("setxattrat"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmctl), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmdt), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmget), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(shutdown), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigaltstack), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(signalfd), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(signalfd4), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigprocmask), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigreturn), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socketcall), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socketpair), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(splice), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(stat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(stat64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(statfs), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(statfs64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("statmount"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(statx), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(symlink), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(symlinkat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(syncfs), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sysinfo), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(tee), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(tgkill), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(time), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_create), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_delete), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_getoverrun), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_create), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(times), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(tkill), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(truncate), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(truncate64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ugetrlimit), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(umask), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(uname), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(unlink), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(unlinkat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("uretprobe"), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat_time64), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimes), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(vfork), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(vmsplice), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(wait4), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(waitid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(waitpid), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(writev), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(accept4), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(access), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(adjtimex), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(alarm), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(bind), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(brk), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(cachestat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(capget), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(capset), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(chdir), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(chmod), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(chown), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(chown32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_adjtime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_adjtime64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(close), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(close_range), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(connect), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(copy_file_range), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(creat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup3), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_create), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_create1), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_ctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_ctl_old), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait_old), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(eventfd), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(eventfd2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(execve), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(execveat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(faccessat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(faccessat2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fadvise64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fadvise64_64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fallocate), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fanotify_mark), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchdir), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmod), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmodat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchmodat2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchown), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchown32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fchownat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fdatasync), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fgetxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(flistxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(flock), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fork), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fremovexattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsetxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatat64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatfs), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstatfs64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsync), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ftruncate), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ftruncate64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_requeue), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_wait), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_waitv), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_wake), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futimesat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcpu), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcwd), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getdents), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getdents64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getegid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getegid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(geteuid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(geteuid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgroups), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getgroups32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getitimer), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpeername), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpgid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpgrp), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getppid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpriority), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrandom), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresgid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresgid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresuid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getresuid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrlimit), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_robust_list), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getrusage), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsockname), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getsockopt), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_thread_area), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(gettid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(gettimeofday), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getuid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getuid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("getxattrat"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_add_watch), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_init), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_init1), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(inotify_rm_watch), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_cancel), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_destroy), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_getevents), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_get), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_set), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_setup), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_submit), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ipc), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(kill), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_add_rule), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_create_ruleset), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(landlock_restrict_self), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lchown), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lchown32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lgetxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(link), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(linkat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(listen), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("listmount"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(listxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("listxattrat"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(llistxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(_llseek), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lremovexattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lseek), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lsetxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lstat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lstat64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(madvise), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(map_shadow_stack), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(membarrier), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(memfd_create), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(memfd_secret), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mincore), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mkdir), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mkdirat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mknod), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mknodat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlock), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlock2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mlockall), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mmap), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mmap2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mprotect), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_getsetattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_notify), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_open), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_unlink), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mremap), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("mseal"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgget), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgrcv), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(msgsnd), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(msync), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(munlock), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(munlockall), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(munmap), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(name_to_handle_at), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(nanosleep), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(newfstatat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(_newselect), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(open), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(openat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(openat2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pause), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_open), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_send_signal), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pipe), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pipe2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_alloc), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_free), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pkey_mprotect), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(poll), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(prctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(preadv), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(preadv2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(prlimit64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_mrelease), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwritev), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwritev2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(readahead), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(readlink), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(readlinkat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(readv), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recv), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvfrom), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmsg), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(remap_file_pages), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(removexattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("removexattrat"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rename), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(renameat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(renameat2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(restart_syscall), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("riscv_hwprobe"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rmdir), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rseq), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigaction), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigpending), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigprocmask), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigqueueinfo), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigreturn), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigsuspend), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_tgsigqueueinfo), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getaffinity), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getparam), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_get_priority_max), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_get_priority_min), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getscheduler), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setaffinity), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setparam), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setscheduler), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_yield), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(seccomp), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(select), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(semctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(semget), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(semop), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(send), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendfile), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendfile64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendmmsg), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendmsg), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendto), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsgid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsgid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsuid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setfsuid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgroups), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setgroups32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setitimer), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setpgid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setpriority), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setregid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setregid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresgid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresgid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresuid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setresuid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setreuid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setreuid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setrlimit), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_robust_list), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_thread_area), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_tid_address), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setuid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setuid32), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setxattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("setxattrat"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmdt), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(shmget), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(shutdown), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigaltstack), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(signalfd), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(signalfd4), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigprocmask), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sigreturn), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socketcall), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socketpair), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(splice), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(stat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(stat64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(statfs), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(statfs64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("statmount"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(statx), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(symlink), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(symlinkat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(syncfs), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sysinfo), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(tee), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(tgkill), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(time), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_create), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_delete), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_getoverrun), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_create), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(times), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(tkill), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(truncate), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(truncate64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ugetrlimit), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(umask), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(uname), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(unlink), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(unlinkat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("uretprobe"), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(utime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat_time64), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimes), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(vfork), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(vmsplice), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(wait4), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(waitid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(waitpid), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(writev), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (!kernel_version_le(4, 8, 0)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ptrace), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_readv), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_writev), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ptrace), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_readv), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_writev), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_LT, 38));
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, 39));
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_GT, 40));
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 0));
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 8));
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 131072));
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 131080));
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 4294967295U));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_LT, 38));
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, 39));
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_GT, 40));
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 0));
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 8));
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 131072));
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 131080));
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_EQ, 4294967295U));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (seccomp_arch_native() == SCMP_ARCH_PPC64LE) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range2), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(swapcontext), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range2), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(swapcontext), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (seccomp_arch_native() == SCMP_ARCH_ARM || seccomp_arch_native() == SCMP_ARCH_AARCH64) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(arm_fadvise64_64), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(arm_sync_file_range), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range2), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(breakpoint), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(cacheflush), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_tls), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(arm_fadvise64_64), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(arm_sync_file_range), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sync_file_range2), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(breakpoint), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(cacheflush), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_tls), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_X32) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(arch_prctl), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(arch_prctl), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_X86 || seccomp_arch_native() == SCMP_ARCH_X32) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(modify_ldt), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(modify_ldt), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (seccomp_arch_native() == SCMP_ARCH_S390 || seccomp_arch_native() == SCMP_ARCH_S390X) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_pci_mmio_read), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_pci_mmio_write), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_runtime_instr), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_pci_mmio_read), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_pci_mmio_write), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(s390_runtime_instr), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (seccomp_arch_native() == SCMP_ARCH_RISCV64) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(riscv_flush_icache), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(riscv_flush_icache), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(open_by_handle_at), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(open_by_handle_at), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(bpf), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone3), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fanotify_init), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsconfig), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsmount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsopen), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(fspick), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(lookup_dcookie), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("lsm_get_self_attr"), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("lsm_list_modules"), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("lsm_set_self_attr"), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mount_setattr), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(move_mount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(open_tree), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(perf_event_open), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(quotactl), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(quotactl_fd), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setdomainname), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(sethostname), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(setns), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(syslog), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(umount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(umount2), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(unshare), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(bpf), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone3), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fanotify_init), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsconfig), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsmount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fsopen), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fspick), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lookup_dcookie), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("lsm_get_self_attr"), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("lsm_list_modules"), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, seccomp_syscall_resolve_name("lsm_set_self_attr"), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mount_setattr), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(move_mount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(open_tree), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(perf_event_open), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(quotactl), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(quotactl_fd), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setdomainname), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sethostname), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setns), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(syslog), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(umount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(umount2), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(unshare), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) && !(seccomp_arch_native() == SCMP_ARCH_S390 || seccomp_arch_native() == SCMP_ARCH_S390X)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, 2114060288));
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, 2114060288));
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) && (seccomp_arch_native() == SCMP_ARCH_S390 || seccomp_arch_native() == SCMP_ARCH_S390X)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, 2114060288));
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, 2114060288));
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(38), SCMP_SYS(clone3), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(38), SCMP_SYS(clone3), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_BOOT)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(reboot), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(reboot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(chroot), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(chroot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_MODULE)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(init_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(delete_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(finit_module), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(init_module), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(delete_module), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(finit_module), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(acct), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(acct), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PTRACE)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(kcmp), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_getfd), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_madvise), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_readv), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_writev), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ptrace), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(kcmp), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pidfd_getfd), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_madvise), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_readv), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(process_vm_writev), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ptrace), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_RAWIO)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioperm), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(iopl), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioperm), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(iopl), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_TIME)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(settimeofday), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(stime), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_settime), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_settime64), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(settimeofday), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(stime), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_settime), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_settime64), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_TTY_CONFIG)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(vhangup), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(vhangup), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_mempolicy), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(mbind), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_mempolicy), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_mempolicy_home_node), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(get_mempolicy), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mbind), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_mempolicy), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(set_mempolicy_home_node), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_SYSLOG)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(syslog), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(syslog), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_BPF)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(bpf), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(bpf), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	if (!ruri_is_in_caplist(container->drop_caplist, CAP_PERFMON)) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ALLOW, SCMP_SYS(perf_event_open), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(perf_event_open), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Disable no_new_privs bit by default.
 	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
@@ -756,6 +1199,7 @@ static void ruri_setup_seccomp_blacklist(const struct RURI_CONTAINER *_Nonnull c
 		return;
 	}
 	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ALLOW);
+	int res = 0;
 	// Deny user-defined syscalls.
 	for (int i = 0; container->seccomp_denied_syscall[i] != NULL; i++) {
 		int syscall_nr = seccomp_syscall_resolve_name(container->seccomp_denied_syscall[i]);
@@ -764,7 +1208,8 @@ static void ruri_setup_seccomp_blacklist(const struct RURI_CONTAINER *_Nonnull c
 				ruri_error("Failed to resolve syscall: %s\n", container->seccomp_denied_syscall[i]);
 			}
 		} else {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, syscall_nr, 0);
+			res = seccomp_rule_add(ctx, SCMP_ACT_KILL, syscall_nr, 0);
+			ruri_check_seccomp_ret(res, container->no_warnings);
 		}
 	}
 	if (!container->enable_default_seccomp && !container->systemd_mode) {
@@ -787,409 +1232,607 @@ static void ruri_setup_seccomp_blacklist(const struct RURI_CONTAINER *_Nonnull c
 #ifndef DISABLE_LIBCAP
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT) || not_root_user) {
 		// acct() is used for process accounting, which is not needed in most cases and can be abused for DoS attacks.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Disallow AF_ALG.
 	// See Copy-Fail.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_RDS.
 	// See pintheft.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_RXRPC.
 	// See DirtyFrag.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow NETLINK_XFRM for AF_NETLINK.
 	// See DirtyFrag.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	//
 	// Anyway, go ahead and disallow these unused socket families.
 	//
 	// Disallow AF_AX25.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_IPX.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_APPLETALK.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_X25.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_DECnet.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_PPPOX.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_LLC.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_IB.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_MPLS.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_CAN.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_TIPC.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_BLUETOOTH.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_KCM.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_KEY.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_NET_RAW) || not_root_user) {
 		// Disallow AF_PACKET.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// Disallow SOCKET_RAW.
 		if (!container->systemd_mode && (ruri_is_in_caplist(container->drop_caplist, CAP_AUDIT_WRITE) || not_root_user)) {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+			res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+			ruri_check_seccomp_ret(res, container->no_warnings);
 		}
 		// Disallow SOCKET_PACKET.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Ban socketcall(2) for 64bit devices.
 	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Fully ban io_uring
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// add_key(2) and keyctl(2) are used for kernel key management.
 	// See CVE-2016-0728, CVE-2017-15951.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Ban eBPF, it should be used outside of container, not inside.
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_BPF) || not_root_user) {
 		// bpf(2) can be used to load eBPF programs, which can be very dangerous.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Fix `TIODSTI should be a privileged operation`.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Also, TIOCLINUX.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) || not_root_user) {
 		// lookup_dcookie(2) is used to look up the path of a file descriptor.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// mount(2), as we all know.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// new mount api.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsopen), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsconfig), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsmount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_mount), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_tree), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount_setattr), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsopen), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsconfig), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsmount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_mount), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_tree), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount_setattr), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// quotactl(2) is used to manage disk quotas, which is not needed in most cases and can be abused for DoS attacks.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// Why you setup swap in container? Bro so crazy.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapon), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapoff), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapon), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapoff), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// setns(2) and unshare(2) can be used to escape container in many cases.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// clone(2) can have the same effect as unshare(2), we deny it.
 		unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
 		for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
 			// For s390, they use arg1, not arg0.
 			if (seccomp_arch_native() == SCMP_ARCH_S390) {
-				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+				res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+				ruri_check_seccomp_ret(res, container->no_warnings);
 			} else {
-				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+				res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+				ruri_check_seccomp_ret(res, container->no_warnings);
 			}
 		}
 		if (!container->systemd_mode) {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+			res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+			ruri_check_seccomp_ret(res, container->no_warnings);
 		}
 		// Why you run 8086 vm in container? Weird.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// syslog(2) can be used to read kernel logs, which may contain sensitive information.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// memfd_secret() can be used for rootkits, we return ENOSYS.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// It's anyway so weird to change system time in container.
 	// Maybe in time ns it's okey?
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Hey, what are you doing? .ko files should on your host, not in container.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscalls, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE) || not_root_user) {
 		// Seems not very dangerous, so just follow CAP_SYS_NICE.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Do not touch any hardware I/O ports in container, it's really dangerous and not needed.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PTRACE) || not_root_user) {
 		// kcmp(2) can be used for side channel attacks, we deny it for non-root users.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// process_vm_readv(2) and process_vm_writev(2) can be used to read/write another process's memory, which is very dangerous.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// ptrace(2) can be used to trace another process, which is very dangerous.
 		// But strace and gdb need ptrace.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// Disable process_mrelease(2).
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Why you need to load kernel in container? Anyway, no.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// As systemd eats everything, let it cook.
 	if (!container->systemd_mode) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	} else {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH) || not_root_user) {
 		if (!container->systemd_mode) {
 			// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+			res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+			ruri_check_seccomp_ret(res, container->no_warnings);
 			// also, name_to_handle_at(2).
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+			res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+			ruri_check_seccomp_ret(res, container->no_warnings);
 		}
 	}
 	// Wine/box86 needs personality syscall.
 	// But, we cannot SCMP_ACT_ALLOW it, so just ban.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// I think I just called pivot_root() for you bro.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// userfaultfd(2) can be used for UAF.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT) || not_root_user) {
 		// You don't need chroot(2) in container.
 		// Can be used to escape container in some cases, and it's really dangerous.
 		// But, as systemctl even tries this, we just deny it as EPERM.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 #else
 	// acct() is used for process accounting, which is not needed in most cases and can be abused for DoS attacks.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_ALG.
 	// See Copy-Fail.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_RDS.
 	// See pintheft.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_RXRPC.
 	// See DirtyFrag.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow NETLINK_XFRM for AF_NETLINK.
 	// See DirtyFrag.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	//
 	// Anyway, go ahead and disallow these unused socket families.
 	//
 	// Disallow AF_AX25.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_IPX.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_APPLETALK.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_X25.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_DECnet.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_PPPOX.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_LLC.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_IB.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_MPLS.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_CAN.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_TIPC.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_BLUETOOTH.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_KCM.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_KEY.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow AF_PACKET.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disallow SOCKET_RAW.
 	if (!container->systemd_mode) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Disallow SOCKET_PACKET.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Ban socketcall(2) for 64bit devices.
 	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
 		// What the dog doin? There's actually no socketcall in 64bit kernel.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Fully ban io_uring
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// add_key(2) and keyctl(2) are used for kernel key management.
 	// See CVE-2016-0728, CVE-2017-15951.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Ban eBPF, it should be used outside of container, not inside.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Fix `TIODSTI should be a privileged operation`.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Also, TIOCLINUX.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// lookup_dcookie(2) is used to look up the path of a file descriptor.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// mount(2), as we all know.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// new mount api.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsopen), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsconfig), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsmount), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_mount), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_tree), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount_setattr), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsopen), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsconfig), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsmount), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_mount), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_tree), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount_setattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// quotactl(2) is used to manage disk quotas, which is not needed in most cases and can be abused for DoS attacks.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Why you setup swap in container? Bro so crazy.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapon), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapoff), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapon), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapoff), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// setns(2) and unshare(2) can be used to escape container in many cases.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// clone(2) can have the same effect as unshare(2), we deny it.
 	unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
 	for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
 		// For s390, they use arg1, not arg0.
 		if (seccomp_arch_native() == SCMP_ARCH_S390) {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+			res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+			ruri_check_seccomp_ret(res, container->no_warnings);
 		} else {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+			res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+			ruri_check_seccomp_ret(res, container->no_warnings);
 		}
 	}
 	if (!container->systemd_mode) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Why you run 8086 vm in container? Weird.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// syslog(2) can be used to read kernel logs, which may contain sensitive information.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// memfd_secret() can be used for rootkits, we return ENOSYS.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// It's anyway so weird to change system time in container.
 	// Maybe in time ns it's okey?
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Hey, what are you doing? .ko files should on your host, not in container.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscalls, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Seems not very dangerous, so just follow CAP_SYS_NICE.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Do not touch any hardware I/O ports in container, it's really dangerous and not needed.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// kcmp(2) can be used for side channel attacks, we deny it for non-root users.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// process_vm_readv(2) and process_vm_writev(2) can be used to read/write another process's memory, which is very dangerous.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// ptrace(2) can be used to trace another process, which is very dangerous.
 	// But strace and gdb need ptrace.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Disable process_mrelease(2).
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Why you need to load kernel in container? Anyway, no.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// As systemd eats everything, let it cook.
 	if (!container->systemd_mode) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	} else {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	if (!container->systemd_mode) {
 		// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 		// also, name_to_handle_at(2).
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// wine/box86 needs personality syscall.
 	// But, we cannot SCMP_ACT_ALLOW it, so just ban.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// I think I just called pivot_root() for you bro.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// userfaultfd(2) can be used for UAF.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// Deprecated syscall, we kill it directly.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 	// You don't need chroot(2) in container.
 	// Can be used to escape container in some cases, and it's really dangerous.
 	// But, as systemctl even tries this, we just deny it as EPERM.
-	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
+	res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
+	ruri_check_seccomp_ret(res, container->no_warnings);
 #endif
 	if (container->systemd_mode) {
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_load), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(init_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(delete_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(finit_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_file_load), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 1, SCMP_CMP(5, SCMP_CMP_MASKED_EQ, MNT_FORCE, MNT_FORCE));
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_load), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(init_module), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(delete_module), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(finit_module), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_file_load), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 1, SCMP_CMP(5, SCMP_CMP_MASKED_EQ, MNT_FORCE, MNT_FORCE));
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
+		res = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
+		ruri_check_seccomp_ret(res, container->no_warnings);
 	}
 	// Disable no_new_privs bit by default.
 	seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
