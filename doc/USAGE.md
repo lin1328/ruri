@@ -523,8 +523,8 @@ This option allows you to automatically umount the container when it exits.
 |--------|-------------|
 | `--umount-on-panic` | Automatically umount the container when it panics |
 
-WARNING: This option is dangerous, use it only if you know what you are doing.
-Only triggered when ruri panics, and will not affect the behavior when the container exits normally.      
+WARNING: This option is dangerous, use it only if you know what you are doing.        
+Only trigger auto-umount when ruri panics, and will not affect the behavior when the container exits etither normally or by signal.     
 
 ---
 | Option | Description |
