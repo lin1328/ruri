@@ -102,6 +102,7 @@ show_subtest_description
 cd ${TMPDIR}
 ./test_pid_file RURI_EXITED_0 --auto-umount ./test true
 check_if_succeed $?
+sleep 3
 if [[ -e ./test/.rurienv ]]; then
     error "Container config file should be removed after auto-umount!"
 fi
@@ -114,6 +115,7 @@ show_subtest_description
 cd ${TMPDIR}
 ./test_pid_file RURI_PANIC_EXE --umount-on-panic ./test jhbvvjhvb
 check_if_succeed $?
+sleep 3
 if [[ -e ./test/.rurienv ]]; then
     error "Container config file should be removed after umount-on-panic!"
 fi
@@ -126,6 +128,7 @@ show_subtest_description
 cd ${TMPDIR}
 ./test_pid_file RURI_PANIC_TIMEOUT --umount-on-panic --timeout 1 ./test sleep 10
 check_if_succeed $?
+sleep 3
 if [[ -e ./test/.rurienv ]]; then
     error "Container config file should be removed after umount-on-panic!"
 fi
@@ -138,6 +141,7 @@ show_subtest_description
 cd ${TMPDIR}
 ./test_pid_file RURI_EXITED_0 -u --auto-umount ./test true
 check_if_succeed $?
+sleep 3
 if [[ -e ./test/.rurienv ]]; then
     error "Container config file should be removed after auto-umount!"
 fi
@@ -150,6 +154,7 @@ show_subtest_description
 cd ${TMPDIR}
 ./test_pid_file RURI_PANIC_EXE -u --umount-on-panic ./test jhbvvjhvb
 check_if_succeed $?
+sleep 3
 if [[ -e ./test/.rurienv ]]; then
     error "Container config file should be removed after umount-on-panic!"
 fi
@@ -162,6 +167,7 @@ show_subtest_description
 cd ${TMPDIR}
 ./test_pid_file RURI_PANIC_TIMEOUT -u --umount-on-panic --timeout 1 ./test sleep 10
 check_if_succeed $?
+sleep 3
 if [[ -e ./test/.rurienv ]]; then
     error "Container config file should be removed after umount-on-panic!"
 fi
