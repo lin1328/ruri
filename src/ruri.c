@@ -1544,6 +1544,12 @@ int ruri(int argc, char **argv)
 			exit(EXIT_SUCCESS);
 		} else {
 			ruri_proc_mark(RURI_DAEMON);
+			// Redirect output to /dev/null.
+			int dev_null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
+			dup2(dev_null_fd, STDOUT_FILENO);
+			dup2(dev_null_fd, STDERR_FILENO);
+			close(dev_null_fd);
+			// Close the write end of the pipe in the child process, we only need to read from it.
 			close(pid_pipe[1]);
 			signal(SIGPIPE, SIG_IGN);
 			// read pid from pid_file_fd and write to pidfile.
@@ -1622,58 +1628,7 @@ int ruri(int argc, char **argv)
 	close(pid_pipe[0]);
 	// Timeout watchdog.
 	if (container->timeout > 0) {
-		pid_t timeout_pid = fork();
-		if (timeout_pid < 0) {
-			ruri_error("{red}Failed to fork for timeout watchdog QwQ\n");
-		}
-		if (timeout_pid > 0) {
-			// Get current time in ns.
-			struct timespec ts;
-			clock_gettime(CLOCK_MONOTONIC, &ts);
-			long long start_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
-			while (1) {
-				// Non-blocking check if the container process is still running by waitpid with WNOHANG.
-				int stat = 0;
-				pid_t result = waitpid(timeout_pid, &stat, WNOHANG);
-				if (result == 0) {
-					// Still running, check if timeout is reached.
-					clock_gettime(CLOCK_MONOTONIC, &ts);
-					long long now_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
-					if ((now_ns - start_ns) >= (long long)(container->timeout * 1000000000LL)) {
-						// Timeout reached, kill the container process.
-						ruri_warning("{red}Timeout reached, killing the container process QwQ\n");
-						kill(timeout_pid, SIGKILL);
-						ruri_pid_file_write(RURI_PID_FILE_PANIC_TIMEOUT, 0);
-						if (container->auto_umount_on_panic) {
-							// Sleep 0.5s.
-							usleep(500000);
-							ruri_warning("{yellow}Auto umounting the container directory QwQ\n");
-							ruri_umount_container(container->container_dir);
-						}
-						exit(EXIT_FAILURE);
-					}
-				} else if (result > 0) {
-					// Container process exited, exit as same exit code.
-					if (WIFEXITED(stat)) {
-						exit(WEXITSTATUS(stat));
-					} else if (WIFSIGNALED(stat)) {
-						exit(128 + WTERMSIG(stat));
-					} else {
-						exit(1);
-					}
-				} else {
-					// Error, maybe EINTR, try again.
-					if (errno == EINTR) {
-						continue;
-					}
-					// Other errors, exit.
-					exit(EXIT_FAILURE);
-				}
-				// Sleep 0.5s
-				usleep(500000);
-			}
-			exit(EXIT_SUCCESS);
-		}
+		ruri_setup_timeout_watchdog(container);
 	}
 	if ((container->enable_unshare) && !(container->rootless)) {
 		// Unshare container.

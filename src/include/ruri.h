@@ -363,6 +363,7 @@ enum RURI_PROC_TYPE {
 };
 enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark);
 void ruri_stat(const char *pid_file);
+void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container);
 //   ██╗ ██╗  ███████╗   ████╗   ███████╗
 //  ████████╗ ██╔════╝ ██╔═══██╗ ██╔════╝
 //  ╚██╔═██╔╝ █████╗   ██║   ██║ █████╗

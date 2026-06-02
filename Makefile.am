@@ -14,6 +14,7 @@ ruri_SOURCES = \
 	src/k2v3.c \
 	src/main.c \
 	src/mount.c \
+	src/watchdog.c \
 	src/passwd.c \
 	src/ps.c \
 	src/rootless.c \

@@ -50,7 +50,6 @@ check_if_succeed $?
 ./ruri -U ./test
 pass_subtest
 
-
 export SUBTEST_NO=6
 export SUBTEST_DESCRIPTION="RURI_EXITED_0 with unshare"
 show_subtest_description
@@ -173,6 +172,5 @@ if [[ -e ./test/.rurienv ]]; then
 fi
 ./ruri -U ./test
 pass_subtest
-
 
 pass_test
