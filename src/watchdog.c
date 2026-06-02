@@ -141,6 +141,7 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 			snprintf(buf, sizeof(buf), "RURI_INIT_%lld\n", now_ns);
 			write(file_fd, buf, strlen(buf));
 			while (1) {
+read_again:
 				memset(buf, 0, sizeof(buf));
 				ssize_t n = read(pid_file_fd, buf, sizeof(buf) - 1);
 				if (n > 0) {
@@ -149,7 +150,7 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 					for (ssize_t i = 0; i < n; i++) {
 						if (!((buf[i] >= '0' && buf[i] <= '9') || (buf[i] >= 'a' && buf[i] <= 'z') || (buf[i] >= 'A' && buf[i] <= 'Z') || buf[i] == '_' || buf[i] == '\n')) {
 							memset(buf, 0, sizeof(buf));
-							continue;
+							goto read_again;
 						}
 					}
 					ftruncate(file_fd, 0);
