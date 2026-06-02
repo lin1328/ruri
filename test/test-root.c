@@ -6,7 +6,7 @@ int main()
 	pid_t pid = fork();
 	if (pid > 0) {
 		int status;
-		for (int i = 0; i < 400; i++) {
+		for (int i = 0; i < 600; i++) {
 			sleep(1);
 			if (waitpid(pid, &status, WNOHANG) == pid) {
 				if(WIFEXITED(status)) {
