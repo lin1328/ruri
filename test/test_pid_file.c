@@ -28,12 +28,10 @@
  *
  */
 #include "../src/include/ruri.h"
-// Create a memfd in parent process, and pass the file descriptor to child process through command line argument.
-// To test if we can get pid_file from memfd, so no disk file is needed.
-// Usage: just pass ruri args.
+// Usage: ./test_pid_file [expected] [ruri args].
+// No any other boundary/coner case check, as this file is not for common users.
 int main(int argc, char *argv[])
 {
-	// True magic bro, no disk file.
 	int fd = memfd_create("test", MFD_CLOEXEC);
 	fchmod(fd, S_IRUSR | S_IWUSR);
 	if (fd == -1) {
@@ -48,14 +46,14 @@ int main(int argc, char *argv[])
 		return 1;
 	} else if (fork_pid == 0) {
 		// Child process
-		char *argv_new[argc + 2];
+		char *argv_new[argc + 3];
 		argv_new[0] = "ruri"; // Program name
 		argv_new[1] = "--pid-file"; // Option flag
 		argv_new[2] = proc_fs_fd_path; // Path to the memfd file descriptor
-		for (int i = 1; i < argc; i++) {
-			argv_new[i + 2] = argv[i]; // Copy original arguments
+		for (int i = 2; i < argc; i++) {
+			argv_new[i + 1] = argv[i]; // Copy original arguments
 		}
-		argv_new[argc + 2] = NULL; // Null-terminate the argument list
+		argv_new[argc + 1] = NULL; // Null-terminate the argument list
 		execv("./ruri", argv_new); // Execute the new program
 		perror("execv"); // If execv returns, it must have failed
 		return 1;
@@ -68,25 +66,11 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 		buffer[bytesRead] = '\0'; // Null-terminate the buffer
-		printf("Data read from memfd: \n///\n%s///\n", buffer);
-		// Call ruri --stat, just to show that the memfd is still valid and can be read after ruri process exits.
-		pid_t pid_2 = fork();
-		if (pid_2 == -1) {
-			perror("fork");
-			exit(1);
-		} else if (pid_2 == 0) {
-			// Child process
-			char *ruri_stat_exe[8];
-			ruri_stat_exe[0] = "ruri";
-			ruri_stat_exe[1] = "--stat";
-			ruri_stat_exe[2] = proc_fs_fd_path;
-			ruri_stat_exe[3] = NULL;
-			execv("./ruri", ruri_stat_exe);
-			perror("execv");
-			exit(1);
-		} else {
-			wait(NULL); // Wait for the child process to finish
+		if (strncmp(buffer, argv[1], strlen(argv[1])) != 0) {
+			fprintf(stderr, "\033[31mFailed. Expected: %s, Got: %s\033[0m\n", argv[1], buffer);
+			exit(114);
 		}
-		return 0;
+		printf("\033[32mPassed. Expected: %s, Got: %s\033[0m\n", argv[1], buffer);
 	}
+	return 0;
 }
