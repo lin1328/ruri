@@ -217,9 +217,9 @@ For more info, refer to the man page of `capabilities(7)`.
 
 This option should be run as a non-privileged user, so you can run a rootless container with user namespaces.  
 This option requires the `uidmap` package and user namespace support.  
-Remember to set up `/etc/subuid` and `/etc/subgid` before running a rootless container.  
-Note: This option needs user namespace support, and the kernel must allow creating user namespaces with non-privileged users.  
-**NOTE:** This option is already deprecated; you can just run ruri as a non-privileged user now, and it will automatically detect if it's rootless or not.  
+Remember to set up `/etc/subuid` and `/etc/subgid` before running a rootless container.     
+Note: This option needs user namespace support, and the kernel must allow creating user namespaces with non-privileged users.      
+**NOTE:** This option is already deprecated; If you run ruri as a non-privileged user, it will automatically try to run in rootless mode.      
 For more info, refer to the man page of `user_namespaces(7)` and `unshare(2)`.
 
 ---
@@ -482,7 +482,8 @@ This option allows you to run systemd as init in the container. It will set up s
 | `--strict-mode` | Enable strict mode |
 
 This option will enable strict mode, ruri will treat most important warning as error, and panic immediately when any setup is failed.      
-This option will also automatically enable `--umount-on-panic` option, so the container will be automatically umounted when it exits.
+This option will also automatically enable `--umount-on-panic` option, so the container will be automatically umounted when it exits.      
+This option will only work with cmdline args, and will not be recorded in the config file.
 
 ---
 | Option | Description |
@@ -499,6 +500,9 @@ pid file format:
 - RURI_SIGNALED_{SIGNAL} (e.g. `RURI_SIGNALED_9`), which is the signal number if the container is killed by a signal.
 - RURI_EXIT_UNKNOWN for unknown exit status.
 
+This option will only affect cmdline args, and will not be recorded in the config file.      
+Using the same pid file for multiple containers is not recommended, and will cause undefined behavior. You should use memfd (see `test/pid_memfd.c`), mktemp or atleast runtime-generated unique file name for the pid file.      
+
 
 ---
 | Option | Description |
@@ -507,6 +511,7 @@ pid file format:
 
 WARNING: This option is dangerous, use it only if you know what you are doing.      
 This option allows you to automatically umount the container when it exits.    
+This option will only affect cmdline args, and will not be recorded in the config file.      
 
 ---
 | Option | Description |
@@ -515,6 +520,7 @@ This option allows you to automatically umount the container when it exits.
 
 WARNING: This option is dangerous, use it only if you know what you are doing.        
 Only trigger auto-umount when ruri panics, and will not affect the behavior when the container exits etither normally or by signal.     
+This option will only affect cmdline args, and will not be recorded in the config file.      
 
 ---
 | Option | Description |
@@ -524,6 +530,7 @@ Only trigger auto-umount when ruri panics, and will not affect the behavior when
 
 Health check process is a special process in the container, it will automatically panic if the container is not initialized, and will will automatically die after timeout.          
 `--timeout` can also use without `--health-check` option, in this case, it will automatically kill the container process after the specified time.      
+This option will only affect cmdline args, and will not be recorded in the config file.      
 
 ---
 | Option | Description |
@@ -531,3 +538,7 @@ Health check process is a special process in the container, it will automaticall
 | `--fork-as-init` | Make ruri fork as init process in the container |
 
 This will make ruri fork() once before exec() in container, and do waitpid() for child container process. This is to avoid zombie processes in the container.       
+Note: This option is experimental and might not work as expected.      
+This option will only affect cmdline args, and will not be recorded in the config file.      
+For unshare container with PID namespace support, this option should only be called once the container is initialized.      
+This option will erase ruri's cmdline args before running the container, so that it will not leak ruri's cmdline info to the container. You'll see a process called `-` when you ps in the container, and it is expected behavior.      

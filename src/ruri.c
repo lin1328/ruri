@@ -504,6 +504,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		}
 		// Run rootless container.
 		else if (strcmp(argv[index], "-r") == 0 || strcmp(argv[index], "--rootless") == 0) {
+			ruri_warning("{yellow}--rootless is deprecated, and ruri will automatically try rootless mode if running with root privileges.{clear}\n");
 			container->rootless = true;
 		}
 		// Skip setting groups.
@@ -934,6 +935,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 				}
 				switch (argv[index][i]) {
 				case 'r':
+					ruri_warning("{yellow}--rootless is deprecated, and ruri will automatically try rootless mode if running with root privileges.{clear}\n");
 					container->rootless = true;
 					break;
 				case 'D':

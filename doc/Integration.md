@@ -1,3 +1,6 @@
+## Life cycle tracking:
+You can record container's status by using `--pid-file` option, which will write the container's PID into the specified file.       
+See `test/pid_filememfd.c` for an example of diskless container status tracking with memfd.      
 ## Using ruri as container implementation:
 Here is a simple example, to build file command in an alpine container with ruri:
 ```bash
