@@ -216,7 +216,7 @@ static bool kernel_version_le(int major, int minor, int patch)
 	}
 	return false;
 }
-void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull container)
+static void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull container)
 {
 	/*
 	 * Fully kang moby's default seccomp profile.
@@ -224,7 +224,6 @@ void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull containe
 	 * TODO: value should be converted to macro like SOCK_STREAM, O_RDONLY, etc. for better readability.
 	 *
 	 */
-
 #ifndef DISABLE_LIBCAP
 #ifndef DISABLE_LIBSECCOMP
 	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ERRNO(EPERM));
@@ -743,7 +742,7 @@ void ruri_setup_seccomp_whitelist(const struct RURI_CONTAINER *_Nonnull containe
 #endif // DISABLE_LIBCAP
 }
 // Setup seccomp filter rule, with libseccomp.
-void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
+static void ruri_setup_seccomp_blacklist(const struct RURI_CONTAINER *_Nonnull container)
 {
 #ifndef DISABLE_LIBSECCOMP
 	/*
@@ -753,6 +752,9 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 	 * Also thanks: Gemini, ChatGPT and DeepSeek.
 	 * NOTE: This profile is not fully tested.
 	 */
+	if (!container->enable_default_seccomp && !container->seccomp_denied_syscall[0] && !container->systemd_mode) {
+		return;
+	}
 	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ALLOW);
 	// Deny user-defined syscalls.
 	for (int i = 0; container->seccomp_denied_syscall[i] != NULL; i++) {
@@ -765,6 +767,15 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, syscall_nr, 0);
 		}
 	}
+	if (!container->enable_default_seccomp && !container->systemd_mode) {
+		// Disable no_new_privs bit by default.
+		seccomp_attr_set(ctx, SCMP_FLTATR_CTL_NNP, 0);
+		// Load seccomp rules.
+		if (seccomp_load(ctx) != 0) {
+			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: failed to load seccomp filter QwQ{clear}\n");
+		}
+		ruri_log("{base}Seccomp filter loaded\n");
+	}
 	// For non-root user, pass capability checks.
 	bool not_root_user = false;
 	if (container->user != NULL) {
@@ -773,286 +784,88 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		}
 	}
 	// Default rules.
-	if (container->enable_default_seccomp) {
 #ifndef DISABLE_LIBCAP
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT) || not_root_user) {
-			// acct() is used for process accounting, which is not needed in most cases and can be abused for DoS attacks.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0);
-		}
-		// Disallow AF_ALG.
-		// See Copy-Fail.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
-		// Disallow AF_RDS.
-		// See pintheft.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
-		// Disallow AF_RXRPC.
-		// See DirtyFrag.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
-		// Disallow NETLINK_XFRM for AF_NETLINK.
-		// See DirtyFrag.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
-		//
-		// Anyway, go ahead and disallow these unused socket families.
-		//
-		// Disallow AF_AX25.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
-		// Disallow AF_IPX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
-		// Disallow AF_APPLETALK.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
-		// Disallow AF_X25.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
-		// Disallow AF_DECnet.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
-		// Disallow AF_PPPOX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
-		// Disallow AF_LLC.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
-		// Disallow AF_IB.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
-		// Disallow AF_MPLS.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
-		// Disallow AF_CAN.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
-		// Disallow AF_TIPC.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
-		// Disallow AF_BLUETOOTH.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
-		// Disallow AF_KCM.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
-		// Disallow AF_KEY.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_NET_RAW) || not_root_user) {
-			// Disallow AF_PACKET.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
-			// Disallow SOCKET_RAW.
-			if (!container->systemd_mode) {
-				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
-			}
-			// Disallow SOCKET_PACKET.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
-		}
-		// Ban socketcall(2) for 64bit devices.
-		if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
-		}
-		// Fully ban io_uring
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
-		// add_key(2) and keyctl(2) are used for kernel key management.
-		// See CVE-2016-0728, CVE-2017-15951.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
-		// Ban eBPF, it should be used outside of container, not inside.
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_BPF) || not_root_user) {
-			// bpf(2) can be used to load eBPF programs, which can be very dangerous.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
-		}
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
-		// Fix `TIODSTI should be a privileged operation`.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
-		// Also, TIOCLINUX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) || not_root_user) {
-			// lookup_dcookie(2) is used to look up the path of a file descriptor.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
-			// mount(2), as we all know.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
-			// new mount api.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsopen), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsconfig), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsmount), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_mount), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_tree), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount_setattr), 0);
-			// quotactl(2) is used to manage disk quotas, which is not needed in most cases and can be abused for DoS attacks.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
-			// Why you setup swap in container? Bro so crazy.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapon), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapoff), 0);
-			// setns(2) and unshare(2) can be used to escape container in many cases.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
-			// clone(2) can have the same effect as unshare(2), we deny it.
-			unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
-			for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
-				// For s390, they use arg1, not arg0.
-				if (seccomp_arch_native() == SCMP_ARCH_S390) {
-					ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
-				} else {
-					ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
-				}
-			}
-			if (!container->systemd_mode) {
-				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
-			}
-			// Why you run 8086 vm in container? Weird.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
-			// syslog(2) can be used to read kernel logs, which may contain sensitive information.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
-		}
-		// memfd_secret() can be used for rootkits, we return ENOSYS.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
-		// It's anyway so weird to change system time in container.
-		// Maybe in time ns it's okey?
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
-		// Hey, what are you doing? .ko files should on your host, not in container.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
-		// Deprecated syscalls, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE) || not_root_user) {
-			// Seems not very dangerous, so just follow CAP_SYS_NICE.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
-		}
-		// Do not touch any hardware I/O ports in container, it's really dangerous and not needed.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PTRACE) || not_root_user) {
-			// kcmp(2) can be used for side channel attacks, we deny it for non-root users.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
-			// process_vm_readv(2) and process_vm_writev(2) can be used to read/write another process's memory, which is very dangerous.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
-			// ptrace(2) can be used to trace another process, which is very dangerous.
-			// But strace and gdb need ptrace.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
-			// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
-			// Disable process_mrelease(2).
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
-		}
-		// Why you need to load kernel in container? Anyway, no.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
-		// As systemd eats everything, let it cook.
-		if (!container->systemd_mode) {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
-		} else {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
-		}
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH) || not_root_user) {
-			if (!container->systemd_mode) {
-				// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
-				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
-				// also, name_to_handle_at(2).
-				ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
-			}
-		}
-		// Wine/box86 needs personality syscall.
-		// But, we cannot SCMP_ACT_ALLOW it, so just ban.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
-		// I think I just called pivot_root() for you bro.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
-		// userfaultfd(2) can be used for UAF.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
-		if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT) || not_root_user) {
-			// You don't need chroot(2) in container.
-			// Can be used to escape container in some cases, and it's really dangerous.
-			// But, as systemctl even tries this, we just deny it as EPERM.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
-		}
-#else
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PACCT) || not_root_user) {
 		// acct() is used for process accounting, which is not needed in most cases and can be abused for DoS attacks.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0);
-		// Disallow AF_ALG.
-		// See Copy-Fail.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
-		// Disallow AF_RDS.
-		// See pintheft.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
-		// Disallow AF_RXRPC.
-		// See DirtyFrag.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
-		// Disallow NETLINK_XFRM for AF_NETLINK.
-		// See DirtyFrag.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
-		//
-		// Anyway, go ahead and disallow these unused socket families.
-		//
-		// Disallow AF_AX25.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
-		// Disallow AF_IPX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
-		// Disallow AF_APPLETALK.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
-		// Disallow AF_X25.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
-		// Disallow AF_DECnet.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
-		// Disallow AF_PPPOX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
-		// Disallow AF_LLC.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
-		// Disallow AF_IB.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
-		// Disallow AF_MPLS.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
-		// Disallow AF_CAN.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
-		// Disallow AF_TIPC.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
-		// Disallow AF_BLUETOOTH.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
-		// Disallow AF_KCM.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
-		// Disallow AF_KEY.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+	}
+	// Disallow AF_ALG.
+	// See Copy-Fail.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+	// Disallow AF_RDS.
+	// See pintheft.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
+	// Disallow AF_RXRPC.
+	// See DirtyFrag.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+	// Disallow NETLINK_XFRM for AF_NETLINK.
+	// See DirtyFrag.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
+	//
+	// Anyway, go ahead and disallow these unused socket families.
+	//
+	// Disallow AF_AX25.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
+	// Disallow AF_IPX.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
+	// Disallow AF_APPLETALK.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
+	// Disallow AF_X25.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
+	// Disallow AF_DECnet.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
+	// Disallow AF_PPPOX.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
+	// Disallow AF_LLC.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
+	// Disallow AF_IB.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
+	// Disallow AF_MPLS.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
+	// Disallow AF_CAN.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
+	// Disallow AF_TIPC.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
+	// Disallow AF_BLUETOOTH.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
+	// Disallow AF_KCM.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
+	// Disallow AF_KEY.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_NET_RAW) || not_root_user) {
 		// Disallow AF_PACKET.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
 		// Disallow SOCKET_RAW.
-		if (!container->systemd_mode) {
+		if (!container->systemd_mode && (ruri_is_in_caplist(container->drop_caplist, CAP_AUDIT_WRITE) || not_root_user)) {
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
 		}
 		// Disallow SOCKET_PACKET.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
-		// Ban socketcall(2) for 64bit devices.
-		if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
-			// What the dog doin? There's actually no socketcall in 64bit kernel.
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
-		}
-		// Fully ban io_uring
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
-		// add_key(2) and keyctl(2) are used for kernel key management.
-		// See CVE-2016-0728, CVE-2017-15951.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
-		// Ban eBPF, it should be used outside of container, not inside.
+	}
+	// Ban socketcall(2) for 64bit devices.
+	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+	}
+	// Fully ban io_uring
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
+	// add_key(2) and keyctl(2) are used for kernel key management.
+	// See CVE-2016-0728, CVE-2017-15951.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
+	// Ban eBPF, it should be used outside of container, not inside.
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_BPF) || not_root_user) {
+		// bpf(2) can be used to load eBPF programs, which can be very dangerous.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
-		// Fix `TIODSTI should be a privileged operation`.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
-		// Also, TIOCLINUX.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
+	}
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+	// Fix `TIODSTI should be a privileged operation`.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+	// Also, TIOCLINUX.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_ADMIN) || not_root_user) {
 		// lookup_dcookie(2) is used to look up the path of a file descriptor.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
 		// mount(2), as we all know.
@@ -1092,21 +905,23 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
 		// syslog(2) can be used to read kernel logs, which may contain sensitive information.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
-		// memfd_secret() can be used for rootkits, we return ENOSYS.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
-		// It's anyway so weird to change system time in container.
-		// Maybe in time ns it's okey?
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
-		// Hey, what are you doing? .ko files should on your host, not in container.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
-		// Deprecated syscalls, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
+	}
+	// memfd_secret() can be used for rootkits, we return ENOSYS.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
+	// It's anyway so weird to change system time in container.
+	// Maybe in time ns it's okey?
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
+	// Hey, what are you doing? .ko files should on your host, not in container.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
+	// Deprecated syscalls, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_NICE) || not_root_user) {
 		// Seems not very dangerous, so just follow CAP_SYS_NICE.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
@@ -1114,9 +929,11 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
-		// Do not touch any hardware I/O ports in container, it's really dangerous and not needed.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
+	}
+	// Do not touch any hardware I/O ports in container, it's really dangerous and not needed.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_PTRACE) || not_root_user) {
 		// kcmp(2) can be used for side channel attacks, we deny it for non-root users.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
 		// process_vm_readv(2) and process_vm_writev(2) can be used to read/write another process's memory, which is very dangerous.
@@ -1129,46 +946,238 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
 		// Disable process_mrelease(2).
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
-		// Why you need to load kernel in container? Anyway, no.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
-		// As systemd eats everything, let it cook.
-		if (!container->systemd_mode) {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
-		} else {
-			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
-		}
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
+	}
+	// Why you need to load kernel in container? Anyway, no.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
+	// As systemd eats everything, let it cook.
+	if (!container->systemd_mode) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+	} else {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+	}
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_DAC_READ_SEARCH) || not_root_user) {
 		if (!container->systemd_mode) {
 			// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
 			// also, name_to_handle_at(2).
 			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
 		}
-		// wine/box86 needs personality syscall.
-		// But, we cannot SCMP_ACT_ALLOW it, so just ban.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
-		// I think I just called pivot_root() for you bro.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
-		// userfaultfd(2) can be used for UAF.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
-		// Deprecated syscall, we kill it directly.
-		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+	}
+	// Wine/box86 needs personality syscall.
+	// But, we cannot SCMP_ACT_ALLOW it, so just ban.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
+	// I think I just called pivot_root() for you bro.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
+	// userfaultfd(2) can be used for UAF.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+	if (ruri_is_in_caplist(container->drop_caplist, CAP_SYS_CHROOT) || not_root_user) {
 		// You don't need chroot(2) in container.
 		// Can be used to escape container in some cases, and it's really dangerous.
 		// But, as systemctl even tries this, we just deny it as EPERM.
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
-#endif
 	}
+#else
+	// acct() is used for process accounting, which is not needed in most cases and can be abused for DoS attacks.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0);
+	// Disallow AF_ALG.
+	// See Copy-Fail.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_ALG));
+	// Disallow AF_RDS.
+	// See pintheft.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RDS));
+	// Disallow AF_RXRPC.
+	// See DirtyFrag.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_RXRPC));
+	// Disallow NETLINK_XFRM for AF_NETLINK.
+	// See DirtyFrag.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 2, SCMP_CMP(0, SCMP_CMP_EQ, AF_NETLINK), SCMP_CMP(2, SCMP_CMP_EQ, NETLINK_XFRM));
+	//
+	// Anyway, go ahead and disallow these unused socket families.
+	//
+	// Disallow AF_AX25.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_AX25));
+	// Disallow AF_IPX.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IPX));
+	// Disallow AF_APPLETALK.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_APPLETALK));
+	// Disallow AF_X25.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_X25));
+	// Disallow AF_DECnet.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_DECnet));
+	// Disallow AF_PPPOX.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PPPOX));
+	// Disallow AF_LLC.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_LLC));
+	// Disallow AF_IB.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_IB));
+	// Disallow AF_MPLS.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_MPLS));
+	// Disallow AF_CAN.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_CAN));
+	// Disallow AF_TIPC.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_TIPC));
+	// Disallow AF_BLUETOOTH.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_BLUETOOTH));
+	// Disallow AF_KCM.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KCM));
+	// Disallow AF_KEY.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_KEY));
+	// Disallow AF_PACKET.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_CMP(0, SCMP_CMP_EQ, AF_PACKET));
+	// Disallow SOCKET_RAW.
+	if (!container->systemd_mode) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_RAW));
+	}
+	// Disallow SOCKET_PACKET.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(socket), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, SOCK_TYPE_MASK, SOCK_PACKET));
+	// Ban socketcall(2) for 64bit devices.
+	if (seccomp_arch_native() == SCMP_ARCH_X86_64 || seccomp_arch_native() == SCMP_ARCH_AARCH64 || seccomp_arch_native() == SCMP_ARCH_LOONGARCH64 || seccomp_arch_native() == SCMP_ARCH_RISCV64) {
+		// What the dog doin? There's actually no socketcall in 64bit kernel.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(socketcall), 0);
+	}
+	// Fully ban io_uring
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_register), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_enter), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(io_uring_setup), 0);
+	// add_key(2) and keyctl(2) are used for kernel key management.
+	// See CVE-2016-0728, CVE-2017-15951.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0);
+	// Ban eBPF, it should be used outside of container, not inside.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(bpf), 0);
+	// Fix `TIODSTI should be a privileged operation`.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCSTI));
+	// Also, TIOCLINUX.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_CMP(1, SCMP_CMP_EQ, TIOCLINUX));
+	// lookup_dcookie(2) is used to look up the path of a file descriptor.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(lookup_dcookie), 0);
+	// mount(2), as we all know.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(umount2), 0);
+	// new mount api.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsopen), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsconfig), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fsmount), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_mount), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_tree), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mount_setattr), 0);
+	// quotactl(2) is used to manage disk quotas, which is not needed in most cases and can be abused for DoS attacks.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(quotactl), 0);
+	// Why you setup swap in container? Bro so crazy.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapon), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(swapoff), 0);
+	// setns(2) and unshare(2) can be used to escape container in many cases.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(setns), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 0);
+	// clone(2) can have the same effect as unshare(2), we deny it.
+	unsigned int clone_flags[] = { CLONE_NEWCGROUP, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUSER, CLONE_NEWUTS };
+	for (size_t i = 0; i < sizeof(clone_flags) / sizeof(clone_flags[0]); i++) {
+		// For s390, they use arg1, not arg0.
+		if (seccomp_arch_native() == SCMP_ARCH_S390) {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(1, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+		} else {
+			ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_CMP(0, SCMP_CMP_MASKED_EQ, clone_flags[i], clone_flags[i]));
+		}
+	}
+	if (!container->systemd_mode) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(clone3), 0);
+	}
+	// Why you run 8086 vm in container? Weird.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(vm86old), 0);
+	// syslog(2) can be used to read kernel logs, which may contain sensitive information.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(syslog), 0);
+	// memfd_secret() can be used for rootkits, we return ENOSYS.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(memfd_secret), 0);
+	// It's anyway so weird to change system time in container.
+	// Maybe in time ns it's okey?
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_adjtime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clock_settime), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(settimeofday), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(stime), 0);
+	// Hey, what are you doing? .ko files should on your host, not in container.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(create_module), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(delete_module), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(finit_module), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(init_module), 0);
+	// Deprecated syscalls, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(get_kernel_syms), 0);
+	// Seems not very dangerous, so just follow CAP_SYS_NICE.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(get_mempolicy), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(mbind), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(set_mempolicy), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setscheduler), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(sched_setattr), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(move_pages), 0);
+	// Do not touch any hardware I/O ports in container, it's really dangerous and not needed.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ioperm), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(iopl), 0);
+	// kcmp(2) can be used for side channel attacks, we deny it for non-root users.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kcmp), 0);
+	// process_vm_readv(2) and process_vm_writev(2) can be used to read/write another process's memory, which is very dangerous.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0);
+	// ptrace(2) can be used to trace another process, which is very dangerous.
+	// But strace and gdb need ptrace.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0);
+	// perf_event_open(2) can be used to monitor another process's performance, can be used for side channel attacks.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(perf_event_open), 0);
+	// Disable process_mrelease(2).
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(process_mrelease), 0);
+	// Why you need to load kernel in container? Anyway, no.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_file_load), 0);
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(kexec_load), 0);
+	// As systemd eats everything, let it cook.
+	if (!container->systemd_mode) {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(reboot), 0);
+	} else {
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(reboot), 0);
+	}
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(nfsservctl), 0);
+	if (!container->systemd_mode) {
+		// open_by_handle_at(2) can be used to access files outside of their intended scope, which is very dangerous.
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
+		// also, name_to_handle_at(2).
+		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(name_to_handle_at), 0);
+	}
+	// wine/box86 needs personality syscall.
+	// But, we cannot SCMP_ACT_ALLOW it, so just ban.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 1, SCMP_CMP(0, SCMP_CMP_NE, 0xFFFFFFFFUL));
+	// I think I just called pivot_root() for you bro.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(pivot_root), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(query_module), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(sysfs), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(_sysctl), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(uselib), 0);
+	// userfaultfd(2) can be used for UAF.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(userfaultfd), 0);
+	// Deprecated syscall, we kill it directly.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_KILL, SCMP_SYS(ustat), 0);
+	// You don't need chroot(2) in container.
+	// Can be used to escape container in some cases, and it's really dangerous.
+	// But, as systemctl even tries this, we just deny it as EPERM.
+	ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chroot), 0);
+#endif
 	if (container->systemd_mode) {
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(kexec_load), 0);
 		ruri_seccomp_rule_add(container, ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0);
@@ -1190,4 +1199,12 @@ void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
 	}
 	ruri_log("{base}Seccomp filter loaded\n");
 #endif
+}
+void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container)
+{
+	if (container->enable_seccomp_whitelist) {
+		ruri_setup_seccomp_whitelist(container);
+	} else {
+		ruri_setup_seccomp_blacklist(container);
+	}
 }

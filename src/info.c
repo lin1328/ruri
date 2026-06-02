@@ -123,6 +123,7 @@ void ruri_show_helps(void)
 	cprintf("{base}  -n, --no-new-privs ..........................: Set NO_NEW_PRIVS flag\n");
 	cprintf("{base}  -N, --no-rurienv ............................: Do not use .rurienv file\n");
 	cprintf("{base}  -s, --enable-seccomp ........................: Enable built-in Seccomp profile\n");
+	cprintf("{base}      --enable-seccomp-whitelist ..............: Enable built-in whitelist Seccomp profile\n");
 	cprintf("{base}  -p, --privileged ............................: Run privileged container\n");
 	cprintf("{base}  -k, --cap-add [cap] .........................: Add the specified capability (*3)\n");
 	cprintf("{base}  -d, --cap-drop [cap] ........................: Drop the specified capability\n");

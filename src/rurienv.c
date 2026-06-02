@@ -149,6 +149,10 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 	// enable_seccomp.
 	ret = k2v3_add_comment(ret, "Enable built-in seccomp profile.");
 	ret = k2v3_add_config(bool, ret, "enable_seccomp", container->enable_default_seccomp);
+	// enable_seccomp_whitelist.
+	ret = k2v3_add_comment(ret, "Enable built-in whitelist seccomp profile.");
+	ret = k2v3_add_comment(ret, "This will cover enable_seccomp.");
+	ret = k2v3_add_config(bool, ret, "enable_seccomp_whitelist", container->enable_seccomp_whitelist);
 	// seccomp_denied_syscall.
 	for (int i = 0; true; i++) {
 		if (container->seccomp_denied_syscall[i] == NULL) {
@@ -417,6 +421,14 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 	if (backup->enable_default_seccomp != container->enable_default_seccomp) {
 		if (!container->no_warnings) {
 			ruri_warning("{yellow}.rurienv detected, enable_seccomp changed{clear}\n");
+		}
+	}
+	// Get enable_seccomp_whitelist.
+	container->enable_seccomp_whitelist = k2v3_get(bool, "enable_seccomp_whitelist", cache);
+	// Check if enable_seccomp_whitelist changed.
+	if (backup->enable_seccomp_whitelist != container->enable_seccomp_whitelist) {
+		if (!container->no_warnings) {
+			ruri_warning("{yellow}.rurienv detected, enable_seccomp_whitelist changed{clear}\n");
 		}
 	}
 	// Get skip_setgroups.

@@ -192,11 +192,13 @@ For more info, refer to the man page of `setns(2)` and `unshare(2)`.
 | Option | Description |
 |--------|-------------|
 | `-s`, `--enable-seccomp` | Enable built-in Seccomp profile |
+| `--enable-seccomp-whitelist` | Enable built-in whitelist Seccomp profile |
 
-ruri provides a built-in seccomp profile, but if you really need to use seccomp, you might need to edit `src/seccomp.c` with your own rules and recompile it.  
-Note: This option needs kernel support for seccomp.  
+ruri provides a built-in blacklist seccomp profile based on recent 0days and docker docs, and a built-in whitelist seccomp profile kanged from moby.       
+Note: This option needs kernel support for seccomp.     
 Note: This option is experimental and may not work as expected. Report issues if you find any bugs.  
-For more info, refer to the man page of `seccomp(2)`, `prctl(2)`, and `seccomp(3)`.
+For more info, refer to the man page of `seccomp(2)`, `prctl(2)`, and `seccomp(3)`.      
+Note: `--enable-seccomp-whitelist` will cover `--enable-seccomp` if both of them are enabled.      
 
 ---
 

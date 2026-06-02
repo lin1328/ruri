@@ -63,8 +63,9 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 			// Check for timeout.
 			clock_gettime(CLOCK_MONOTONIC, &ts);
 			long long now_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+			// Timeout reached, kill the container process.
 			if ((now_ns - start_ns) >= (long long)(container->timeout * 1000000000LL)) {
-				// Timeout reached, kill the container process.
+				// This will exit pid_file daemon.
 				ruri_pid_file_write(RURI_PID_FILE_PANIC_TIMEOUT, 0);
 				usleep(100000); // Sleep 0.1s to wait for the pid file to be updated.
 				kill(to_watch, SIGKILL);

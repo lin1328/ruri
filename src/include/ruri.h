@@ -140,6 +140,7 @@ struct RURI_CONTAINER {
 	bool no_new_privs;
 	// Enable built-in seccomp profile.
 	bool enable_default_seccomp;
+	bool enable_seccomp_whitelist;
 	// Do not show warnings.
 	bool no_warnings;
 	// Unshare container.

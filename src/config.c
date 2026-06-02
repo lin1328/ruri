@@ -94,7 +94,8 @@ void ruri_init_config(struct RURI_CONTAINER *_Nonnull container)
 	container->auto_umount = false;
 	container->auto_umount_on_panic = false;
 	container->is_health_check = false;
-	container->timeout == -1.0;
+	container->timeout = -1.0;
+	container->enable_seccomp_whitelist = false;
 }
 static int pmcrts(const char *s1, const char *s2)
 {
@@ -217,9 +218,15 @@ char *ruri_container_info_to_k2v(const struct RURI_CONTAINER *_Nonnull container
 	ret = k2v3_add_config(bool, ret, "use_rurienv", container->use_rurienv);
 	ret = k2v3_add_newline(ret);
 	// enable_default_seccomp.
-	ret = k2v3_add_comment(ret, "Enable built-in seccomp profile.");
+	ret = k2v3_add_comment(ret, "Enable built-in blacklist seccomp profile.");
 	ret = k2v3_add_comment(ret, "Default is false.");
 	ret = k2v3_add_config(bool, ret, "enable_seccomp", container->enable_default_seccomp);
+	ret = k2v3_add_newline(ret);
+	// enable_seccomp_whitelist.
+	ret = k2v3_add_comment(ret, "Enable built-in whitelist seccomp profile.");
+	ret = k2v3_add_comment(ret, "This will cover enable_seccomp.");
+	ret = k2v3_add_comment(ret, "Default is false.");
+	ret = k2v3_add_config(bool, ret, "enable_seccomp_whitelist", container->enable_seccomp_whitelist);
 	ret = k2v3_add_newline(ret);
 	// hidepid.
 	ret = k2v3_add_comment(ret, "Hide pid in /proc.");
@@ -454,6 +461,8 @@ void ruri_read_config(struct RURI_CONTAINER *_Nonnull container, const char *_No
 	container->no_new_privs = k2v3_get(bool, "no_new_privs", cache);
 	// Get enable_seccomp.
 	container->enable_default_seccomp = k2v3_get(bool, "enable_seccomp", cache);
+	// Get enable_seccomp_whitelist.
+	container->enable_seccomp_whitelist = k2v3_get(bool, "enable_seccomp_whitelist", cache);
 	// Get container_dir.
 	container->container_dir = k2v3_get(char, "container_dir", cache);
 	// Get qemu_path.
@@ -814,6 +823,12 @@ void ruri_correct_config(const char *_Nonnull path)
 		container.systemd_mode = false;
 	} else {
 		container.systemd_mode = k2v_get_key(bool, "systemd_mode", buf);
+	}
+	if (!have_key("enable_seccomp_whitelist", buf)) {
+		ruri_warning("{green}No key enable_seccomp_whitelist found, set to false\n{clear}");
+		container.enable_seccomp_whitelist = false;
+	} else {
+		container.enable_seccomp_whitelist = k2v_get_key(bool, "enable_seccomp_whitelist", buf);
 	}
 	free(buf);
 	unlink(path);

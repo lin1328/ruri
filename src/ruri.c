@@ -854,6 +854,10 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 		else if (strcmp(argv[index], "--health-check") == 0) {
 			container->is_health_check = true;
 		}
+		// --enable-seccomp-whitelist
+		else if (strcmp(argv[index], "--enable-seccomp-whitelist") == 0) {
+			container->enable_seccomp_whitelist = true;
+		}
 		// Timeout.
 		else if (strcmp(argv[index], "--timeout") == 0) {
 			index++;
