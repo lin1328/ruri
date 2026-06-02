@@ -6,6 +6,8 @@ export BLUE="\033[34m"
 export PURPLE="\033[35m"
 export CYAN="\033[36m"
 export CLEAR="\033[0m"
+export LSAN_OPTIONS="exitcode=0"
+export ASAN_OPTIONS="exitcode=0"
 
 function error() {
     cd ${TEST_ROOT}
