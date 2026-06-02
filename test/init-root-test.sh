@@ -18,8 +18,10 @@ autoreconf -fi
 check_if_succeed $?
 cc build.c
 ./a.out -d -f
+cc test/test_pid_file.c -o test_pid_file
 check_if_succeed $?
 mv ruri ${TMPDIR}
+mv test_pid_file ${TMPDIR}
 check_if_succeed $?
 pass_subtest
 
