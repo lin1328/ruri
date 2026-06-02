@@ -1454,9 +1454,9 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 	if (ns_pid > 0) {
 		container->enable_unshare = true;
 	}
-	// Fork before running chroot container.
-	// So the chroot container can have a parent process called ruri.
+	// Totally useless, just for backward compatibility.
 	if (fork_exec && !container->enable_unshare && !container->rootless) {
+		ruri_warning("{yellow}: Warning: --fork is deprecated as useless, make sure you know what you are doing\n");
 		pid_t pid = fork();
 		if (pid > 0) {
 			waitpid(pid, NULL, 0);

@@ -320,16 +320,6 @@ Note: This is just a cosmetic option; it will not affect the behavior of ruri.
 
 | Option | Description |
 |--------|-------------|
-| `-f`, `--fork` | fork() before exec the command |
-
-Unshare and rootless containers will always fork() before running commands in the container.  
-You can use this option to make a common chroot container have the same behavior.  
-Note: This is only a useless option; I forgot why I added it, but it is here only for compatibility.
-
----
-
-| Option | Description |
-|--------|-------------|
 | `-j`, `--just-chroot` | Just chroot, do not create the runtime directories |
 
 If you enable this option, ruri will not create runtime directories (`/dev`, `/proc`, and `/sys`) in the container.  
