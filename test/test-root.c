@@ -9,7 +9,13 @@ int main()
 		for (int i = 0; i < 400; i++) {
 			sleep(1);
 			if (waitpid(pid, &status, WNOHANG) == pid) {
-				exit(status);
+				if(WIFEXITED(status)) {
+					printf("Exit code: %d\n", WEXITSTATUS(status));
+					exit(WEXITSTATUS(status));
+				} else if (WIFSIGNALED(status)) {
+					printf("Killed by signal: %d\n", WTERMSIG(status));
+					exit(114);
+				}
 			}
 		}
 		if (waitpid(pid, &status, WNOHANG) == 0) {
