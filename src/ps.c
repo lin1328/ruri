@@ -212,10 +212,9 @@ static bool is_container_process(pid_t pid, const char *_Nonnull container_dir, 
 	 * Check if the process is in the container.
 	 */
 	if (container_dir == NULL) {
-		ruri_log("{base}Container directory is NULL, WHY??\n");
+		ruri_warning("{base}Container directory is NULL, WHY??\n");
 		return false;
 	}
-	ruri_log("{base}Checking if pid {cyan}%d{base} is in container with id {cyan}%d{base}\n", pid, container_id);
 	if (ruri_pid_in_cgroup(pid, container_id)) {
 		return true;
 	}

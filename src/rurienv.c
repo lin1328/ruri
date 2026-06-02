@@ -311,7 +311,6 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		return container;
 	}
 	k2v3_cache cache = k2v3_parse(buf);
-	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", buf);
 	// We only need to get part of container info when container is NULL.
 	if (container == NULL) {
 		// For ruri_umount_container().
