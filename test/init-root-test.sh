@@ -22,6 +22,8 @@ cc test/test_pid_file.c -o test_pid_file
 check_if_succeed $?
 mv ruri ${TMPDIR}
 mv test_pid_file ${TMPDIR}
+./a.out -f
+mv ruri ${TMPDIR}/ruri-release
 check_if_succeed $?
 pass_subtest
 

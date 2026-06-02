@@ -23,6 +23,15 @@ for i in $(ls root/*.sh); do
     check_if_succeed $?
 done
 
+mv ${TMPDIR}/ruri-release ${TEST_ROOT}/ruri
+# Do all tests
+cd ${TEST_ROOT}
+for i in $(ls root/*.sh); do
+    cd ${TEST_ROOT}
+    source $i
+    check_if_succeed $?
+done
+
 # Clean up
 cd ${TEST_ROOT}
 source clean.sh
