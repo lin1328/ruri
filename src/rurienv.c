@@ -334,6 +334,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		// Get rootless.
 		container->rootless = k2v3_get(bool, "rootless", cache);
 		free(buf);
+		k2v3_free_cache(&cache);
 		return container;
 	}
 	// Check if ns_pid is a ruri process.
@@ -354,6 +355,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		ioctl(fd, FS_IOC_SETFLAGS, &attr);
 		close(fd);
 		remove(file);
+		k2v3_free_cache(&cache);
 		return container;
 	}
 	// Rootless container will only get ns_pid, work_dir and user.
@@ -370,6 +372,7 @@ struct RURI_CONTAINER *ruri_read_info(struct RURI_CONTAINER *_Nullable container
 		// Unset timens offsets because it's already set.
 		container->timens_realtime_offset = 0;
 		container->timens_monotonic_offset = 0;
+		k2v3_free_cache(&cache);
 		return container;
 	}
 	// Backup container config.
