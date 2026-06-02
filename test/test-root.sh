@@ -15,23 +15,6 @@ cd ${TEST_ROOT}
 source init-root-test.sh
 check_if_succeed $?
 
-# Do all tests
-cd ${TEST_ROOT}
-for i in $(ls root/*.sh); do
-    cd ${TEST_ROOT}
-    source $i
-    check_if_succeed $?
-done
-
-mv ${TMPDIR}/ruri-release ${TMPDIR}/ruri
-# Do all tests
-cd ${TEST_ROOT}
-for i in $(ls root/*.sh); do
-    cd ${TEST_ROOT}
-    source $i
-    check_if_succeed $?
-done
-
 wget https://github.com/RuriOSS/ruri/releases/latest/download/x86_64.tar
 tar -xvf x86_64.tar
 mv ruri ${TMPDIR}/ruri
@@ -41,6 +24,24 @@ for i in $(ls root/*.sh); do
     source $i
     check_if_succeed $?
 done
+mv ${TMPDIR}/ruri-release ${TMPDIR}/ruri
+# Do all tests
+cd ${TEST_ROOT}
+for i in $(ls root/*.sh); do
+    cd ${TEST_ROOT}
+    source $i
+    check_if_succeed $?
+done
+
+mv ${TMPDIR}/ruri-dev ${TMPDIR}/ruri
+# Do all tests
+cd ${TEST_ROOT}
+for i in $(ls root/*.sh); do
+    cd ${TEST_ROOT}
+    source $i
+    check_if_succeed $?
+done
+
 
 # Clean up
 cd ${TEST_ROOT}
