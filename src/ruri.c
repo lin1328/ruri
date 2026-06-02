@@ -1522,10 +1522,6 @@ int ruri(int argc, char **argv)
 	check_container(container);
 	// unset $LD_PRELOAD.
 	unsetenv("LD_PRELOAD");
-	// Log.
-	char *info = ruri_container_info_to_k2v(container);
-	ruri_log("{base}Container config:{cyan}\n%s", info);
-	free(info);
 	ruri_profile_log("ruri() to run_container(): %lldns\n", ruri_diff_time());
 	// Run container.
 	// Use SOCK_SEQPACKET to create a socket pair for pid file, so we can read the pid from it without worrying about buffering.

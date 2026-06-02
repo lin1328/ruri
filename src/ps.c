@@ -272,7 +272,6 @@ void ruri_kill_container(struct RURI_CONTAINER *_Nonnull container)
 	}
 	for (int j = 0; j < len; j++) {
 		if (pids[j] != RURI_INIT_VALUE) {
-			ruri_log("{base}Checking pid: {cyan}%d\n", pids[j]);
 			if (is_container_process(pids[j], container->container_dir, container->container_id)) {
 				ruri_log("{base}Killing pid: {cyan}%d\n", pids[j]);
 				kill(pids[j], SIGKILL);

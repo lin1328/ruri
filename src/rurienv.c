@@ -210,7 +210,6 @@ static char *build_container_info(const struct RURI_CONTAINER *_Nonnull containe
 	}
 	ret = k2v3_add_comment(ret, "Environment variable.");
 	ret = k2v3_add_config(char_array, ret, "env", container->env, len);
-	ruri_log("{base}Container config in /.rurienv:{cyan}\n%s", ret);
 	ret = k2v3_add_newline(ret);
 	// skip_setgroups.
 	ret = k2v3_add_comment(ret, "Skip setgroups() call.");
