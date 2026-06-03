@@ -28,6 +28,52 @@
  *
  */
 #include "include/ruri.h"
+int ruri_pid_file_fd(int req)
+{
+	static thread_local int ret = -1;
+	if (req < 0) {
+		return ret;
+	}
+	ret = req;
+	return ret;
+}
+// NOLINTEND
+void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
+{
+	if (ruri_pid_file_fd(-1) < 0) {
+		return;
+	}
+	char buf[256] = { '\0' };
+	switch (req) {
+	case RURI_PID_FILE_INIT:
+		// Not here.
+		return;
+	case RURI_PID_FILE_PID:
+		snprintf(buf, sizeof(buf), "%lld\n", arg);
+		break;
+	case RURI_PID_FILE_PANIC_EXEC:
+		snprintf(buf, sizeof(buf), "RURI_PANIC_EXE\n");
+		break;
+	case RURI_PID_FILE_PANIC_INTERNAL:
+		snprintf(buf, sizeof(buf), "RURI_PANIC_INTERNAL\n");
+		break;
+	case RURI_PID_FILE_PANIC_TIMEOUT:
+		snprintf(buf, sizeof(buf), "RURI_PANIC_TIMEOUT\n");
+		break;
+	case RURI_PID_FILE_EXITED:
+		snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", arg);
+		break;
+	case RURI_PID_FILE_SIGNALED:
+		snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", arg);
+		break;
+	case RURI_PID_FILE_UNKNOWN:
+		snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
+		break;
+	default:
+		return;
+	}
+	write(ruri_pid_file_fd(-1), buf, strlen(buf));
+}
 void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container)
 {
 	// Get pid to watch.

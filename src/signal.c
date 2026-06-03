@@ -58,6 +58,15 @@ char *ruri_get_proc_type(void)
 	}
 	return "";
 }
+enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark)
+{
+	static thread_local enum RURI_PROC_TYPE ret = RURI_CHROOT;
+	if (mark == RURI_QUERY) {
+		return ret;
+	}
+	ret = mark;
+	return ret;
+}
 // Show some extra info when segfault.
 static void panic(int sig)
 {
