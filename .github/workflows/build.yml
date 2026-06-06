@@ -22,6 +22,7 @@ jobs:
       version: ${{ steps.fetch_version.outputs.version }}
       release_name: ${{ steps.fetch_version.outputs.release_name }}
       build_time: ${{ steps.fetch_version.outputs.build_time }}
+      release_news: ${{ steps.fetch_version.outputs.release_news }}
     steps:
       - name: fetch latest version
         id: fetch_version
@@ -40,12 +41,13 @@ jobs:
           else
             echo "release=false" >> $GITHUB_OUTPUT
           fi
-          release_news=$(curl -s "https://raw.githubusercontent.com/${{ github.repository }}/main/News.md")
           build_time="UTC $(TZ=UTC date '+%Y%m%d%H%M')"
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "release_name=$release_name" >> $GITHUB_OUTPUT
           echo "build_time=$build_time" >> $GITHUB_OUTPUT
-          echo "release_news=$release_news" >> $GITHUB_OUTPUT
+          echo "release_news<<EOF" >> $GITHUB_OUTPUT
+          cat News.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
   build-arch:
     runs-on: ubuntu-latest
