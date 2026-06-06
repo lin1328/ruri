@@ -40,11 +40,12 @@ jobs:
           else
             echo "release=false" >> $GITHUB_OUTPUT
           fi
-
+          release_news=$(curl -s "https://raw.githubusercontent.com/${{ github.repository }}/main/News.md")
           build_time="UTC $(TZ=UTC date '+%Y%m%d%H%M')"
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "release_name=$release_name" >> $GITHUB_OUTPUT
           echo "build_time=$build_time" >> $GITHUB_OUTPUT
+          echo "release_news=$release_news" >> $GITHUB_OUTPUT
 
   build-arch:
     runs-on: ubuntu-latest
@@ -179,7 +180,7 @@ jobs:
           tag_name: ${{ needs.update.outputs.version }}
           name: ${{ needs.update.outputs.release_name }}
           body: |
-            This is ruri binary release.
+            ${{ needs.update.outputs.release_news }}
             NOTE:
             *-upx means the binary is upx compressed.
             *-core means the binary is built without libseccomp and libcap, and with .rurienv disabled.

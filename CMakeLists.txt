@@ -9,7 +9,7 @@ else()
     message(STATUS "Ccache not found. Compiling without cache.")
 endif()
 
-project(ruri LANGUAGES C VERSION 3.9.3)
+project(ruri LANGUAGES C VERSION 3.9.4)
 # Avoid Pollution Reserve Config 'CMAKE_'
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Android")

@@ -17,7 +17,7 @@
   * Kang moby's whitelist seccomp profile for `--enable-seccomp-whitelist`.
   * Migrate libk2v to libk2v3.
   * Refactored build system.
-  * General bug fixes.
+  * Ruri now has Super Neko Powers!
 # v3.9.3:
   * Add `-g` option: `--skip-setgroups`.
   * Make setgroups() enabled for root user by default.
