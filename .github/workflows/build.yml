@@ -167,8 +167,11 @@ jobs:
             if [ ! -s "$file" ] || [ $(stat -c%s "$file") -lt 51200 ]; then
               echo "Removing $file as it is smaller than 50kb"
               rm "$file"
+              exit 1
             fi
           done
+          curl -s -o News.md "https://raw.githubusercontent.com/${{ github.repository }}/main/News.md"
+          cp News.md $GITHUB_WORKSPACE/News.md
 
       - name: Release
         uses: softprops/action-gh-release@v3
