@@ -177,6 +177,6 @@ jobs:
         with:
           tag_name: ${{ needs.update.outputs.version }}
           name: ${{ needs.update.outputs.release_name }}
-          body_path: ${{ github.workspace }}-News.md
+          body_path: ${{ github.workspace }}/News.md
           files: |
             *.tar
