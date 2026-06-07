@@ -202,14 +202,16 @@ static bool kernel_version_le(int major, int minor, int patch)
 {
 	struct utsname buf;
 	uname(&buf);
-	int k_major, k_minor, k_patch;
+	int k_major = 0, k_minor = 0, k_patch = 0;
 	sscanf(buf.release, "%d.%d.%d", &k_major, &k_minor, &k_patch);
 	if (k_major < major) {
 		return true;
-	} else if (k_major == major) {
+	}
+	if (k_major == major) {
 		if (k_minor < minor) {
 			return true;
-		} else if (k_minor == minor) {
+		}
+		if (k_minor == minor) {
 			return k_patch <= patch;
 		}
 	}

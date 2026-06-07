@@ -35,7 +35,6 @@
  * maybe I will rewrite it one day, I hope.
  */
 // Force panic bit.
-// NOLINTBEGIN
 bool ruri_force_panic(int req)
 {
 	static thread_local bool ret = false;
@@ -815,7 +814,7 @@ static void parse_args(int argc, char **_Nonnull argv, struct RURI_CONTAINER *_N
 				ruri_error("{red}Please specify the timeout in seconds\n{clear}");
 			}
 			// This is a float, use strtof to parse it.
-			char *endptr;
+			char *endptr = NULL;
 			container->timeout = strtof(argv[index], &endptr);
 			if (*endptr != '\0') {
 				ruri_error("{red}Invalid timeout value\n{clear}");

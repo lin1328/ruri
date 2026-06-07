@@ -37,7 +37,6 @@ int ruri_pid_file_fd(int req)
 	ret = req;
 	return ret;
 }
-// NOLINTEND
 void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
 {
 	if (ruri_pid_file_fd(-1) < 0) {
@@ -61,10 +60,10 @@ void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
 		snprintf(buf, sizeof(buf), "RURI_PANIC_TIMEOUT\n");
 		break;
 	case RURI_PID_FILE_EXITED:
-		snprintf(buf, sizeof(buf), "RURI_EXITED_%d\n", arg);
+		snprintf(buf, sizeof(buf), "RURI_EXITED_%lld\n", arg);
 		break;
 	case RURI_PID_FILE_SIGNALED:
-		snprintf(buf, sizeof(buf), "RURI_SIGNALED_%d\n", arg);
+		snprintf(buf, sizeof(buf), "RURI_SIGNALED_%lld\n", arg);
 		break;
 	case RURI_PID_FILE_UNKNOWN:
 		snprintf(buf, sizeof(buf), "RURI_EXIT_UNKNOWN\n");
@@ -93,14 +92,16 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 		}
 		// Redirect output to /dev/null.
 		int dev_null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
-		dup2(dev_null_fd, STDOUT_FILENO);
-		dup2(dev_null_fd, STDERR_FILENO);
-		close(dev_null_fd);
+		if (dev_null_fd >= 0) {
+			dup2(dev_null_fd, STDOUT_FILENO);
+			dup2(dev_null_fd, STDERR_FILENO);
+			close(dev_null_fd);
+		}
 		ruri_proc_mark(RURI_DAEMON);
 		// Get current time in ns.
 		struct timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		long long start_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+		long long start_ns = (ts.tv_sec * 1000000000LL) + ts.tv_nsec;
 		while (1) {
 			// If pid died, exit.
 			if (kill(to_watch, 0) < 0) {
@@ -108,7 +109,7 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 			}
 			// Check for timeout.
 			clock_gettime(CLOCK_MONOTONIC, &ts);
-			long long now_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+			long long now_ns = (ts.tv_sec * 1000000000LL) + ts.tv_nsec;
 			// Timeout reached, kill the container process.
 			if ((now_ns - start_ns) >= (long long)(container->timeout * 1000000000LL)) {
 				// This will exit pid_file daemon.
@@ -131,7 +132,7 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 				exit(EXIT_FAILURE);
 			}
 			// Sleep 1/10 of timeout.
-			usleep((container->timeout * 100000) / 10);
+			usleep((useconds_t)((container->timeout * 100000) / 10));
 		}
 		exit(EXIT_SUCCESS);
 	}
@@ -160,16 +161,18 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 			ruri_proc_mark(RURI_DAEMON);
 			// Redirect output to /dev/null.
 			int dev_null_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
-			dup2(dev_null_fd, STDOUT_FILENO);
-			dup2(dev_null_fd, STDERR_FILENO);
-			close(dev_null_fd);
+			if (dev_null_fd >= 0) {
+				dup2(dev_null_fd, STDOUT_FILENO);
+				dup2(dev_null_fd, STDERR_FILENO);
+				close(dev_null_fd);
+			}
 			// Close the write end of the pipe in the child process, we only need to read from it.
 			close(pid_pipe[1]);
 			signal(SIGPIPE, SIG_IGN);
 			// read pid from pid_file_fd and write to pidfile.
 			int file_fd = -1;
 			if (container->pid_file == NULL) {
-				file_fd = open("/dev/null", O_RDWR);
+				file_fd = open("/dev/null", O_RDWR | O_CLOEXEC);
 			} else {
 				file_fd = open(container->pid_file, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IWUSR);
 			}
@@ -183,7 +186,7 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 			// Get current time in ns.
 			struct timespec ts;
 			clock_gettime(CLOCK_MONOTONIC, &ts);
-			long long now_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+			long long now_ns = (ts.tv_sec * 1000000000LL) + ts.tv_nsec;
 			snprintf(buf, sizeof(buf), "RURI_INIT_%lld\n", now_ns);
 			write(file_fd, buf, strlen(buf));
 			while (1) {
@@ -276,7 +279,7 @@ static void kill_subprocess_and_die(int __attribute__((unused)) signum)
 		}
 		// check timeout.
 		gettimeofday(&now, NULL);
-		if ((now.tv_sec - start.tv_sec) * 1000 + (now.tv_usec - start.tv_usec) / 1000 >= wait_time_ms) {
+		if (((now.tv_sec - start.tv_sec) * 1000) + ((now.tv_usec - start.tv_usec) / 1000) >= wait_time_ms) {
 			kill(0, SIGKILL);
 			exit(EXIT_FAILURE);
 		}
@@ -309,7 +312,7 @@ void ruri_fork_as_init(void)
 	// Set SIGUSR1 handler to kill subprocesses.
 	signal(SIGUSR1, kill_subprocess_and_die);
 	// Keep do non-blocking wait for child process, if all child process exited, exit too.
-	int status;
+	int status = 0;
 	int last_status = EXIT_SUCCESS;
 	while (true) {
 		if (waitpid(-pid, &status, 0) < 0) {

@@ -94,7 +94,7 @@ void ruri_init_config(struct RURI_CONTAINER *_Nonnull container)
 	container->auto_umount = false;
 	container->auto_umount_on_panic = false;
 	container->is_health_check = false;
-	container->timeout = -1.0;
+	container->timeout = -1.0F;
 	container->enable_seccomp_whitelist = false;
 	container->fork_as_init = false;
 }

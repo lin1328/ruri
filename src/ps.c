@@ -306,7 +306,7 @@ void ruri_stat(const char *pid_file)
 		// Get value after "RURI_INIT_"
 		char *status = buf + 10;
 		// Use strtoll() to convert the status to long long.
-		char *endptr;
+		char *endptr = NULL;
 		long long status_code = strtoll(status, &endptr, 10);
 		if (endptr == status || *endptr != '\n') {
 			cprintf("{red}Invalid init time in pid file\n{clear}");
@@ -318,7 +318,7 @@ void ruri_stat(const char *pid_file)
 		}
 		struct timespec ts;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		long long now_ns = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+		long long now_ns = (ts.tv_sec * 1000000000LL) + ts.tv_nsec;
 		// Timeout 3s.
 		if (now_ns - status_code > 3000000000LL) {
 			cprintf("{yellow}Container is not running, last init time was %lld ns ago\n{clear}", now_ns - status_code);
@@ -347,7 +347,7 @@ void ruri_stat(const char *pid_file)
 		// Get value after "RURI_EXITED_"
 		char *status = buf + 12;
 		// Use strtol() to convert the status to long.
-		char *endptr;
+		char *endptr = NULL;
 		long exit_code = strtol(status, &endptr, 10);
 		if (endptr == status || *endptr != '\n') {
 			cprintf("{red}Invalid exit code in pid file\n{clear}");
@@ -364,7 +364,7 @@ void ruri_stat(const char *pid_file)
 		// Get value after "RURI_SIGNALED_"
 		char *status = buf + 14;
 		// Use strtol() to convert the status to long.
-		char *endptr;
+		char *endptr = NULL;
 		long signal_num = strtol(status, &endptr, 10);
 		if (endptr == status || *endptr != '\n') {
 			cprintf("{red}Invalid signal number in pid file\n{clear}");
@@ -378,7 +378,7 @@ void ruri_stat(const char *pid_file)
 		exit(114);
 	}
 	// Use strtol() to convert all the buf.
-	char *endptr;
+	char *endptr = NULL;
 	long pid = strtol(buf, &endptr, 10);
 	if (endptr == buf || *endptr != '\n' || pid <= 0) {
 		cprintf("{red}Invalid pid in pid file\n{clear}");
