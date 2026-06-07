@@ -171,7 +171,6 @@ jobs:
             fi
           done
           curl -s -o News.md "https://raw.githubusercontent.com/${{ github.repository }}/main/News.md"
-          cp News.md $GITHUB_WORKSPACE/News.md
 
       - name: Release
         uses: softprops/action-gh-release@v3
