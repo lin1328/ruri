@@ -216,41 +216,12 @@ struct RURI_CONTAINER {
 	// Make ruri fork as init.
 	bool fork_as_init;
 };
-// For ruri_get_magic().
-#define ruri_magicof(x) (x##_magic)
-#define ruri_maskof(x) (x##_mask)
-struct RURI_ELF_MAGIC {
-	char *_Nonnull magic;
-	char *_Nonnull mask;
-};
-// For ruri_get_idmap().
-struct RURI_ID_MAP {
-	uid_t uid;
-	uid_t uid_lower;
-	uid_t uid_count;
-	gid_t gid;
-	gid_t gid_lower;
-	gid_t gid_count;
-};
 // Warnings.
 #define ruri_warning(format, ...)                                                                  \
 	do {                                                                                       \
 		cfprintf(stderr, "{yellow}in %s() at %s line %d: ", __func__, __FILE__, __LINE__); \
 		cfprintf(stderr, format, ##__VA_ARGS__);                                           \
 	} while (0)
-int ruri_pid_file_fd(int req);
-enum RURI_PID_FILE_REQ {
-	RURI_PID_FILE_INIT,
-	RURI_PID_FILE_PID,
-	RURI_PID_FILE_PANIC_EXEC,
-	RURI_PID_FILE_PANIC_INTERNAL,
-	RURI_PID_FILE_PANIC_TIMEOUT,
-	RURI_PID_FILE_EXITED,
-	RURI_PID_FILE_SIGNALED,
-	RURI_PID_FILE_UNKNOWN,
-};
-void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg);
-char *ruri_get_proc_type(void);
 // Show error msg and exit.
 #define ruri_error(format, ...)                                                                                                                      \
 	do {                                                                                                                                         \
@@ -276,7 +247,6 @@ char *ruri_get_proc_type(void);
 			ruri_error(format__, ##__VA_ARGS__); \
 		}                                            \
 	} while (0)
-bool ruri_force_panic(int req);
 #define ruri_warn_on_error(ret__, expect__, show__, format__, ...)                         \
 	do {                                                                               \
 		if (ret__ != expect__) {                                                   \
@@ -313,7 +283,44 @@ bool ruri_force_panic(int req);
 #define ruri_profile_log(format, ...)
 #endif
 extern int RURI_PWD_ERRNO;
-// Shared functions.
+enum RURI_PROC_TYPE {
+	RURI_QUERY,
+	RURI_UNSHARE,
+	RURI_CHROOT,
+	RURI_ROOTLESS,
+	RURI_DAEMON,
+	RURI_UMOUNT,
+};
+enum RURI_PID_FILE_REQ {
+	RURI_PID_FILE_INIT,
+	RURI_PID_FILE_PID,
+	RURI_PID_FILE_PANIC_EXEC,
+	RURI_PID_FILE_PANIC_INTERNAL,
+	RURI_PID_FILE_PANIC_TIMEOUT,
+	RURI_PID_FILE_EXITED,
+	RURI_PID_FILE_SIGNALED,
+	RURI_PID_FILE_UNKNOWN,
+};
+// For ruri_get_idmap().
+struct RURI_ID_MAP {
+	uid_t uid;
+	uid_t uid_lower;
+	uid_t uid_count;
+	gid_t gid;
+	gid_t gid_lower;
+	gid_t gid_count;
+};
+// For ruri_get_magic().
+#define ruri_magicof(x) (x##_magic)
+#define ruri_maskof(x) (x##_mask)
+struct RURI_ELF_MAGIC {
+	char *_Nonnull magic;
+	char *_Nonnull mask;
+};
+bool ruri_force_panic(int req);
+int ruri_pid_file_fd(int req);
+void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg);
+char *ruri_get_proc_type(void);
 void ruri_register_signal(void);
 void ruri_setup_seccomp(const struct RURI_CONTAINER *_Nonnull container);
 void ruri_show_version_info(void);
@@ -357,14 +364,6 @@ int ruri_cap_from_name(const char *str, cap_value_t *cap);
 void ruri_clear_env(char *const *_Nonnull argv);
 bool ruri_pid_in_cgroup(pid_t pid, int container_id);
 long long ruri_diff_time(void);
-enum RURI_PROC_TYPE {
-	RURI_QUERY,
-	RURI_UNSHARE,
-	RURI_CHROOT,
-	RURI_ROOTLESS,
-	RURI_DAEMON,
-	RURI_UMOUNT,
-};
 enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark);
 void ruri_stat(const char *pid_file);
 void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container);

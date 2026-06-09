@@ -30,6 +30,12 @@
 #include "include/ruri.h"
 int ruri_pid_file_fd(int req)
 {
+	/*
+	 * Store fd for pid file daemon.
+	 * If req >= 0, set the pid file fd to req and return it.
+	 * If req < 0, return the stored pid file fd.
+	 * In fact this fd is a socket, but no matter.
+	 */
 	static thread_local int ret = -1;
 	if (req < 0) {
 		return ret;
@@ -39,6 +45,10 @@ int ruri_pid_file_fd(int req)
 }
 void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
 {
+	/*
+	 * Write content to pid file fd,
+	 * the content is determined by req and arg.
+	 */
 	if (ruri_pid_file_fd(-1) < 0) {
 		return;
 	}
@@ -75,6 +85,10 @@ void ruri_pid_file_write(enum RURI_PID_FILE_REQ req, long long arg)
 }
 void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container)
 {
+	/*
+	 * Fork a timeout watchdog process.
+	 * The watchdog will kill the container process if it runs for too long.
+	 */
 	// Get pid to watch.
 	pid_t to_watch = getpid();
 	// fork() twice.
@@ -139,6 +153,11 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 }
 int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 {
+	/*
+	 * Create a socket pipe and fork() a daemon.
+	 * The daemon will listen the pipe and update pid file on host side.
+	 * The daemon will also call auto-umount if requested.
+	 */
 	// Use SOCK_SEQPACKET to create a socket pair for pid file, so we can read the pid from it without worrying about buffering.
 	int pid_pipe[2] = { -1, -1 };
 	if (socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, pid_pipe) < 0) {
@@ -248,6 +267,11 @@ read_again:
 }
 static int ruri_tgid_init(int req)
 {
+	/*
+	 * Store tgid for sig handler when we got SIGUSER1.
+	 * If req >= 0, set the tgid to req and return it.
+	 * If req < 0, return the stored tgid.
+	 */
 	// Just to store tgid for sig handler when we got SIGUSER1.
 	static thread_local int tgid = -1;
 	if (req < 0) {
@@ -258,6 +282,11 @@ static int ruri_tgid_init(int req)
 }
 static void kill_subprocess_and_die(int __attribute__((unused)) signum)
 {
+	/*
+	 * For init process, when we got SIGUSER1,
+	 * it means the timeout watchdog has detected a timeout.
+	 * So we need to kill all subprocesses and exit.
+	 */
 	int tgid = ruri_tgid_init(-1);
 	if (tgid > 0) {
 		kill(-tgid, SIGKILL);
@@ -288,6 +317,12 @@ static void kill_subprocess_and_die(int __attribute__((unused)) signum)
 }
 void ruri_fork_as_init(void)
 {
+	/*
+	 * Fork as init process, and setpgid to create a new process group for the container processes.
+	 * The init process will wait for all child processes, and exit when they all exited.
+	 * When the init process got SIGUSER1, it means the timeout watchdog has detected a timeout,
+	 * so it will kill all subprocesses and exit.
+	 */
 	ruri_proc_mark(RURI_DAEMON);
 	pid_t pid = fork();
 	if (pid < 0) {

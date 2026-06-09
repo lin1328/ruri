@@ -42,6 +42,9 @@
  */
 char *ruri_get_proc_type(void)
 {
+	/*
+	 * This is useful for debugging.
+	 */
 	switch (ruri_proc_mark(RURI_QUERY)) {
 	case RURI_UNSHARE:
 		return "unshare container";
@@ -60,6 +63,9 @@ char *ruri_get_proc_type(void)
 }
 enum RURI_PROC_TYPE ruri_proc_mark(enum RURI_PROC_TYPE mark)
 {
+	/*
+	 * Just for debugging.
+	 */
 	static thread_local enum RURI_PROC_TYPE ret = RURI_CHROOT;
 	if (mark == RURI_QUERY) {
 		return ret;
