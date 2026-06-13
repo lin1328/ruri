@@ -59,6 +59,7 @@
 #include <linux/securebits.h>
 #include <linux/version.h>
 #include <linux/magic.h>
+#include <sys/personality.h>
 #include <sys/statfs.h>
 #include <sched.h>
 #include <signal.h>
