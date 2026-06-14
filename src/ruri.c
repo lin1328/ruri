@@ -113,6 +113,7 @@ void ruri_clear_env(char *const *_Nonnull argv)
 			execve("/proc/self/exe", argv, envp);
 		}
 	} else {
+		free(path_env);
 		return;
 	}
 }
