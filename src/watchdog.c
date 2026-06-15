@@ -283,6 +283,21 @@ read_again:
 						exit(EXIT_FAILURE);
 					}
 				} else if (n == 0) {
+					// Read pid file,
+					// if we don't get RURI_EXIT*, RURI_SIGNALED* or RURI_PANIC*,
+					// Write a RURI_EXIT_UNKNOWN to it.
+					lseek(file_fd, 0, SEEK_SET);
+					char check_buf[256] = { 0 };
+					int check_len = read(file_fd, check_buf, sizeof(check_buf) - 1);
+					if (check_len > 0) {
+						check_buf[check_len] = '\0';
+					}
+					if (strncmp(check_buf, "RURI_EXIT", strlen("RURI_EXIT")) && strncmp(check_buf, "RURI_SIGNALED", strlen("RURI_SIGNALED")) && strncmp(check_buf, "RURI_PANIC", strlen("RURI_PANIC"))) {
+						ftruncate(file_fd, 0);
+						lseek(file_fd, 0, SEEK_SET);
+						write(file_fd, "RURI_EXIT_UNKNOWN\n", strlen("RURI_EXIT_UNKNOWN\n"));
+						fsync(file_fd);
+					}
 					// release the lock on pid file.
 					fl.l_type = F_UNLCK;
 					fcntl(file_fd, F_SETLK, &fl);
@@ -299,6 +314,22 @@ read_again:
 						continue;
 					}
 					// Other errors, exit.
+					//
+					// Read pid file,
+					// if we don't get RURI_EXIT*, RURI_SIGNALED* or RURI_PANIC*,
+					// Write a RURI_EXIT_UNKNOWN to it.
+					lseek(file_fd, 0, SEEK_SET);
+					char check_buf[256] = { 0 };
+					int check_len = read(file_fd, check_buf, sizeof(check_buf) - 1);
+					if (check_len > 0) {
+						check_buf[check_len] = '\0';
+					}
+					if (strncmp(check_buf, "RURI_EXIT", strlen("RURI_EXIT")) && strncmp(check_buf, "RURI_SIGNALED", strlen("RURI_SIGNALED")) && strncmp(check_buf, "RURI_PANIC", strlen("RURI_PANIC"))) {
+						ftruncate(file_fd, 0);
+						lseek(file_fd, 0, SEEK_SET);
+						write(file_fd, "RURI_EXIT_UNKNOWN\n", strlen("RURI_EXIT_UNKNOWN\n"));
+						fsync(file_fd);
+					}
 					// release the lock on pid file.
 					fl.l_type = F_UNLCK;
 					fcntl(file_fd, F_SETLK, &fl);
