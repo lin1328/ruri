@@ -227,6 +227,13 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 			}
 			ftruncate(file_fd, 0);
 			lseek(file_fd, 0, SEEK_SET);
+			// Try to add a F_WRLCK to the pid file, so we can lock it when writing to it.
+			struct flock fl;
+			fl.l_type = F_WRLCK;
+			fl.l_whence = SEEK_SET;
+			fl.l_start = 0;
+			fl.l_len = 0;
+			fcntl(file_fd, F_SETLK, &fl);
 			char buf[256] = { 0 };
 			// Write current time to pid file, so we can detect if the container is running by checking if the pid file is updated.
 			// Get current time in ns.
@@ -257,6 +264,9 @@ read_again:
 					fsync(file_fd);
 					// If we got RURI_PANIC_*, exit now.
 					if (strncmp(buf, "RURI_PANIC_", strlen("RURI_PANIC_")) == 0) {
+						// release the lock on pid file.
+						fl.l_type = F_UNLCK;
+						fcntl(file_fd, F_SETLK, &fl);
 						// For timeout panic, just exit.
 						if (strncmp(buf, "RURI_PANIC_TIMEOUT", strlen("RURI_PANIC_TIMEOUT")) == 0) {
 							exit(EXIT_FAILURE);
@@ -269,6 +279,9 @@ read_again:
 						exit(EXIT_FAILURE);
 					}
 				} else if (n == 0) {
+					// release the lock on pid file.
+					fl.l_type = F_UNLCK;
+					fcntl(file_fd, F_SETLK, &fl);
 					// EOF, the other side has closed the connection, exit.
 					if (container->auto_umount) {
 						// Sleep 0.5s.
@@ -282,6 +295,9 @@ read_again:
 						continue;
 					}
 					// Other errors, exit.
+					// release the lock on pid file.
+					fl.l_type = F_UNLCK;
+					fcntl(file_fd, F_SETLK, &fl);
 					if (container->auto_umount) {
 						// Sleep 0.5s.
 						usleep(500000);
