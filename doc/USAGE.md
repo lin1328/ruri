@@ -532,6 +532,7 @@ WARNING: experimental and might not work as expected.
 Health check process is a special process in the container, it will automatically panic if the container is not initialized, and will will automatically die after timeout.          
 `--timeout` can also use without `--health-check` option, in this case, it will automatically kill the container process after the specified time.      
 This option will only affect cmdline args, and will not be recorded in the config file.      
+*NOTE*: I didn't tested timeout with a too long time, If you need a 15min watchdog, you might need to implement with a custom script.      
 
 ---
 | Option | Description |

@@ -146,7 +146,7 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 				exit(EXIT_FAILURE);
 			}
 			// Sleep 1/10 of timeout.
-			usleep((useconds_t)((container->timeout * 100000) / 10));
+			usleep((useconds_t)((container->timeout * 1000000) / 10));
 		}
 		exit(EXIT_SUCCESS);
 	}
