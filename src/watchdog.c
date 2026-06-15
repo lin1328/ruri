@@ -233,7 +233,11 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 			fl.l_whence = SEEK_SET;
 			fl.l_start = 0;
 			fl.l_len = 0;
-			fcntl(file_fd, F_SETLK, &fl);
+			if (container->pid_file != NULL) {
+				if (fcntl(file_fd, F_SETLK, &fl) < 0) {
+					exit(EXIT_FAILURE);
+				}
+			}
 			char buf[256] = { 0 };
 			// Write current time to pid file, so we can detect if the container is running by checking if the pid file is updated.
 			// Get current time in ns.
