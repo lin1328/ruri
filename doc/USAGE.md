@@ -304,7 +304,6 @@ ruri -l memory=1M -l cpuset=1 -l cpupercent=60 /test
 
 Note: This option needs kernel support for the specified cgroup.  
 Note: This option is experimental and may not work as expected. Report issues if you find any bugs.  
-TODO: Add support for other cgroup limits like cpu, blkio.  
 For more info, refer to the man page of `cgroups(7)` and `cgroup(7)`.
 
 ---

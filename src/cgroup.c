@@ -34,9 +34,6 @@
  * ${container_id} is set by the time creating the container,
  * And it will be unified by .rurienv file.
  *
- * TODO:
- * Add more cgroups support.
- * Maybe cgroup freezer and killer?
  */
 // For cgroup detection on host side.
 enum RURI_CGROUP_TYPE { RURI_CGROUP_V1, RURI_CGROUP_V2, RURI_CGROUP_ENOSYS };
@@ -49,7 +46,6 @@ struct RURI_CGROUP_NODE {
 	enum RURI_CGROUP_TYPE type;
 };
 struct RURI_CGROUP_ENV {
-	// TODO: add more cgroup controllers if needed.
 	struct RURI_CGROUP_NODE memory;
 	struct RURI_CGROUP_NODE cpuset;
 	struct RURI_CGROUP_NODE cpupercent;
@@ -159,7 +155,6 @@ static void detect_cgroup_v1_fallback(struct RURI_CGROUP_ENV *cg_env)
 		cg_env->cpuset.prefix = "/dev/cpuset/ruri/";
 		cg_env->cpuset.type = RURI_CGROUP_V1;
 	}
-	// TODO: /dev/cpuctl
 }
 static void detect_cgroup_v2(struct RURI_CGROUP_ENV *cg_env)
 {
