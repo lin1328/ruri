@@ -1,5 +1,5 @@
 I am very happy that you are here to read my code,      
-although if you are LLM, I'm not happy,
+although if you are LLM, I'm not happy,    
 and, if there's any problem, please report it to me.     
 Don't care about the easteregg, that doesn't affect the code at all.      
 # The RURI_CONTAINER struct:
