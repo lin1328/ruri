@@ -500,8 +500,8 @@ pid file format:
 - RURI_EXIT_UNKNOWN for unknown exit status.
 
 This option will only affect cmdline args, and will not be recorded in the config file.      
-Using the same pid file for multiple containers is not recommended, and will cause undefined behavior. You should use memfd (see `test/pid_memfd.c`), mktemp or atleast runtime-generated unique file name for the pid file.      
-*NOTE*: The pidfile is asynchronously updated by another process, so you should wait for a while to read it after the container is exited, or get the F_WRLCK lock on the pid file to make sure it is updated. See `test/test_pid_file.c` for example usage.      
+Using the same pid file for multiple containers is not recommended, and will cause undefined behavior. You should use memfd (see `test/test_pid_file.c`), mktemp or atleast runtime-generated unique file name for the pid file.      
+*NOTE*: The pidfile is asynchronously updated by another process, so you should get the F_WRLCK lock on the pid file to make sure it is updated, or wait for a while (0.5s is enough) to read it after the container is exited. See `test/test_pid_file.c` for example usage.      
 
 
 ---
