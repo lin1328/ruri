@@ -97,6 +97,10 @@ void ruri_setup_timeout_watchdog(const struct RURI_CONTAINER *_Nonnull container
 		// Parent process, wait for child to exit.
 		waitpid(timeout_pid1, NULL, 0);
 	} else {
+		// Ignore SIGTTIN and SIGTTOU.
+		signal(SIGTTIN, SIG_IGN);
+		signal(SIGTTOU, SIG_IGN);
+		ruri_proc_mark(RURI_DAEMON);
 		pid_t timeout_pid = fork();
 		if (timeout_pid < 0) {
 			ruri_error("{red}Failed to fork for timeout watchdog QwQ\n");
@@ -198,6 +202,9 @@ int ruri_setup_pid_file_daemon(struct RURI_CONTAINER *_Nonnull container)
 		}
 	} else {
 		// First child process, fork again.
+		// Ignore SIGTTIN and SIGTTOU.
+		signal(SIGTTIN, SIG_IGN);
+		signal(SIGTTOU, SIG_IGN);
 		pid_t pid2 = fork();
 		if (pid2 > 0) {
 			exit(EXIT_SUCCESS);
@@ -309,8 +316,8 @@ read_again:
 					}
 					exit(EXIT_SUCCESS);
 				} else {
-					// Error, maybe EINTR, try again.
-					if (errno == EINTR) {
+					// Error, maybe EINTR or EAGAIN, try again.
+					if (errno == EINTR || errno == EAGAIN) {
 						continue;
 					}
 					// Other errors, exit.
@@ -417,6 +424,8 @@ void ruri_fork_as_init(void)
 		}
 		return;
 	}
+	signal(SIGTTIN, SIG_IGN);
+	signal(SIGTTOU, SIG_IGN);
 	close(ruri_pid_file_fd(-1));
 	for (int i = 3; i < 10; i++) {
 		close(i);
