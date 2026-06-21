@@ -48,11 +48,11 @@
 - Statically linked binaries for many architectures.
 - Very small binary size (even <200k with upx), yet over 40 options.
 
-# Full usage:
+# FULL USAGE:
 See [USAGE](doc/USAGE.md) to explore all features of ruri.         
-# Full usage:
+# FULL USAGE:
 See [USAGE](doc/USAGE.md) to explore all features of ruri.         
-# Full usage:
+# FULL USAGE:
 See [USAGE](doc/USAGE.md) to explore all features of ruri.         
 # FAQ
 [FAQ](doc/FAQ.md)        
