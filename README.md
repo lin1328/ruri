@@ -64,6 +64,10 @@ After DirtyFrag and CopyFail, seccomp is more and more important for container s
 Our default seccomp profile is now ready, and will keep tracking the latest vulnerabilities.      
 You can enable it by using `--enable-seccomp` option. And if you have any suggestions/issues for the seccomp profile, please report.      
 NOTE: default seccomp profile blocks `personality()` syscall. And it will break debian reprotest, box86/wine and some other software. You can comment out this syscall in seccomp profile to make them work.      
+# About cwte:
+I just have t find a way to zip seccomp profile code, so I made a tail `:<` mark for it, and I call it "cwte".    
+See [cwte.md](https://github.com/rurioss/cwte) for more details about it.    
+Anyway, I have a 1853->1210 lines zip in seccomp.ce, for 34% smaller code size.    
 
 # Security Reporting:
 Considering the security issues of chroot, ruri will drop CAP_SYS_CHROOT by default now  
