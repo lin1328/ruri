@@ -1195,11 +1195,11 @@ static void ruri_setup_seccomp_blacklist(const struct RURI_CONTAINER *_Nonnull c
 	 * Also thanks: Gemini, ChatGPT and DeepSeek.
 	 * NOTE: This profile is not fully tested.
 	 */
+	int res = 0;
 	if (!container->enable_default_seccomp && !container->seccomp_denied_syscall[0] && !container->systemd_mode) {
 		return;
 	}
 	scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ALLOW);
-	int res = 0;
 	// Deny user-defined syscalls.
 	for (int i = 0; container->seccomp_denied_syscall[i] != NULL; i++) {
 		int syscall_nr = seccomp_syscall_resolve_name(container->seccomp_denied_syscall[i]);
