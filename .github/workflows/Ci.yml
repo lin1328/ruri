@@ -5,6 +5,7 @@ on:
     paths:
       - CMakeLists.txt
       - configure.ac
+  workflow_dispatch:
 
 jobs:
   Cmake:
@@ -22,12 +23,21 @@ jobs:
           sudo apt install -y autoconf automake autopoint binutils bison build-essential cmake doxygen gettext gperf libc6-dev libtool ninja-build pkg-config po4a qemu-user-static tar texinfo texlive valgrind xz-utils
 
       - name: libcap and libseccomp
+        shell: bash
         run: |
           # libcap
-          wget https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-2.77.tar.gz
-          tar -xzf libcap-2.77.tar.gz -C .
+          LIBCAP_TAG="$(
+            git ls-remote --tags --refs https://git.kernel.org/pub/scm/libs/libcap/libcap.git 'refs/tags/libcap-*' \
+              | sed 's#.*refs/tags/##' \
+              | grep -E '^libcap-[0-9]+(\.[0-9]+)+$' \
+              | sort -V \
+              | tail -n 1
+          )"
 
-          make -C libcap-2.77/libcap BUILD_CC=gcc \
+          wget "https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/${LIBCAP_TAG}.tar.gz"
+          tar -xzf "${LIBCAP_TAG}.tar.gz" -C .
+
+          make -C "${LIBCAP_TAG}/libcap" BUILD_CC=gcc \
             CC="${HOST_TRIPLE}-gcc" \
             SHARED=no GOLANG=no PAM_CAP=no DYNAMIC=no lib=lib \
             COPTS="-O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security" \
@@ -35,9 +45,18 @@ jobs:
             install
 
           # libseccomp
-          wget https://github.com/seccomp/libseccomp/releases/download/v2.6.0/libseccomp-2.6.0.tar.gz
-          tar -xzf libseccomp-2.6.0.tar.gz -C .
-          cd libseccomp-2.6.0
+          LIBSECCOMP_TARBALL=""
+          LIBSECCOMP_TARBALL_URL=""
+          read -r LIBSECCOMP_TARBALL LIBSECCOMP_TARBALL_URL < <(
+            curl -fsSL https://api.github.com/repos/seccomp/libseccomp/releases/latest \
+              | jq -r 'first(.assets[] | select(.name | test("^libseccomp-[0-9]+(\\.[0-9]+)+\\.tar\\.gz$")) | [.name, .browser_download_url] | @tsv) // empty'
+          )
+
+          LIBSECCOMP_DIR="${LIBSECCOMP_TARBALL%.tar.gz}"
+
+          wget "$LIBSECCOMP_TARBALL_URL"
+          tar -xzf "$LIBSECCOMP_TARBALL" -C .
+          cd "$LIBSECCOMP_DIR"
 
           if [ ! -f configure ]; then
             autoreconf -fi
