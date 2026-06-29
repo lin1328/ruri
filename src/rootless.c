@@ -398,13 +398,21 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		// This action will be forced.
 		char net_ns_file[PATH_MAX] = { '\0' };
 		sprintf(net_ns_file, "%s%d%s", "/proc/", container->ns_pid, "/ns/net");
-		int net_ns_fd = open(net_ns_file, O_RDONLY | O_CLOEXEC);
-		if (net_ns_fd < 0) {
-			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
-		} else {
-			if (setns(net_ns_fd, CLONE_NEWNET) == -1) {
+		// Check if the net_ns file is same with our /proc/self/ns/net, if same, we don't need to setns(2) again.
+		char self_net_ns[PATH_MAX] = { '\0' };
+		char target_net_ns[PATH_MAX] = { '\0' };
+		readlink("/proc/self/ns/net", self_net_ns, PATH_MAX);
+		readlink(net_ns_file, target_net_ns, PATH_MAX);
+		if (strcmp(self_net_ns, target_net_ns) != 0) {
+			int net_ns_fd = open(net_ns_file, O_RDONLY | O_CLOEXEC);
+			if (net_ns_fd < 0) {
 				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+			} else {
+				if (setns(net_ns_fd, CLONE_NEWNET) == -1) {
+					ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+				}
 			}
+			close(net_ns_fd);
 		}
 	} else {
 		if (container->is_health_check) {
