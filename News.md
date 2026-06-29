@@ -1,4 +1,6 @@
-v3.9.4 is a huge release with many new features and improvements. So rc-1 is out for testing.   
+v3.9.4 is a huge release with many new features and improvements. So rc-2 is out for testing.     
+rc-2 just fixes some bugs in rc-1 and without any new features.     
+The following is a list of changes in full 3.9.4:    
   * Skip setgroups() when user is root and cannot parse /etc/group and /etc/passwd.
   * Auto detect device major and minor number when major is set to 0 in `--char-dev` option.
   * Auto add `cap_` prefix for capability name in `--cap-drop` and `--cap-add` option.
