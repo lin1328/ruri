@@ -398,13 +398,21 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		// This action will be forced.
 		char net_ns_file[PATH_MAX] = { '\0' };
 		sprintf(net_ns_file, "%s%d%s", "/proc/", container->ns_pid, "/ns/net");
-		int net_ns_fd = open(net_ns_file, O_RDONLY | O_CLOEXEC);
-		if (net_ns_fd < 0) {
-			ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
-		} else {
-			if (setns(net_ns_fd, CLONE_NEWNET) == -1) {
+		// Check if the net_ns file is same with our /proc/self/ns/net, if same, we don't need to setns(2) again.
+		char self_net_ns[PATH_MAX] = { '\0' };
+		char target_net_ns[PATH_MAX] = { '\0' };
+		readlink("/proc/self/ns/net", self_net_ns, PATH_MAX);
+		readlink(net_ns_file, target_net_ns, PATH_MAX);
+		if (strcmp(self_net_ns, target_net_ns) != 0) {
+			int net_ns_fd = open(net_ns_file, O_RDONLY | O_CLOEXEC);
+			if (net_ns_fd < 0) {
 				ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+			} else {
+				if (setns(net_ns_fd, CLONE_NEWNET) == -1) {
+					ruri_warn_on_error(1, 0, !container->no_warnings, "{yellow}Warning: seems that network namespace is not supported on this device QwQ{clear}\n");
+				}
 			}
+			close(net_ns_fd);
 		}
 	} else {
 		if (container->is_health_check) {
@@ -468,8 +476,14 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 		}
 	}
 	// fork(2) into new namespaces we created.
+	int sync_pipe_2[2] = { -1, -1 };
+	if (pipe2(sync_pipe_2, O_CLOEXEC) == -1) {
+		ruri_error("{red}Failed to create sync pipe for child process\n");
+	}
 	pid_t pid = fork();
 	if (pid > 0) {
+		// close read end of pipe.
+		close(sync_pipe_2[0]);
 		if (!set_id_map_succeed) {
 			ruri_warn_on_error(1, 0, !container->no_warnings, "\n{yellow}Check if uidmap is installed and /etc/subuid and /etc/subgid are configured on your host, command like su will run failed without uidmap.\n");
 			set_id_map(uid, gid);
@@ -483,6 +497,12 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 			}
 		}
 		ruri_pid_file_write(RURI_PID_FILE_PID, container->ns_pid);
+		// Write OK to pipe to signal child process to continue.
+		if (write(sync_pipe_2[1], "OK", 2) != 2) {
+			close(sync_pipe_2[1]);
+			ruri_error("{red}Failed to signal child process to continue\n");
+		}
+		close(sync_pipe_2[1]);
 		// Wait for child process to exit.
 		int stat = 0;
 		waitpid(pid, &stat, 0);
@@ -500,8 +520,12 @@ void ruri_run_rootless_container(struct RURI_CONTAINER *_Nonnull container)
 	} else if (pid < 0) {
 		ruri_error("{red}Fork error QwQ?\n");
 	} else {
-		if (!set_id_map_succeed) {
-			usleep(10000);
+		close(sync_pipe_2[1]);
+		char ready[3] = { '\0' };
+		ssize_t n = read(sync_pipe_2[0], ready, 2);
+		close(sync_pipe_2[0]);
+		if (n != 2 || strncmp(ready, "OK", 2) != 0) {
+			ruri_error("{red}Failed to receive signal from parent process\n");
 		}
 		// Init rootless container.
 		if (!container->just_chroot) {
