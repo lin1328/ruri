@@ -28,30 +28,106 @@
  *
  */
 #include "include/cprintf.h"
-// This is safe bro. If you realloc a <1024 byte memory failed, kill your device pls.
-#define cp_safe_realloc(ptr_, size_) realloc(ptr_, size_)
-// NOLINTBEGIN
-struct CPRINTF_COLOR__ cprintf_color = {
-	.base = "254;228;208",
-	.black_fg = "\033[30m",
-	.red_fg = "\033[31m",
-	.green_fg = "\033[32m",
-	.yellow_fg = "\033[33m",
-	.blue_fg = "\033[34m",
-	.purple_fg = "\033[35m",
-	.cyan_fg = "\033[36m",
-	.white_fg = "\033[37m",
-	.black_bg = "\033[40m",
-	.red_bg = "\033[41m",
-	.green_bg = "\033[42m",
-	.yellow_bg = "\033[43m",
-	.blue_bg = "\033[44m",
-	.purple_bg = "\033[45m",
-	.cyan_bg = "\033[46m",
-	.white_bg = "\033[47m",
+static jmp_buf *cprintf_jmp_buf(int req, jmp_buf *buf)
+{
+	static thread_local jmp_buf *ret_buf;
+	if (req != -1) {
+		ret_buf = buf;
+	}
+	return ret_buf;
+}
+static char *cp_add_str(char *str, const char *add)
+{
+	/*
+	 * This function is used to add a string to another string.
+	 * It will realloc the str to fit the new string.
+	 */
+	if (!str) {
+		str = malloc(strlen(add) + 1);
+		if (!str) {
+			longjmp(*cprintf_jmp_buf(-1, NULL), 1);
+		}
+		strcpy(str, add);
+	} else {
+		str = realloc(str, strlen(str) + strlen(add) + 1);
+		if (!str) {
+			longjmp(*cprintf_jmp_buf(-1, NULL), 1);
+		}
+		strcat(str, add);
+	}
+	return str;
+}
+struct CPRINTF_COLOR__ cprintf_color(int req, char *color, char *value)
+{
+	static thread_local struct CPRINTF_COLOR__ cprintf_color = {
+		.base = "254;228;208",
+		.black_fg = "\033[30m",
+		.red_fg = "\033[31m",
+		.green_fg = "\033[32m",
+		.yellow_fg = "\033[33m",
+		.blue_fg = "\033[34m",
+		.purple_fg = "\033[35m",
+		.cyan_fg = "\033[36m",
+		.white_fg = "\033[37m",
+		.black_bg = "\033[40m",
+		.red_bg = "\033[41m",
+		.green_bg = "\033[42m",
+		.yellow_bg = "\033[43m",
+		.blue_bg = "\033[44m",
+		.purple_bg = "\033[45m",
+		.cyan_bg = "\033[46m",
+		.white_bg = "\033[47m",
+	};
+	if (req >= 0) {
+		if (!color || !value) {
+			return cprintf_color;
+		}
+		if (strcmp(color, "base") == 0) {
+			cprintf_color.base = value;
+		} else if (strcmp(color, "black_fg") == 0) {
+			cprintf_color.black_fg = value;
+		} else if (strcmp(color, "red_fg") == 0) {
+			cprintf_color.red_fg = value;
+		} else if (strcmp(color, "green_fg") == 0) {
+			cprintf_color.green_fg = value;
+		} else if (strcmp(color, "yellow_fg") == 0) {
+			cprintf_color.yellow_fg = value;
+		} else if (strcmp(color, "blue_fg") == 0) {
+			cprintf_color.blue_fg = value;
+		} else if (strcmp(color, "purple_fg") == 0) {
+			cprintf_color.purple_fg = value;
+		} else if (strcmp(color, "cyan_fg") == 0) {
+			cprintf_color.cyan_fg = value;
+		} else if (strcmp(color, "white_fg") == 0) {
+			cprintf_color.white_fg = value;
+		} else if (strcmp(color, "black_bg") == 0) {
+			cprintf_color.black_bg = value;
+		} else if (strcmp(color, "red_bg") == 0) {
+			cprintf_color.red_bg = value;
+		} else if (strcmp(color, "green_bg") == 0) {
+			cprintf_color.green_bg = value;
+		} else if (strcmp(color, "yellow_bg") == 0) {
+			cprintf_color.yellow_bg = value;
+		} else if (strcmp(color, "blue_bg") == 0) {
+			cprintf_color.blue_bg = value;
+		} else if (strcmp(color, "purple_bg") == 0) {
+			cprintf_color.purple_bg = value;
+		} else if (strcmp(color, "cyan_bg") == 0) {
+			cprintf_color.cyan_bg = value;
+		} else if (strcmp(color, "white_bg") == 0) {
+			cprintf_color.white_bg = value;
+		}
+	}
+	return cprintf_color;
 };
-bool cprintf_print_color_only_tty = true;
-// NOLINTEND
+bool cprintf_print_color_only_tty(int req)
+{
+	static thread_local bool print_color_only_tty = true;
+	if (req != -1) {
+		print_color_only_tty = !!req;
+	}
+	return print_color_only_tty;
+}
 static bool is_rgb_color(const char *_Nonnull color)
 {
 	/*
@@ -97,8 +173,7 @@ static const char *cprintf_add_fg_color(const char *_Nonnull buf, char **_Nonnul
 	char color[17] = { '\0' };
 	for (int i = 0; i < 16; i++) {
 		if (buf[i] == '\0') {
-			*str = cp_safe_realloc(*str, strlen(*str) + 2);
-			strcat(*str, "{");
+			*str = cp_add_str(*str, "{");
 			return buf;
 		}
 		if (buf[i] == '}') {
@@ -112,78 +187,65 @@ static const char *cprintf_add_fg_color(const char *_Nonnull buf, char **_Nonnul
 	}
 	if (strcmp(color, "{clear}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 10);
-			strcat(*str, "\033[0m");
+			*str = cp_add_str(*str, "\033[0m");
 		}
 	} else if (strcmp(color, "{black}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.black_fg));
-			strncat(*str, cprintf_color.black_fg, strlen(cprintf_color.black_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).black_fg);
 		}
 	} else if (strcmp(color, "{red}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.red_fg));
-			strncat(*str, cprintf_color.red_fg, strlen(cprintf_color.red_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).red_fg);
 		}
 	} else if (strcmp(color, "{green}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.green_fg));
-			strncat(*str, cprintf_color.green_fg, strlen(cprintf_color.green_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).green_fg);
 		}
 	} else if (strcmp(color, "{yellow}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.yellow_fg));
-			strncat(*str, cprintf_color.yellow_fg, strlen(cprintf_color.yellow_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).yellow_fg);
 		}
 	} else if (strcmp(color, "{blue}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.blue_fg));
-			strncat(*str, cprintf_color.blue_fg, strlen(cprintf_color.blue_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).blue_fg);
 		}
 	} else if (strcmp(color, "{purple}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.purple_fg));
-			strncat(*str, cprintf_color.purple_fg, strlen(cprintf_color.purple_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).purple_fg);
 		}
 	} else if (strcmp(color, "{cyan}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.cyan_fg));
-			strncat(*str, cprintf_color.cyan_fg, strlen(cprintf_color.cyan_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).cyan_fg);
 		}
 	} else if (strcmp(color, "{white}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.white_fg));
-			strncat(*str, cprintf_color.white_fg, strlen(cprintf_color.white_fg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).white_fg);
 		}
 	} else if (strcmp(color, "{base}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 114);
-			strcat(*str, "\033[38;2;");
-			strncat(*str, cprintf_color.base, strlen(cprintf_color.base));
-			strcat(*str, "m");
+			*str = cp_add_str(*str, "\033[38;2;");
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).base);
+			*str = cp_add_str(*str, "m");
 		}
 	} else if (strcmp(color, "{underline}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 10);
-			strcat(*str, "\033[4m");
+			*str = cp_add_str(*str, "\033[4m");
 		}
 	} else if (strcmp(color, "{highlight}") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 10);
-			strcat(*str, "\033[1m");
+			*str = cp_add_str(*str, "\033[1m");
 		}
 	} else if (is_rgb_color(color)) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 114);
-			strcat(*str, "\033[38;2;");
-			strncat(*str, color + 1, strlen(color) - 2);
-			strcat(*str, "m");
+			*str = cp_add_str(*str, "\033[38;2;");
+			color[strlen(color) - 1] = '\0';
+			*str = cp_add_str(*str, color + 1);
+			*str = cp_add_str(*str, "m");
 		}
 	} else {
 		ret = buf;
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 2);
-			strcat(*str, "{");
+			*str = cp_add_str(*str, "{");
 		}
 	}
 	return ret;
@@ -200,8 +262,7 @@ static const char *cprintf_add_bg_color(const char *_Nonnull buf, char **_Nonnul
 	char color[17] = { '\0' };
 	for (int i = 0; i < 16; i++) {
 		if (buf[i] == '\0') {
-			*str = cp_safe_realloc(*str, strlen(*str) + 2);
-			strcat(*str, "[");
+			*str = cp_add_str(*str, "[");
 			return buf;
 		}
 		if (buf[i] == ']') {
@@ -215,85 +276,78 @@ static const char *cprintf_add_bg_color(const char *_Nonnull buf, char **_Nonnul
 	}
 	if (strcmp(color, "[clear]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 10);
-			strcat(*str, "\033[0m");
+			*str = cp_add_str(*str, "\033[0m");
 		}
 	} else if (strcmp(color, "[black]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.black_bg));
-			strncat(*str, cprintf_color.black_bg, strlen(cprintf_color.black_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).black_bg);
 		}
 	} else if (strcmp(color, "[red]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.red_bg));
-			strncat(*str, cprintf_color.red_bg, strlen(cprintf_color.red_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).red_bg);
 		}
 	} else if (strcmp(color, "[green]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.green_bg));
-			strncat(*str, cprintf_color.green_bg, strlen(cprintf_color.green_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).green_bg);
 		}
 	} else if (strcmp(color, "[yellow]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.yellow_bg));
-			strncat(*str, cprintf_color.yellow_bg, strlen(cprintf_color.yellow_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).yellow_bg);
 		}
 	} else if (strcmp(color, "[blue]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.blue_bg));
-			strncat(*str, cprintf_color.blue_bg, strlen(cprintf_color.blue_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).blue_bg);
 		}
 	} else if (strcmp(color, "[purple]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.purple_bg));
-			strncat(*str, cprintf_color.purple_bg, strlen(cprintf_color.purple_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).purple_bg);
 		}
 	} else if (strcmp(color, "[cyan]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.cyan_bg));
-			strncat(*str, cprintf_color.cyan_bg, strlen(cprintf_color.cyan_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).cyan_bg);
 		}
 	} else if (strcmp(color, "[white]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 5 + strlen(cprintf_color.white_bg));
-			strncat(*str, cprintf_color.white_bg, strlen(cprintf_color.white_bg));
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).white_bg);
 		}
 	} else if (strcmp(color, "[base]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 114);
-			strncat(*str, "\033[1;48;2;", 7);
-			strncat(*str, cprintf_color.base, strlen(cprintf_color.base));
-			strcat(*str, "m");
+			*str = cp_add_str(*str, "\033[1;48;2;");
+			*str = cp_add_str(*str, cprintf_color(-1, NULL, NULL).base);
+			*str = cp_add_str(*str, "m");
 		}
 	} else if (strcmp(color, "[underline]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 10);
-			strcat(*str, "\033[4m");
+			*str = cp_add_str(*str, "\033[4m");
 		}
 	} else if (strcmp(color, "[highlight]") == 0) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 10);
-			strcat(*str, "\033[1m");
+			*str = cp_add_str(*str, "\033[1m");
 		}
 	} else if (is_rgb_color(color)) {
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 114);
-			strcat(*str, "\033[48;2;");
-			strncat(*str, color + 1, strlen(color) - 2);
-			strcat(*str, "m");
+			*str = cp_add_str(*str, "\033[48;2;");
+			color[strlen(color) - 1] = '\0'; // Remove the last ']'
+			*str = cp_add_str(*str, color + 1);
+			*str = cp_add_str(*str, "m");
 		}
 	} else {
 		ret = buf;
 		if (!skip) {
-			*str = cp_safe_realloc(*str, strlen(*str) + 2);
-			strcat(*str, "[");
+			*str = cp_add_str(*str, "[");
 		}
 	}
 	return ret;
 }
 char *cprintf_regen_format(FILE *_Nonnull stream, const char *_Nonnull format)
 {
-	bool skip = (cprintf_print_color_only_tty && !isatty(fileno(stream)));
+	bool skip = (cprintf_print_color_only_tty(-1) && !isatty(fileno(stream)));
+	static jmp_buf buf;
+	cprintf_jmp_buf(1, &buf);
+	int stat = setjmp(buf);
+	if (stat) {
+		return strdup("CPRINTF: Memory allocation failed.\n");
+	}
 	char *ret = malloc(strlen(format) + 1);
 	ret[0] = '\0';
 	const char *p = NULL;
@@ -307,8 +361,8 @@ char *cprintf_regen_format(FILE *_Nonnull stream, const char *_Nonnull format)
 			// *p will be moved because we need to skip the [color] string.
 			p = cprintf_add_bg_color(p, &ret, skip);
 		} else {
-			ret = cp_safe_realloc(ret, strlen(ret) + 2);
-			strncat(ret, p, 1);
+			char add[2] = { p[0], '\0' };
+			ret = cp_add_str(ret, add);
 		}
 		// Recompute the value of i.
 		i = (size_t)(p - format);
@@ -316,15 +370,11 @@ char *cprintf_regen_format(FILE *_Nonnull stream, const char *_Nonnull format)
 		p = &(p[1]);
 	}
 	if (!skip) {
-		ret = cp_safe_realloc(ret, strlen(ret) + 5);
-		strcat(ret, "\033[0m");
+		ret = cp_add_str(ret, "\033[0m");
 	}
 	return ret;
 }
 
-// NOLINTBEGIN
-jmp_buf cprintf_jmp_buf;
-// NOLINTEND
 void cp_time_out(int sig)
 {
 	/*
@@ -332,7 +382,7 @@ void cp_time_out(int sig)
 	 * It will do nothing, just to avoid the program to exit.
 	 */
 	(void)sig; // Avoid unused parameter warning.
-	longjmp(cprintf_jmp_buf, 1);
+	longjmp(*cprintf_jmp_buf(-1, NULL), 1);
 }
 static char *get_bg_color__(void)
 {
@@ -341,7 +391,9 @@ static char *get_bg_color__(void)
 	 * At least, better than nothing.
 	 * It works with magic on my machine :)
 	 */
-	int stat = setjmp(cprintf_jmp_buf);
+	static jmp_buf jbuf;
+	cprintf_jmp_buf(1, &jbuf);
+	int stat = setjmp(jbuf);
 	if (stat) {
 		// If we got a timeout, we will return NULL.
 		return NULL;
@@ -402,24 +454,24 @@ static char *get_bg_color__(void)
 	}
 	return NULL;
 }
-bool cp_xterm_is_dark_mode(void)
+int cp_xterm_is_dark_mode(void)
 {
 	struct stat _stat_buf;
 	if (fstat(STDERR_FILENO, &_stat_buf) != 0 || !S_ISCHR(_stat_buf.st_mode)) {
 		// If stderr is not a terminal,
 		// we cannot determine the background color.
-		return false;
+		return -1;
 	}
 	char *bg_color = get_bg_color__();
 	if (!bg_color) {
-		return false;
+		return -1;
 	}
 	char *r_str = strtok(bg_color, "/");
 	char *g_str = strtok(NULL, "/");
 	char *b_str = strtok(NULL, "/");
 	if (!r_str || !g_str || !b_str) {
 		free(bg_color);
-		return false;
+		return -1;
 	}
 	unsigned int r = (unsigned int)strtol(r_str, NULL, 16);
 	unsigned int g = (unsigned int)strtol(g_str, NULL, 16);
@@ -429,5 +481,5 @@ bool cp_xterm_is_dark_mode(void)
 	// Y = 0.299*R + 0.587*G + 0.114*B
 	double luminance = (r * 0.299) + (g * 0.587) + (b * 0.114);
 	free(bg_color);
-	return (luminance <= 32768.0);
+	return (luminance <= 32768.0) ? 1 : 0;
 }

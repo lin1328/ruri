@@ -38,10 +38,13 @@ static void ruri_fetch__(char **logo, char **info)
 	int j = 0;
 	for (int i = 0; logo[i] != NULL; i++) {
 		if (info[j] != NULL) {
-			cprintf("%s%s\n", logo[i], info[j]);
+			cprintf(logo[i]);
+			cprintf(info[j]);
+			cprintf("\n");
 			j++;
 		} else {
-			cprintf("%s\n", logo[i]);
+			cprintf(logo[i]);
+			cprintf("\n");
 		}
 	}
 }
